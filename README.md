@@ -64,4 +64,6 @@ github-linked/
 - `references/01~10` — 궁통보감 조후 (일간별)
 - `references/11~18` — 격국 (십신별 格)
 - `references/19~28` — 성패·강약·합충·학파이견·원전사례·병약론·수동계산·출력·점수화
+- `references/29~31` — 십이신살(12신살)·십이운성/신살 조견표·기간 운세 서술 프로토콜
+- `research/` — 외부 자료 조사 및 이론 반영 검토 기록
 - `scripts/saju_calc.py` — 간지·절기·대운·세운 결정론적 계산 (ephem)

@@ -81,7 +81,10 @@ description: >
 | 원전 사례 대조·블라인드 임상 | `references/24_japyeong_cases.md` |
 | 오행 편중·설기태심 의심 | `references/25_byeongyak.md` |
 | 조후 분석 | 일간별 궁통보감 파일(01~10) |
-| 합충형파해·신살 | `references/22_hapchung_shinsal.md` |
+| 합충형파해·원진·귀문·격각 | `references/22_hapchung_shinsal.md` |
+| 십이신살(12신살)·띠 기준 운 | `references/29_sibisinsal.md` |
+| 십이운성·신살 조견표·등급 | `references/30_shinsal_extended.md` |
+| 기간 운세(주간·월간·연간) 서술 | `references/31_unse_narrative.md` |
 | 학파 이견 발생 | `references/23_hakpa_igyeon.md` |
 | 운 점수화 요청 | `references/28_scoring.md` |
 | 최종 출력 직전 | `references/27_output_formats.md` |
@@ -128,6 +131,9 @@ description: >
 | `26_manual_calc.md` | 수동 계산법 (스크립트 폴백 전용) |
 | `27_output_formats.md` | 최종/대운/세운/월운 출력 템플릿 |
 | `28_scoring.md` | 운 점수화 모델 (v1.2) |
+| `29_sibisinsal.md` | 십이신살(12신살) 정본 배치표·역인출표·운 적용 절차 |
+| `30_shinsal_extended.md` | 십이운성 정본표·신살 확장 조견표·신뢰도 등급(A~D) |
+| `31_unse_narrative.md` | 기간 운세(주간·월간·연간) 대중 서술 프로토콜 |
 
 ---
 
