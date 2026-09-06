@@ -104,43 +104,74 @@
     .daily .stampcol{border-right:none; border-bottom:1px solid var(--rule-soft); padding:0 0 14px}
   }
 
-  /* ── 명식 그리드 ────────────────────────────── */
+  /* ── 명식 그리드 (운 4칸 ‖ 원국 4칸) ────────── */
   .board{
-    display:grid; grid-template-columns:76px repeat(5,1fr);
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     border-bottom:1px solid var(--rule);
   }
-  .board .rowlabel{
-    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
-    color:var(--ink-faint); text-transform:uppercase;
-    display:flex; align-items:center; padding:0 10px 0 0;
-    border-right:1px solid var(--rule-soft);
+  .bank{ display:grid; grid-auto-rows:min-content; min-width:0 }
+  .bank-un   { grid-template-columns:70px repeat(4,minmax(0,1fr)) }
+  .bank-natal{ grid-template-columns:70px repeat(4,minmax(0,1fr)); border-left:2px solid var(--ink) }
+  .bank-natal .rowlabels{ visibility:hidden }
+  @media (max-width:860px){ .bank-natal .rowlabels{ visibility:visible } }
+  .banktitle{
+    grid-column:1/-1; font-size:11px; font-weight:500; letter-spacing:.06em;
+    color:var(--ink-faint); padding:10px 0 6px;
+  }
+  .banktitle b{ color:var(--ink-dim); font-weight:500 }
+  .rowlabels{ display:flex; flex-direction:column; border-right:1px solid var(--rule-soft) }
+  .rowlabel{
+    font-size:10.5px; letter-spacing:.04em; color:var(--ink-faint);
+    display:flex; align-items:center; padding:0 8px 0 0;
   }
   .col{
-    border-right:1px solid var(--rule-soft); padding:0 6px;
+    border-right:1px solid var(--rule-soft); padding:0 4px; min-width:0;
     display:flex; flex-direction:column; align-items:center; text-align:center;
   }
-  .col:last-child{border-right:none}
-  .col.unse{background:var(--sunk); border-left:1.5px solid var(--seal)}
+  .bank .col:last-child{ border-right:none }
+  .bank-un .col       { background:var(--sunk) }
+  .bank-un .col.fixed { background:var(--paper); border-left:1px dashed var(--rule) }
+  .col.day            { box-shadow:inset 0 -3px 0 var(--rule) }
+  /* 두 뱅크의 행 높이를 맞춘다 (subgrid 없이 정렬 보장) */
+  .r-cap { min-height:44px } .r-gan{ min-height:74px } .r-zhi{ min-height:78px }
+  .r-slot{ min-height:44px }
   .cap{
-    padding:9px 0 7px; width:100%; font-size:11.5px; color:var(--ink-dim);
-    border-bottom:1px solid var(--rule-soft); font-family:var(--mono);
-    letter-spacing:.06em;
+    padding:7px 0 6px; width:100%; font-size:11px; color:var(--ink-dim);
+    border-bottom:1px solid var(--rule-soft); font-family:var(--sans);
+    letter-spacing:.02em; line-height:1.35;
   }
-  .col.unse .cap{color:var(--seal); font-weight:500}
-  .cap{font-family:var(--sans); letter-spacing:.03em}
+  .cap b{ display:block; font-weight:500; color:var(--ink) }
+  .cap .sp{ display:block; font-family:var(--mono); font-size:9.5px; color:var(--ink-faint) }
+  .bank-un .cap b{ color:var(--seal) }
+  .bank-un .col.fixed .cap b{ color:var(--seal) }
+  .wbadge{
+    display:inline-block; font-family:var(--mono); font-size:9px; line-height:1.5;
+    border:1px solid var(--rule); border-radius:2px; padding:0 3px; color:var(--ink-faint);
+  }
   .glyph{
-    font-family:var(--serif); font-weight:700; line-height:1.05;
-    font-size:clamp(30px,6.5vw,46px); padding:12px 0 2px;
+    font-family:var(--serif); font-weight:700; line-height:1.02;
+    font-size:clamp(24px,3.6vw,40px); padding:10px 0 2px;
   }
-  .glyph .ko{display:block; font-family:var(--sans); font-size:11px; font-weight:400; color:var(--ink-faint); letter-spacing:.05em}
+  .glyph .ko{display:block; font-family:var(--sans); font-size:10px; font-weight:400; color:var(--ink-faint); letter-spacing:.03em; line-height:1.4}
   .slot{
-    width:100%; padding:5px 2px; font-size:11.5px; line-height:1.45;
+    width:100%; padding:4px 2px; font-size:11px; line-height:1.4;
     border-top:1px dotted var(--rule-soft); color:var(--ink-dim);
   }
-  .slot b{display:block; font-weight:500; color:var(--ink); font-size:12px}
-  .slot .alt{font-size:10.5px; color:var(--ink-faint)}
+  .slot b{display:block; font-weight:500; color:var(--ink); font-size:11.5px}
+  .slot .alt{font-size:10px; color:var(--ink-faint)}
   .m木{color:var(--mok)} .m火{color:var(--hwa)} .m土{color:var(--to)}
   .m金{color:var(--geum)} .m水{color:var(--su)}
+
+  @media (max-width:860px){          /* 4+4 접기 — 운 위, 원국 아래 */
+    .board{ grid-template-columns:minmax(0,1fr) }
+    .bank-natal{ border-left:none; border-top:2px solid var(--ink) }
+    .glyph{ font-size:clamp(26px,6vw,38px) }
+  }
+  @media (max-width:520px){
+    .bank-un, .bank-natal{ grid-template-columns:repeat(4,minmax(0,1fr)) }
+    .rowlabel{ display:none }
+    .r-gan{min-height:64px} .r-zhi{min-height:70px} .r-slot{min-height:50px}
+  }
 
   /* ── 기간 눈금 ──────────────────────────────── */
   .scale{
@@ -214,6 +245,32 @@
   .verdict .do .lab{color:var(--seal)}
   .verdict strong{font-weight:500; font-size:14px; line-height:1.5}
 
+  /* 초점 자리 */
+  .focus{ margin:6px 0 0 }
+  .fs{ padding:9px 0; border-bottom:1px dotted var(--rule-soft) }
+  .fs:last-child{ border-bottom:none }
+  .fs .hd{ display:flex; align-items:baseline; gap:8px; font-size:13.5px; margin-bottom:5px }
+  .fs .hd b{ font-family:var(--serif); font-size:15px; font-weight:600 }
+  .fs .hd .ar{ color:var(--ink-dim); font-size:12px }
+  .fs .hd .sc{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-faint) }
+  .fsbar{ display:flex; height:9px; background:var(--sunk); overflow:hidden }
+  .fsbar i{ display:block; height:100% }
+  .fsbar i.l-dw { background:var(--su) }
+  .fsbar i.l-se { background:var(--mok) }
+  .fsbar i.l-wol{ background:var(--to) }
+  .fsbar i.l-il { background:var(--hwa) }
+  .fs .lg{ margin-top:5px; font-size:11.5px; color:var(--ink-dim); line-height:1.55 }
+  .fs .lg em{ font-style:normal; font-family:var(--mono); font-size:10.5px; color:var(--ink-faint) }
+  .stackbox{ border:1px solid var(--rule); padding:14px 16px; margin-top:16px }
+  .stackbox p{ font-size:13.5px; line-height:1.72; margin-bottom:.7em }
+  .stackbox p:last-child{ margin-bottom:0 }
+  .layerlines{ margin:0 }
+  .ll{ display:grid; grid-template-columns:62px minmax(0,1fr); gap:12px;
+       padding:9px 0; border-bottom:1px dotted var(--rule-soft); font-size:13.5px; line-height:1.7 }
+  .ll:last-child{ border-bottom:none }
+  .ll .lk{ font-family:var(--mono); font-size:10.5px; color:var(--ink-faint); padding-top:4px }
+  .ll .lk b{ display:block; font-family:var(--sans); font-size:12px; color:var(--ink); font-weight:500 }
+
   /* 관계 목록 */
   .rels{list-style:none; margin:0; padding:0}
   .rels li{
@@ -246,6 +303,24 @@
   .week .day .mk{font-size:11px; line-height:1.35; color:var(--seal)}
   .week .day .s12{font-size:10.5px; color:var(--ink-faint)}
   .week .day.today .dt{color:var(--seal); font-weight:500}
+
+  .weeklede{
+    font-family:var(--serif); font-size:14.5px; line-height:1.75; color:var(--ink-dim);
+    padding:2px 0 14px;
+  }
+  .weeklede b{ color:var(--ink); font-weight:600 }
+  .weeklines{ border-bottom:1px solid var(--rule) }
+  .wl{
+    display:grid; grid-template-columns:104px minmax(0,1fr); gap:16px;
+    padding:9px 0; border-bottom:1px dotted var(--rule-soft); font-size:13.5px; line-height:1.7;
+  }
+  .wl:last-child{ border-bottom:none }
+  .wl.today{ background:var(--sheet) }
+  .wl .k{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); padding-top:3px }
+  .wl .k b{ font-family:var(--serif); font-size:15px; font-weight:600; margin-left:5px }
+  .wl.today .k{ color:var(--seal) }
+  .wl.marked .t::before{ content:"▸ "; color:var(--seal) }
+  @media (max-width:520px){ .wl{ grid-template-columns:1fr; gap:2px } }
 
   /* ── 하단 명식 상세 ─────────────────────────── */
   .foot{margin-top:44px; border-top:1.5px solid var(--ink); padding-top:0}
@@ -314,10 +389,6 @@
   }
   .colophon b{color:var(--ink-dim); font-weight:500}
 
-  .demo-flag{
-    display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
-    color:var(--seal); border:1px solid var(--seal); border-radius:2px; padding:0 5px 1px;
-  }
 
   @media (max-width:900px){
     .reading{grid-template-columns:1fr; gap:28px}
@@ -368,7 +439,9 @@
 
   <section class="week" id="weekBox" hidden>
     <h3 class="weekhead">이번 주 일진 <span>— 원국과 가장 세게 걸리는 날에 표시했습니다</span></h3>
+    <div class="weeklede" id="weekLede"></div>
     <div class="days" id="weekDays"></div>
+    <div class="weeklines" id="weekLines"></div>
   </section>
 
   <section class="foot">
@@ -799,6 +872,282 @@ function readPeriod(natal, ganzhi, startMin, endMin, meta) {
            gongmang: natal.gongmangZhi.includes(z) };
 }
 
+/* ══ 층위 중첩 (references/31 §6) ═══════════════
+   ⚠️ 이 블록은 반드시 "렌더" 마커 위에 둔다 — 매일 아침 예약 작업이
+      스크립트 시작부터 그 마커까지를 잘라 엔진으로 쓴다.                   */
+
+const LAYER_DEF = [                                   // 비중: references/28_scoring.md §1
+  { key: "dw",  name: "대운", w: 25, role: "배경", hint: "10년간 깔려 있는 판" },
+  { key: "se",  name: "세운", w: 12, role: "주제", hint: "올해의 화두" },
+  { key: "wol", name: "월운", w: 5,  role: "시점", hint: "언제 불거지는가" },
+  { key: "il",  name: "일운", w: 3,  role: "촉발", hint: "그날의 방아쇠" }
+];
+const NATAL_W = 55;
+const GUK_ELEM  = { "申子辰": "水", "亥卯未": "木", "寅午戌": "火", "巳酉丑": "金" };
+const BANG_ELEM = { "寅卯辰": "木", "巳午未": "火", "申酉戌": "金", "亥子丑": "水" };
+const BANG_NAME = { "寅卯辰": "동방 목국", "巳午未": "남방 화국", "申酉戌": "서방 금국", "亥子丑": "북방 수국" };
+const GAN_CHUNG = ["甲庚", "乙辛", "丙壬", "丁癸"];    // 22_hapchung_shinsal.md §1-4. 戊己는 충 없음
+const isGanChung = (a, b) => GAN_CHUNG.some(p => p.includes(a) && p.includes(b) && a !== b);
+
+/** 천간·지지의 응집 — 개두·절각 판정 (readPeriod에서 추출한 공용 헬퍼) */
+function ganZhiCohesion(g, z) {
+  const gO = OG[GAN.indexOf(g)], zO = OZ[ZHI.indexOf(z)];
+  let t;
+  if (SHENG[zO] === gO)      t = "지지가 천간을 생한다 — 뿌리가 받쳐준다";
+  else if (SHENG[gO] === zO) t = "천간이 지지를 생한다 — 힘이 아래로 빠진다";
+  else if (KE[gO] === zO)    t = "천간이 지지를 극한다(개두) — 하려는 것과 실제가 어긋난다";
+  else if (KE[zO] === gO)    t = "지지가 천간을 극한다(절각) — 뜻은 있으나 발이 묶인다";
+  else                       t = "천간과 지지가 같은 기운 — 색이 진하고 단순하다";
+  return { gO, zO, t };
+}
+
+/** 해당 절기년에 유효한 대운 (render()의 기존 판정식과 동일) */
+function daewoonAt(natal, jieYear) {
+  let cur = null, idx = -1;
+  natal.dw.list.forEach((d, i) => { if (jieYear >= d.year) { cur = d; idx = i; } });
+  return cur ? { ...cur, idx } : null;
+}
+
+/** 4층 간지 조립. 대운·세운·월운은 anchorMin 기준, 일운은 언제나 오늘 (31 §6-2) */
+function resolveLayers(natal, anchorMin, todayMin) {
+  const slot = jieSlot(anchorMin), jy = slot.jieYear;
+  const se = yearPillar(jy);
+  const mz = MONTH_ZHI[slot.k];
+  const dw = daewoonAt(natal, jy);
+  const raw = {
+    dw:  dw ? { gz: dw.gz, span: `${dw.age}세 · ${dw.year}~${dw.year + 9}` } : null,
+    se:  { gz: se, span: `${jy} 입춘 ~ ${jy + 1} 입춘 직전` },
+    wol: { gz: monthGan(se[0], mz) + mz, span: `${JIE[slot.k]} ~ ${JIE[(slot.k + 1) % 12]} 직전` },
+    il:  { gz: dayPillar(todayMin), span: "오늘" }
+  };
+  return LAYER_DEF.map(L => {
+    const r = raw[L.key];
+    if (!r) return { ...L, gz: null, span: "대운 전", fixed: false, empty: true };
+    return { ...L, gz: r.gz, g: r.gz[0], z: r.gz[1], span: r.span,
+             fixed: L.key === "il", empty: false };
+  });
+}
+
+/** 삼합·방합 완성 — 원국 + 운. 출처 층위를 반드시 기록한다 (31 §6-4) */
+function hapComplete(natal, layers) {
+  const natalAt = {}, unAt = {};
+  ["년", "월", "일", "시"].forEach((l, i) => {
+    const z = natal.zhis[i]; if (!z) return;
+    (natalAt[z] = natalAt[z] || []).push(l + "지");
+  });
+  layers.forEach(L => { if (!L.empty) (unAt[L.z] = unAt[L.z] || []).push(L.name); });
+  const all = z => (natalAt[z] || []).concat(unAt[z] || []);
+  const out = [];
+  const scan = (sets, type, elem, nm) => sets.forEach(set => {
+    const zs = set.split("");
+    if (!zs.every(z => all(z).length)) return;
+    const natalCount = zs.filter(z => natalAt[z]).length;
+    const unOnly = zs.filter(z => !natalAt[z] && unAt[z]);
+    if (!unOnly.length) return;                       // 원국만으로 이미 완성 — 운이 만든 것 아님
+    const unW = [...new Set(zs.flatMap(z => unAt[z] || []))]
+      .reduce((a, n) => a + (LAYER_DEF.find(L => L.name === n) || { w: 0 }).w, 0);
+    // 완성을 깰 충이 판에 있는가 (충산합해)
+    const fragile = zs.find(z => zs.concat(Object.keys(natalAt), Object.keys(unAt))
+      .some(o => CHUNG.includes([z, o].sort().join(""))));
+    out.push({
+      type, set, elem: elem[set], name: nm ? nm[set] : GUK_NAME[set],
+      parts: zs.map(z => ({ zhi: z, from: all(z).join("·"), unOnly: !natalAt[z] })),
+      natalCount, unCount: zs.length - natalCount,
+      grade: natalCount >= 2 ? "A" : natalCount === 1 ? "B" : "C",
+      w: unW + natalCount * (NATAL_W / 4),
+      fragile: fragile || null
+    });
+  });
+  scan(SAMHAP, "삼합", GUK_ELEM, null);
+  scan(BANGHAP, "방합", BANG_ELEM, BANG_NAME);
+  return out.sort((a, b) => b.w - a.w);
+}
+
+/** 층위 간 관계 6쌍 (31 §6-3) */
+function crossLayer(layers) {
+  const out = [];
+  for (let i = 0; i < layers.length; i++) for (let j = i + 1; j < layers.length; j++) {
+    const A = layers[i], B = layers[j];
+    if (A.empty || B.empty) continue;
+    const rel = zhiRel(A.z, B.z);
+    const gan = A.g === B.g ? "천간 동일" : isGanChung(A.g, B.g) ? "천간충" : null;
+    if (!rel.length && !gan) continue;
+    out.push({ a: A.key, b: B.key, na: A.name, nb: B.name, za: A.z, zb: B.z, gan, rel,
+               w: rel.length ? Math.max(...rel.map(x => (REL_INFO[x] || { w: 1 }).w)) : 2,
+               pairW: A.w + B.w,
+               info: rel.length ? (REL_INFO[rel[0]] || { t: "" }).t : "" });
+  }
+  return out.sort((a, b) => b.pairW - a.pairW || b.w - a.w);
+}
+
+/** 복음·반음 — 간지 단위 (31 §6-6) */
+function bokeumBaneum(natal, layers) {
+  const bok = [], ban = [];
+  const labs = ["년", "월", "일", "시"];
+  layers.forEach(L => {
+    if (L.empty) return;
+    natal.pillars.forEach((pgz, i) => {
+      if (!pgz) return;
+      if (pgz === L.gz) bok.push({ scope: "원국", key: L.key, name: L.name, gz: L.gz, target: labs[i] + "주" });
+      else if (isGanChung(pgz[0], L.g) && CHUNG.includes([pgz[1], L.z].sort().join("")))
+        ban.push({ scope: "원국", key: L.key, name: L.name, gz: L.gz, target: labs[i] + "주", natalGz: pgz });
+    });
+  });
+  for (let i = 0; i < layers.length; i++) for (let j = i + 1; j < layers.length; j++) {
+    const A = layers[i], B = layers[j];
+    if (A.empty || B.empty) continue;
+    if (A.gz === B.gz) bok.push({ scope: "운", key: A.key, name: A.name, gz: A.gz, target: B.name });
+    else if (isGanChung(A.g, B.g) && CHUNG.includes([A.z, B.z].sort().join("")))
+      ban.push({ scope: "운", key: A.key, name: A.name, gz: A.gz, target: B.name, natalGz: B.gz });
+  }
+  return { bok, ban };
+}
+
+/** 초점 자리 — 한 원국 궁에 2개 이상 층위가 걸릴 때 (31 §6-5) */
+function focusSpots(natal, layers) {
+  const by = {};
+  layers.forEach(L => {
+    if (L.empty) return;
+    relationsTo(natal, L.z).forEach(r => {
+      const f = by[r.pos] = by[r.pos] || { pos: r.pos, zhi: r.zhi, hits: [] };
+      f.hits.push({ key: L.key, name: L.name, rel: r.rel, relW: r.weight, layerW: L.w, sub: r.weight * L.w });
+    });
+  });
+  const list = Object.values(by).map(f => ({
+    ...f, area: GUNG[f.pos].area, short: GUNG[f.pos].short,
+    layerCount: f.hits.length,
+    score: f.hits.reduce((a, h) => a + h.sub, 0),
+    volatile: f.hits.filter(h => h.key !== "dw").reduce((a, h) => a + h.sub, 0)
+  })).sort((a, b) => b.score - a.score);
+  const tot = list.reduce((a, f) => a + f.score, 0) || 1;
+  list.forEach(f => { f.share = f.score / tot; });
+  return list;
+}
+
+/** 4층 결합 판독 — 위를 묶는다 */
+function readStack(natal, layers) {
+  const perLayer = layers.map(L => {
+    if (L.empty) return { ...L };
+    const coh = ganZhiCohesion(L.g, L.z);
+    const rels = relationsTo(natal, L.z);
+    return { ...L, ...coh, gzRel: coh.t,
+      sipsinG: sipsin(natal.dayGan, L.g),
+      sipsinZ: sipsin(natal.dayGan, JANGGAN[L.z].slice(-1)),
+      s12y: sinsal12(natal.yearZhi, L.z), s12d: sinsal12(natal.dayZhi, L.z),
+      unY: unseong(natal.dayGan, L.z, "eum"), unYang: unseong(natal.dayGan, L.z, "yang"),
+      rels, relW: rels.reduce((a, r) => a + r.weight, 0),
+      gongmang: natal.gongmangZhi.includes(L.z) };
+  });
+  const all = focusSpots(natal, layers);
+  const bb = bokeumBaneum(natal, layers);
+  return {
+    layers, perLayer,
+    allSpots: all,
+    focus: all.filter(f => f.layerCount >= 2),
+    cross: crossLayer(layers),
+    hap: hapComplete(natal, layers),
+    bokeum: bb.bok, baneum: bb.ban,
+    gongmangHits: perLayer.filter(L => !L.empty && L.gongmang).map(L => ({ key: L.key, name: L.name, z: L.z }))
+  };
+}
+
+/* ── 서술 조립 (사전 기반. 고정 문구를 새로 쓰지 않는다) ── */
+
+const clause = t => String(t || "").split(/[.—]/)[0].trim();
+
+/* 한글 조사 — 한자는 훈음으로 받침을 판정한다 */
+const koOf = ch => { const i = ZHI.indexOf(ch); if (i >= 0) return ZHI_KO[i];
+                     const j = GAN.indexOf(ch); return j >= 0 ? GAN_KO[j] : ch; };
+function hasJong(word) {
+  const k = koOf(String(word).slice(-1));
+  const c = k.charCodeAt(k.length - 1) - 0xAC00;
+  return c >= 0 && c < 11172 && c % 28 !== 0;
+}
+/** josa("申","은","는") → "申은" */
+const josa = (w, a, b) => w + (hasJong(w) ? a : b);
+/** 받침 있으면 "으로", 없거나 ㄹ이면 "로" */
+function ro(w) {
+  const k = koOf(String(w).slice(-1));
+  const c = k.charCodeAt(k.length - 1) - 0xAC00;
+  if (c < 0 || c >= 11172) return w + "로";
+  const j = c % 28;
+  return w + (j === 0 || j === 8 ? "로" : "으로");
+}
+
+function layerLine(natal, st, key) {
+  const L = st.perLayer.find(x => x.key === key);
+  if (!L || L.empty) return `${LAYER_DEF.find(x => x.key === key).name}은 아직 시작 전입니다.`;
+  // 위 층위와 간지가 같으면 되풀이해 적지 않는다
+  const twin = st.perLayer.find(x => !x.empty && x.key !== key && x.gz === L.gz && x.w > L.w);
+  if (twin) return `<b>${L.name} ${L.gz}</b> — ${L.role}. ${twin.name}과 간지가 같습니다(복음). ` +
+    `${twin.role}에 깔린 것이 ${L.role} 자리에서 한 번 더 눌립니다 — 새 일이 아니라 하던 일이 진해지는 결입니다.`;
+  const top = L.rels[0];
+  const sd = SINSAL_DESC[L.s12y];
+  let t = `<b>${L.name} ${L.gz}</b> — ${L.role}. ${natal.dayGan} 일간에게 ${josa(L.z, "은", "는")} <b>${L.unY}</b>, ` +
+          `년지 기준 <b>${L.s12y}</b>(${sd.tag})입니다. `;
+  t += top
+    ? `${top.pos}지 ${top.zhi}에 ${ro(top.rel.join("·"))} 걸려 ${GUNG[top.pos].short} 쪽이 움직이기 쉽습니다.`
+    : `원국 지지와 직접 걸리는 자리는 없어, ${clause(UN_DESC[L.unY])} 정도의 온도로 지나갑니다.`;
+  if (L.gongmang) t += ` ${josa(L.z, "은", "는")} 공망지라 뜻만큼 실체가 잡히지 않을 수 있습니다.`;
+  return t;
+}
+
+function stackProse(natal, st) {
+  const bits = [];
+  const f = st.focus[0];
+  if (f) {
+    const names = f.hits.map(h => h.name).join("·");
+    bits.push(`네 층위 중 <b>${names}</b>이 한꺼번에 <b>${f.pos}지 ${f.zhi}</b>에 걸립니다. ` +
+      `${f.area} 쪽이 이 기간의 초점입니다. ${f.hits.map(h => `${h.name} ${h.rel[0]}`).join(", ")} — 이것들이 한 자리에 겹쳐 만드는 결입니다.`);
+  } else {
+    bits.push("두 층위 이상이 한 자리에 겹치는 곳이 없습니다. 밖에서 밀고 들어오는 일보다 각 층위가 따로 굴러가는 구간입니다.");
+  }
+  const h = st.hap[0];
+  if (h) {
+    const unZ = h.parts.filter(p => p.unOnly).map(p => p.zhi).join("·");
+    bits.push(`원국과 운의 글자가 합쳐져 <b>${h.set} ${h.name}</b> ${h.type}이 섭니다 — ${h.parts.map(p => `${p.zhi} ${p.from}`).join(" / ")}. ` +
+      `${josa(unZ, "은", "는")} 운에서 온 글자라, 그 운이 지나면 이 국은 풀립니다.` + (h.fragile ? ` 다만 ${josa(h.fragile, "을", "를")} 충하는 글자가 판에 있어 완전히 굳지는 않습니다.` : ""));
+  }
+  const bk = st.bokeum[0];
+  if (bk) bits.push(bk.scope === "운"
+    ? `<b>${bk.name}과 ${bk.target}의 간지가 ${bk.gz}로 같습니다(복음)</b> — 새 일이 아니라 하던 일이 두 배로 진해집니다.`
+    : `<b>${bk.name} ${bk.gz}가 ${bk.target}와 같습니다(복음)</b> — 그 자리의 성질이 되풀이됩니다.`);
+  const bn = st.baneum[0];
+  if (bn) bits.push(`<b>${bn.name} ${bn.gz}가 ${bn.target}와 반음</b>입니다 — 그 영역이 정면으로 뒤집히는 결. 다만 반음은 이름이 험한 만큼 과대해석을 경계합니다.`);
+  const c = st.cross[0];
+  if (c && c.rel.length) bits.push(`운끼리는 ${c.na} ${c.za}와 ${c.nb} ${c.zb}가 <b>${c.rel.join("·")}</b>입니다 — ${c.info}`);
+  if (st.gongmangHits.length >= 2)
+    bits.push(`덧붙여 ${st.gongmangHits.map(g => `${g.name} ${g.z}`).join("·")}가 모두 일주 기준 공망지입니다. 뜻은 서는데 손에 안 잡히는 느낌이 겹칩니다.`);
+  return bits;
+}
+
+/** 주간 하루 한 줄. 표시일은 관계를 근거로, 나머지는 배치 정보까지만 (31 §4⑤⑥) */
+function dayLine(natal, dgz, marked) {
+  const z = dgz[1];
+  const s12 = sinsal12(natal.yearZhi, z), un = unseong(natal.dayGan, z, "eum");
+  const top = relationsTo(natal, z)[0];
+  const sd = SINSAL_DESC[s12];
+  if (marked && top) {
+    const info = REL_INFO[top.rel[0]] || { t: "" };
+    return `${top.pos}지 ${top.zhi}에 <b>${top.rel.join("·")}</b> — ${clause(info.t)}. ` +
+           `${GUNG[top.pos].short} 쪽으로 힘이 실리기 쉬운 날입니다. (${un} · ${s12})`;
+  }
+  return `${sd.tag}. ${clause(UN_DESC[un])} — ${clause(sd.act)}기 무난한 날입니다. (${un} · ${s12})`;
+}
+
+function weekLede(natal, p) {
+  const marks = p.days.filter(d => d.marked);
+  const mz = p.monthGz[1];
+  const bits = [
+    `배경은 <b>${p.monthGz}</b>월입니다. ${ZHI_DESC[mz].theme}`,
+    marks.length
+      ? `이번 주에 원국과 가장 세게 걸리는 날은 ${marks.map(d => `${fmtMD(d.min)}(${d.gz})`).join(", ")}입니다.`
+      : `7일 중 원국에 특별히 세게 걸리는 날은 없습니다. 고르게 지나가는 주입니다.`,
+    `일운의 비중은 3입니다. 아래 7줄은 사건 예측이 아니라 <b>무엇을 어느 날에 두면 좋은가</b>에 대한 배치 참고입니다.`
+  ];
+  return bits;
+}
+
 /* ══ 렌더 ═══════════════════════════════════════ */
 const fmtD  = m => { const d = kd(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
 const fmtDT = m => { const d = kd(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
@@ -817,6 +1166,7 @@ function computePeriods(natal) {
   [[s0, "month0", "이번 달"], [s1, "month1", "다음 달"]].forEach(([s, key, label]) => {
     const yp = yearPillar(s.jieYear), mz = MONTH_ZHI[s.k];
     out[key] = { kind: "month", label, ganzhi: monthGan(yp[0], mz) + mz, start: s.start, end: s.end,
+                 anchor: (now >= s.start && now <= s.end) ? now : s.start,
                  note: `${JIE[s.k]} → ${JIE[(s.k + 1) % 12]} 직전`, slot: s };
   });
 
@@ -824,6 +1174,7 @@ function computePeriods(natal) {
   const jy = s0.jieYear;
   [[jy, "year0", "올해"], [jy + 1, "year1", "내년"]].forEach(([y, key, label]) => {
     out[key] = { kind: "year", label, ganzhi: yearPillar(y), start: termAt(y, 0), end: termAt(y + 1, 0),
+               anchor: (now >= termAt(y, 0) && now < termAt(y + 1, 0)) ? now : termAt(y, 0),
                  note: `${y}년 입춘 → ${y + 1}년 입춘 직전`, jieYear: y };
   });
 
@@ -844,16 +1195,83 @@ function computePeriods(natal) {
     const bg = jieSlot(mon + 3 * 1440 + 720);
     const ypb = yearPillar(bg.jieYear), mzb = MONTH_ZHI[bg.k];
     out[key] = { kind: "week", label, days, start: mon, end: mon + 7 * 1440 - 1,
+                 anchor: (now >= mon && now < mon + 7 * 1440) ? now : mon,
                  monthGz: monthGan(ypb[0], mzb) + mzb,
                  ganzhi: days.slice().sort((a, b) => b.w - a.w || a.min - b.min)[0].gz,
                  note: `${fmtMD(mon)} 월요일 → ${fmtMD(mon + 6 * 1440)} 일요일` };
+    const maxW = Math.max(...days.map(d => d.w));
+    days.forEach(d => { d.marked = d.w >= 4 && d.w === maxW; });
   });
   return out;
+}
+
+/** 명식판 한 칸 — 운/원국 공용 */
+function boardCol(n, spec) {
+  const c = el("div", "col" + (spec.un ? " unse" : "") + (spec.fixed ? " fixed" : "") + (spec.isDay ? " day" : ""));
+  if (!spec.gz) {
+    c.innerHTML =
+      `<div class="cap r-cap"><b>${spec.cap}</b><span class="sp">${spec.span || ""}</span></div>` +
+      `<div class="glyph r-gan" style="color:var(--ink-faint)">—<span class="ko">${spec.emptyNote || "없음"}</span></div>` +
+      `<div class="glyph r-zhi" style="color:var(--ink-faint)">—</div>` +
+      `<div class="slot r-slot"><b>·</b></div><div class="slot r-slot"><b>·</b></div><div class="slot r-slot"><b>·</b></div>`;
+    return c;
+  }
+  const G = spec.gz[0], Z = spec.gz[1];
+  const gi = GAN.indexOf(G), zi = ZHI.indexOf(Z);
+  c.innerHTML =
+    `<div class="cap r-cap"><b>${spec.cap}</b>${spec.badge ? ` <span class="wbadge">${spec.badge}</span>` : ""}` +
+      `<span class="sp">${spec.span || ""}</span></div>` +
+    `<div class="glyph r-gan m${OG[gi]}">${G}<span class="ko">${GAN_KO[gi]}</span></div>` +
+    `<div class="glyph r-zhi m${OZ[zi]}">${Z}<span class="ko">${ZHI_KO[zi]}·${ANIMAL[zi]}</span></div>` +
+    `<div class="slot r-slot"><b>${spec.isDay ? "일간 " + G : sipsin(n.dayGan, G)}</b>` +
+      `<span class="alt">지지 ${sipsin(n.dayGan, JANGGAN[Z].slice(-1))}</span></div>` +
+    `<div class="slot r-slot"><b>${sinsal12(n.yearZhi, Z)}</b>` +
+      `<span class="alt">일지 기준 ${sinsal12(n.dayZhi, Z)}</span></div>` +
+    `<div class="slot r-slot"><b>${unseong(n.dayGan, Z, "eum")}</b>` +
+      `<span class="alt">양포태 ${unseong(n.dayGan, Z, "yang")}</span></div>`;
+  if (spec.aria) c.setAttribute("aria-label", spec.aria);
+  return c;
+}
+
+function renderBoard(n, stack) {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const ROWS = [["r-cap", ""], ["r-gan", "천간"], ["r-zhi", "지지"],
+                ["r-slot", "십신"], ["r-slot", "12신살"], ["r-slot", "십이운성"]];
+
+  const bankUn = el("div", "bank bank-un");
+  bankUn.append(el("div", "banktitle", `<b>운</b> — 움직이는 것 · 탭으로 시점이 바뀝니다`));
+  const labs = el("div", "rowlabels");
+  ROWS.forEach(([cls, txt]) => labs.append(el("div", "rowlabel " + cls, txt)));
+  bankUn.append(labs);
+  stack.perLayer.forEach(L => {
+    bankUn.append(boardCol(n, {
+      cap: L.name, gz: L.empty ? null : L.gz, span: L.span,
+      badge: L.fixed ? "오늘 고정" : String(L.w), un: true, fixed: L.fixed,
+      emptyNote: "대운 전",
+      aria: L.fixed ? "일운 — 항상 오늘 일진으로 고정" : `${L.name} ${L.gz} · ${L.role}`
+    }));
+  });
+
+  const bankNa = el("div", "bank bank-natal");
+  bankNa.append(el("div", "banktitle", `<b>원국</b> — 타고난 그릇 · 시·일·월·년`));
+  const labs2 = el("div", "rowlabels");
+  ROWS.forEach(([cls, txt]) => labs2.append(el("div", "rowlabel " + cls, txt)));
+  bankNa.append(labs2);
+  [["시주", n.pillars[3], false], ["일주", n.pillars[2], true],
+   ["월주", n.pillars[1], false], ["년주", n.pillars[0], false]].forEach(([cap, gzv, isDay]) => {
+    bankNa.append(boardCol(n, { cap, gz: gzv, span: "", isDay, emptyNote: "시각 미상" }));
+  });
+
+  board.append(bankUn, bankNa);
 }
 
 function render() {
   const n = NATAL, p = PERIODS[CURRENT];
   const rd = readPeriod(n, p.ganzhi, p.start, p.end, p);
+  const TODAY = kmin(nowKd());
+  const LAYERS = resolveLayers(n, p.anchor, TODAY);
+  const ST = readStack(n, LAYERS);
 
   /* 마스트헤드 */
   const now = kmin(nowKd()), tgz = dayPillar(now), tslot = jieSlot(now);
@@ -865,50 +1283,19 @@ function render() {
 
   const sub = document.getElementById("subline");
   sub.innerHTML = "";
-  const nm = n.profile.name || "명식";
   const addSub = (k, v) => { sub.append(el("span", "", `<span class="k">${k}</span> ${v}`)); };
-  addSub("명식", `${nm}${n.profile.demo ? ' <span class="demo-flag">예시</span>' : ""}`);
+  const bd = n.profile.date.replace(/-/g, "."), bt = n.timeKnown ? n.profile.time : "시각 미상";
+  addSub("명식", `<b>${n.pillars.filter(Boolean).join(" ")}</b>`);
+  addSub("생년월일시", `${bd} ${bt} ${n.profile.gender === "M" ? "남" : "여"}` +
+    (n.timeKnown ? ` · ${ZHI_KO[ZHI.indexOf(n.pillars[3][1])]}시` : ""));
   addSub("일간", `<b class="m${OG[GAN.indexOf(n.dayGan)]}">${n.dayGan}</b> ${GAN_KO[GAN.indexOf(n.dayGan)]}${OG[GAN.indexOf(n.dayGan)]} · ${GAN_DESC[n.dayGan]}`);
   addSub("띠", `${ANIMAL[ZHI.indexOf(n.yearZhi)]}띠 · ${n.guk} ${GUK_NAME[n.guk]} 기준`);
   addSub("절기", `${JIE[tslot.k]} 이후 ${Math.floor((now - tslot.start) / 1440)}일째`);
 
   renderDaily(n);
 
-  /* 명식 그리드 */
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-  const rows = [
-    { key: "cap" }, { key: "gan" }, { key: "zhi" },
-    { key: "sipsin", label: "십신" }, { key: "sinsal", label: "12신살" }, { key: "unseong", label: "십이운성" }
-  ];
-  const cols = [
-    { cap: `${p.label} · ${p.kind === "week" ? "핵심 일진" : p.kind === "month" ? "월운" : "세운"}`, gz: rd.ganzhi, unse: true },
-    { cap: "시주", gz: n.pillars[3] }, { cap: "일주", gz: n.pillars[2], isDay: true },
-    { cap: "월주", gz: n.pillars[1] }, { cap: "년주", gz: n.pillars[0] }
-  ];
-  // grid는 행 단위로 채운다
-  rows.forEach(r => {
-    board.append(el("div", "rowlabel", r.label || ""));
-    cols.forEach(col => {
-      const cell = el("div", "col" + (col.unse ? " unse" : ""));
-      cell.style.borderRight = "1px solid var(--rule-soft)";
-      if (!col.gz) {
-        cell.innerHTML = r.key === "cap" ? `<div class="cap">${col.cap}</div>`
-          : r.key === "gan" ? `<div class="glyph" style="color:var(--ink-faint)">—<span class="ko">시각 미상</span></div>`
-          : r.key === "zhi" ? `<div class="glyph" style="color:var(--ink-faint)">—<span class="ko">시주 제외</span></div>`
-          : `<div class="slot"><b>·</b></div>`;
-        board.append(cell); return;
-      }
-      const G = col.gz[0], Z = col.gz[1];
-      if (r.key === "cap") cell.innerHTML = `<div class="cap">${col.cap}</div>`;
-      else if (r.key === "gan") cell.innerHTML = `<div class="glyph m${OG[GAN.indexOf(G)]}">${G}<span class="ko">${GAN_KO[GAN.indexOf(G)]}</span></div>`;
-      else if (r.key === "zhi") cell.innerHTML = `<div class="glyph m${OZ[ZHI.indexOf(Z)]}">${Z}<span class="ko">${ZHI_KO[ZHI.indexOf(Z)]}·${ANIMAL[ZHI.indexOf(Z)]}</span></div>`;
-      else if (r.key === "sipsin") cell.innerHTML = `<div class="slot"><b>${col.isDay ? "일간 " + G : sipsin(n.dayGan, G)}</b><span class="alt">지지 ${sipsin(n.dayGan, JANGGAN[Z].slice(-1))}</span></div>`;
-      else if (r.key === "sinsal") cell.innerHTML = `<div class="slot"><b>${sinsal12(n.yearZhi, Z)}</b><span class="alt">일지 기준 ${sinsal12(n.dayZhi, Z)}</span></div>`;
-      else cell.innerHTML = `<div class="slot"><b>${unseong(n.dayGan, Z, "eum")}</b><span class="alt">양포태 ${unseong(n.dayGan, Z, "yang")}</span></div>`;
-      board.append(cell);
-    });
-  });
+  /* 명식 그리드 — 운 4칸 ‖ 원국 4칸 */
+  renderBoard(n, ST);
 
   /* 눈금 */
   const scale = document.getElementById("scale");
@@ -925,14 +1312,19 @@ function render() {
   [...scale.children].forEach(b => {
     const pd = PERIODS[b.dataset.k];
     b.setAttribute("aria-selected", b.dataset.k === CURRENT ? "true" : "false");
-    b.querySelector(".gz").innerHTML = `<span class="mono" style="font-size:11px;color:var(--ink-faint)">${pd.kind === "week" ? fmtMD(pd.start) : pd.ganzhi}</span>`;
+    const pl = resolveLayers(n, pd.anchor, TODAY);
+    const se = pl.find(x => x.key === "se").gz, wo = pl.find(x => x.key === "wol").gz;
+    b.querySelector(".gz").innerHTML = `<span class="mono" style="font-size:11px;color:var(--ink-faint)">${se} / ${wo}</span>`;
   });
 
   /* 원장 */
   const L = document.getElementById("ledger");
   L.innerHTML = "";
   const row = (k, v) => { const d = el("div", "ldr-row"); d.innerHTML = `<dt>${k}</dt><dd>${v}</dd>`; L.append(d); };
-  row("간지", `<span class="m${rd.gO}" style="font-family:var(--serif);font-size:19px;font-weight:600">${rd.ganzhi}</span> <span class="mono" style="font-size:12px;color:var(--ink-dim)">${gzKo(rd.ganzhi)}</span><span class="sub">${rd.gzRel}</span>`);
+  row(p.kind === "week" ? "핵심 일진" : "간지",
+      `<span class="m${rd.gO}" style="font-family:var(--serif);font-size:19px;font-weight:600">${rd.ganzhi}</span> <span class="mono" style="font-size:12px;color:var(--ink-dim)">${gzKo(rd.ganzhi)}</span>` +
+      `<span class="sub">${rd.gzRel}</span>` +
+      (p.kind === "week" ? `<span class="sub">그 주 7일 중 원국에 가장 세게 걸리는 날입니다. 명식판의 일운(오늘) 칸과는 별개입니다.</span>` : ""));
   row("기간", `<span class="mono">${p.kind === "year" || p.kind === "month" ? fmtDT(p.start) : fmtD(p.start)}</span><span class="sub">→ ${p.kind === "year" || p.kind === "month" ? fmtDT(p.end) : fmtD(p.end)} · ${p.note}</span>`);
   if (p.kind === "week") row("배경", `월운 <b>${p.monthGz}</b><span class="sub">주(週)는 명리 고유 단위가 아니라, 일진 7개를 묶어 본 배치입니다.</span>`);
   row("12신살", `<span class="tag hit">${rd.s12y}</span><span class="sub">년지 ${n.yearZhi} · ${n.guk}(${GUK_NAME[n.guk]}) 기준 — ${SINSAL_DESC[rd.s12y].tag}</span>` +
@@ -981,6 +1373,38 @@ function render() {
     html += `<p>원국 지지와 직접 걸리는 합·충·형·파·해·원진·귀문·격각이 없습니다. 사건이 밖에서 밀고 들어오기보다, 위의 십이운성과 12신살이 만드는 <b>내부 온도</b>로 지나가는 구간입니다.</p>`;
   }
 
+  /* ── 네 층위 (오늘과 같은 시점이면 위에서 이미 읽었으므로 반복하지 않는다) ── */
+  const sameAsToday = p.anchor === TODAY;
+  html += `<h3>네 층위 — 대운 · 세운 · 월운 · 일운</h3>`;
+  if (sameAsToday) {
+    html += `<p style="color:var(--ink-dim)">이 기간의 기준 시점은 오늘입니다. 네 층위는 <b>${ST.perLayer.filter(x => !x.empty).map(x => `${x.name} ${x.gz}`).join(" · ")}</b>으로, 맨 위 '오늘'에서 한 줄씩 읽은 것과 같습니다.</p>`;
+  } else {
+    html += `<p style="color:var(--ink-dim);font-size:13px">기준 시점 <span class="mono">${fmtD(p.anchor)}</span> — 이 기간은 오늘을 포함하지 않아 기간의 시작으로 잡았습니다. 일운만 오늘로 고정됩니다.</p>`;
+    html += `<div class="layerlines">` + ST.perLayer.map(L => {
+      const nm = LAYER_DEF.find(x => x.key === L.key);
+      return `<div class="ll"><span class="lk"><b>${nm.name}</b>${L.empty ? "—" : L.gz}<br>${nm.role} · ${nm.w}</span>` +
+             `<span>${layerLine(n, ST, L.key)}</span></div>`;
+    }).join("") + `</div>`;
+  }
+
+  html += `<h3>겹치는 자리</h3>`;
+  if (ST.focus.length) {
+    html += `<div class="focus">` + ST.focus.map(f => {
+      const segs = LAYER_DEF.map(L => {
+        const h = f.hits.find(x => x.key === L.key);
+        return h ? `<i class="l-${L.key}" style="width:${(h.sub / f.score * 100).toFixed(1)}%" title="${L.name} ${h.rel.join('·')}"></i>` : "";
+      }).join("");
+      return `<div class="fs"><div class="hd"><b>${f.pos}지 ${f.zhi}</b><span class="ar">${f.area}</span>` +
+        `<span class="sc">층위 ${f.layerCount} · ${f.score}</span></div>` +
+        `<div class="fsbar">${segs}</div>` +
+        `<div class="lg">${f.hits.map(h => `<em>${h.name}</em> ${h.rel.join("·")}`).join(" · ")}` +
+        (f.volatile ? `<br><em>이번 기간에 새로 움직이는 몫(대운 제외) ${f.volatile}</em>` : "") + `</div></div>`;
+    }).join("") + `</div>`;
+  } else {
+    html += `<p>두 층위 이상이 한 자리에 겹치는 곳이 없습니다. 각 층위가 따로 굴러가는 구간입니다.</p>`;
+  }
+  html += `<div class="stackbox">` + stackProse(n, ST).map(b => `<p>${b}</p>`).join("") + `</div>`;
+
   html += `<div class="verdict"><div class="do"><span class="lab">이 기간에 할 것 하나</span><strong>${sd.act}</strong></div>` +
           `<div><span class="lab">접을 것 하나</span><strong>${sd.stop}</strong></div></div>`;
   PR.innerHTML = html;
@@ -989,11 +1413,12 @@ function render() {
   const wb = document.getElementById("weekBox");
   if (p.kind === "week") {
     wb.hidden = false;
+    document.getElementById("weekLede").innerHTML =
+      weekLede(n, p).map(t => `<p style="margin:0 0 .5em">${t}</p>`).join("");
     const wd = document.getElementById("weekDays");
     wd.innerHTML = "";
-    const maxW = Math.max(...p.days.map(d => d.w));
     p.days.forEach((d, i) => {
-      const marked = d.w >= 4 && d.w === maxW;
+      const marked = d.marked;
       const c = el("div", "day" + (d.isToday ? " today" : "") + (marked ? " marked" : ""));
       const top = d.rels[0];
       c.innerHTML = `<span class="dow">${"MON TUE WED THU FRI SAT SUN".split(" ")[i]}</span>` +
@@ -1003,6 +1428,13 @@ function render() {
         `<span class="s12">${sinsal12(n.yearZhi, d.gz[1])}</span>`;
       wd.append(c);
     });
+    const wl = document.getElementById("weekLines");
+    wl.innerHTML = p.days.map((d, i) => {
+      const dow = "월화수목금토일"[i];
+      return `<div class="wl${d.isToday ? " today" : ""}${d.marked ? " marked" : ""}">` +
+        `<span class="k">${dow} ${fmtMD(d.min)}<b class="m${OZ[ZHI.indexOf(d.gz[1])]}">${d.gz}</b></span>` +
+        `<span class="t">${dayLine(n, d.gz, d.marked)}</span></div>`;
+    }).join("");
   } else wb.hidden = true;
 
   /* 하단 패널 */
@@ -1041,8 +1473,11 @@ function render() {
   /* 콜로폰 */
   document.getElementById("colophon").innerHTML =
     `<b>계산 기준</b> · 절기는 태양 겉보기 황경 315°+30°k 통과 시각(KST, 분 단위 실계산). 연주는 입춘, 월주는 절입 기준. 일주는 1900-01-01=甲戌 기준이며 23시 초과 출생은 익일로 넘깁니다. 진태양시 −32분(서울 경도) 적용.<br>` +
-    `<b>이론 근거</b> · 십이신살은 년지 삼합국 기준(일지 기준 병기), 십이운성은 음포태(양포태 병기), 지지 관계는 합·충·형·파·해에 원진·귀문·격각을 더해 봅니다. 신살에는 신뢰도 등급(A~D)을 붙였고 C·D는 단독 판정에 쓰지 않습니다.<br>` +
-    `<b>읽는 법</b> · 이 페이지는 <b>신살·십이운성·지지 관계</b> 층위를 그린 것입니다. 격국과 용신의 성패 판정은 담고 있지 않으므로, 여기 나온 길흉의 결은 참고이지 결론이 아닙니다. 운은 원국이라는 그릇 안의 변동이고, 층위 비중은 원국 55 · 대운 25 · 세운 12 · 월운 5 · 일운 3입니다.<br>` +
+    `<b>네 층위를 뽑는 시점</b> · 대운·세운·월운은 <b>기준 시점</b>으로 계산합니다 — 고른 기간이 지금을 포함하면 지금, 아니면 그 기간의 시작. <b>일운만 언제나 오늘로 고정</b>합니다. "오늘의 나"를 움직이지 않는 기준점으로 둬야 상위 세 층위를 옮겨 볼 때 무엇이 달라지는지가 보이기 때문입니다.<br>` +
+    `<b>겹치는 자리</b> · 초점 강도는 Σ(층위 비중 × 관계 세기)입니다. 층위 비중은 대운 25 · 세운 12 · 월운 5 · 일운 3. 대운이 8배 무거워 순위는 잘 안 바뀌므로, 탭에 따라 실제로 움직이는 몫을 <em style="font-style:normal">대운 제외 점수</em>로 따로 적었습니다. 이 점수는 요약 지표이며 운 채점 모델에 더하지 않습니다.<br>` +
+    `<b>삼합·방합</b> · 원국 글자만으로 이미 서 있는 국은 세지 않고, <b>운이 들어와 완성된 것만</b> 표시합니다. 운에서 온 글자는 그 운이 지나면 풀립니다.<br>` +
+    `<b>이론 근거</b> · 십이신살은 년지 삼합국 기준(일지 기준 병기), 십이운성은 음포태(양포태 병기), 지지 관계는 합·충·형·파·해에 원진·귀문·격각을 더해 봅니다. 층위 중첩·복음·반음은 31번 문서 §6, 천간충은 22번 §1-4가 정본입니다. 신살에는 신뢰도 등급(A~D)을 붙였고 C·D는 단독 판정에 쓰지 않습니다.<br>` +
+    `<b>읽는 법</b> · 이 페이지는 <b>신살·십이운성·지지 관계</b> 층위를 그린 것입니다. 격국과 용신의 성패 판정은 담고 있지 않으므로, 여기 나온 길흉의 결은 참고이지 결론이 아닙니다. 하위 층위는 상위 기조를 뒤집지 못합니다 — 원국 55 · 대운 25 · 세운 12 · 월운 5 · 일운 3.<br>` +
     `<b>마지막 갱신</b> · <span class="mono">${fmtDT(kmin(nowKd()))}</span>`;
 }
 
@@ -1053,51 +1488,73 @@ function render() {
    ══════════════════════════════════════════════════════════════ */
 const DAILY = {
   for: "2026-09-06",
-  profile: "1990-05-15|09:30|M",
-  title: "묶이는 날 — 자리가 정해지는 결",
-  body: "오늘 일진 癸未는 년지 午와 육합, 월지 巳와 함께 巳午未 방합으로 묶입니다. 총운과 소속이 같은 방향으로 한 번에 당겨지는 날이라, 혼자 판단하는 것보다 이미 엮여 있는 사람들 쪽에서 답이 나옵니다. 일간 庚에게 未는 관대(冠帶) — 형식을 갖추는 자리입니다. 의욕이 실제보다 반 발쯤 앞서 있으니, 오늘 벌이는 것보다 오늘 정리해서 이름을 붙이는 쪽이 남습니다. 12신살로는 반안살, 자리에 오르는 결입니다. 천간 癸는 상관이라 말이 앞설 수 있는데, 묶이는 날의 말실수는 두 배로 갑니다.",
-  act: "이미 하고 있는 일 하나에 공식적인 이름·직함·일정을 붙인다"
+  profile: "1995-10-29|06:30|M",
+  title: "판이 하나로 묶이는 날",
+  body: "오늘은 네 층위가 전부 월지 戌 자리로 몰립니다. 대운 癸未와 일운 癸未가 같은 간지로 겹치는 복음이라, 새로 벌어지는 일이 아니라 몇 해째 끌고 오던 것이 한 번 더 눌리는 결에 가깝습니다. 여기에 원국 亥·卯가 운의 未를 만나 亥卯未 목국이 서고, 일지 巳는 세운 午·대운 未와 巳午未 남방 화국으로 함께 묶입니다. 묶이는 힘이 강한 날은 혼자 판단하는 것보다 이미 엮여 있는 쪽에서 답이 나오기 쉽습니다. 다만 대운 未·세운 午·일운 未가 모두 공망지라, 손에 잡히는 결과보다 방향이 정해지는 정도로 지나갈 가능성이 높습니다.",
+  act: "혼자 쥐고 있던 것 하나를 이미 엮여 있는 사람에게 꺼내 놓는다",
+
+  /* ↓ 선택 필드. 없으면 각각 독립적으로 엔진이 채운다.
+       sig = 글을 쓸 당시의 4층 서명. 대운·절기 경계를 넘기면 자동으로 폴백된다. */
+  rev: 2,
+  sig: "癸未|丙午|丙申|癸未"
 };
 
 function renderDaily(natal) {
   const box = document.getElementById("daily");
   const now = kmin(nowKd());
   const todayKey = fmtD(now).replace(/\./g, "-");
-  const gzT = dayPillar(now);
-  const zT = gzT[1];
-  const s12 = sinsal12(natal.yearZhi, zT);
-  const un = unseong(natal.dayGan, zT, "eum");
-  const rels = relationsTo(natal, zT);
+  const L = resolveLayers(natal, now, now);
+  const st = readStack(natal, L);
+  const il = st.perLayer.find(x => x.key === "il");
+  const gzT = il.gz, zT = il.z;
+
   const sameProfile = `${natal.profile.date}|${natal.profile.time}|${natal.profile.gender}` === DAILY.profile;
-  const fresh = DAILY.for === todayKey && sameProfile;
+  const freshDay = DAILY.for === todayKey && sameProfile;
+  const sig = L.map(x => x.empty ? "—" : x.gz).join("|");
+  const sigOk = !DAILY.sig || DAILY.sig === sig;
+  /* 사람이 쓴 글은 문체만 제공한다. 아래 사실 스트립은 언제나 엔진 계산값이다. */
+  const pick = (v, fb) => (freshDay && sigOk && typeof v === "string" && v.trim()) ? v : fb;
 
   const meta = `<div class="meta">` +
-    `<div>12신살 <b>${s12}</b> · ${SINSAL_DESC[s12].tag}</div>` +
-    `<div>십이운성 <b>${un}</b></div>` +
-    `<div>${rels.length ? rels.map(r => `${r.pos}지 <b>${r.rel[0]}</b>`).join(" · ") : "원국과 직접 걸리는 관계 없음"}</div></div>`;
+    `<div>12신살 <b>${il.s12y}</b> · ${SINSAL_DESC[il.s12y].tag}</div>` +
+    `<div>십이운성 <b>${il.unY}</b></div>` +
+    L.filter(x => !x.empty).map(x => `<div><em style="font-style:normal;color:var(--ink-faint)">${x.name}</em> <b>${x.gz}</b></div>`).join("") +
+    `</div>`;
 
-  let right;
-  if (fresh) {
-    right = `<div><h2>${DAILY.title}</h2><p>${DAILY.body}</p>` +
-            `<div class="act">오늘 할 것 하나 — <b>${DAILY.act}</b></div></div>`;
-  } else {
-    const top = rels[0];
-    right = `<div><h2>오늘 — ${SINSAL_DESC[s12].tag}</h2>` +
-      `<p>일간 ${natal.dayGan}에게 ${zT}는 <b>${un}</b>의 자리입니다. ${UN_DESC[un]} 년지 ${natal.yearZhi} 기준으로는 <b>${s12}</b> — ${SINSAL_DESC[s12].plus}</p>` +
-      `<p>${top ? `원국에서는 ${top.pos}지 ${top.zhi}와 <b>${top.rel.join("·")}</b>으로 걸립니다. 오늘의 일은 ${GUNG[top.pos].area} 쪽에서 생기기 쉽습니다.` : "원국 지지와 직접 걸리는 관계가 없어, 밖에서 밀고 들어오는 일보다 안에서 정해지는 결로 지나갑니다."}</p>` +
-      `<div class="act">오늘 할 것 하나 — <b>${SINSAL_DESC[s12].act}</b></div>` +
-      (DAILY.for !== todayKey
-        ? `<div class="stale">이 자리에 들어가는 아침 글은 ${DAILY.for} 기준으로 쓰인 것이라, 위 내용은 오늘 날짜로 다시 계산해 자동으로 채운 것입니다.</div>`
-        : `<div class="stale">아침 글은 기본 명식 기준으로 쓰입니다. 지금은 직접 입력한 명식으로 보고 계셔서, 오늘 자리는 계산값으로 채웠습니다.</div>`) +
-      `</div>`;
-  }
+  const lines = LAYER_DEF.map(D => {
+    const txt = pick(DAILY.layers && DAILY.layers[D.key], layerLine(natal, st, D.key));
+    return `<div class="ll"><span class="lk"><b>${D.name}</b>${D.role} · ${D.w}</span><span>${txt}</span></div>`;
+  }).join("");
+
+  const auto = stackProse(natal, st);
+  const humanBody = freshDay && DAILY.body && DAILY.body.trim();
+  const stackTxt = (freshDay && sigOk && DAILY.stack && DAILY.stack.trim())
+    ? `<p>${DAILY.stack}</p>`
+    : humanBody ? ""                                  /* 사람 글이 결합 서술을 겸한다 */
+    : `<p>${auto[0]}</p>` + (auto[1] ? `<p>${auto[1]}</p>` : "");
+
+  const head = freshDay ? DAILY.title : `오늘 — ${SINSAL_DESC[il.s12y].tag}`;
+  const body = freshDay && DAILY.body && DAILY.body.trim() ? `<p>${DAILY.body}</p>` : "";
+  const act  = freshDay && DAILY.act ? DAILY.act : SINSAL_DESC[il.s12y].act;
+
+  let stale = "";
+  if (!sameProfile) stale = `아침 글은 기본 명식 기준으로 쓰입니다. 지금은 직접 입력한 명식으로 보고 계셔서, 위 네 줄과 결합 문단은 엔진 계산값으로 채웠습니다.`;
+  else if (DAILY.for !== todayKey) stale = `아침 글은 ${DAILY.for} 기준으로 쓰인 것이라, 위 내용은 오늘 날짜로 다시 계산해 자동으로 채웠습니다.`;
+  else if (!sigOk) stale = `아침 글을 쓴 시점과 네 층위 간지가 달라져(대운·절기 경계) 층위 서술은 엔진 계산값으로 대신했습니다.`;
 
   box.innerHTML =
-    `<div class="stampcol"><div class="ilju m${OZ[ZHI.indexOf(zT)]}">${gzT}<small>${gzKo(gzT)} · 오늘의 일진</small></div>${meta}</div>` + right;
+    `<div class="stampcol"><div class="ilju m${OZ[ZHI.indexOf(zT)]}">${gzT}<small>${gzKo(gzT)} · 오늘의 일진</small></div>${meta}</div>` +
+    `<div><h2>${head}</h2>` +
+      `<div class="layerlines">${lines}</div>` +
+      (stackTxt ? `<div class="stackbox">${stackTxt}</div>` : "") +
+      body +
+      `<div class="act">오늘 할 것 하나 — <b>${act}</b></div>` +
+      (stale ? `<div class="stale">${stale}</div>` : "") +
+    `</div>`;
 }
 
 /* ══ 프로필 ═════════════════════════════════════ */
-const DEFAULT_PROFILE = { name: "", date: "1990-05-15", time: "09:30", timeKnown: true, gender: "M", demo: true };
+const DEFAULT_PROFILE = { name: "", date: "1995-10-29", time: "06:30", timeKnown: true, gender: "M", demo: false };
 const STORE = "unsi-profile-v1";
 
 function loadProfile() {
