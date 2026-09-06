@@ -81,8 +81,17 @@ def sipsin(day_gan, other_gan):
 # ---------------- 절기 (태양 황경) ----------------
 
 def sun_lon(dt_utc):
-    s = ephem.Sun(ephem.Date(dt_utc))
-    return math.degrees(ephem.Ecliptic(s).lon) % 360
+    """태양의 겉보기(apparent) 지심 황경 — 그 시점(of-date) 좌표계 기준.
+
+    ⚠️ errata #14: 과거에는 ephem.Ecliptic(s)를 그대로 썼는데, 이는 J2000 황경을 돌려준다.
+    세차(약 50.3"/년) 때문에 2000년에서 멀어질수록 오차가 커져 절입 시각이
+    2026년 약 +9시간, 2045년 약 +14시간, 1950년 약 -14시간까지 어긋났다.
+    절기는 '겉보기 황경'(세차·장동·광행차 포함)으로 정의되므로 아래가 정본이다.
+    검증: ephem.next_equinox/next_solstice 값과 1초 이내로 일치."""
+    d = ephem.Date(dt_utc)
+    s = ephem.Sun(d)
+    eq = ephem.Equatorial(s.g_ra, s.g_dec, epoch=d)      # 겉보기 적도좌표(of-date)
+    return math.degrees(ephem.Ecliptic(eq, epoch=d).lon) % 360
 
 def find_term_crossing(target_deg, approx_utc, span_days=20):
     """target_deg 황경 통과 시각을 이분탐색 (UTC). approx 주변 ±span_days."""
