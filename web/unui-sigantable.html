@@ -1214,6 +1214,263 @@ function johuAxis(dayGan, monthZhi, gan, zhi, excess) {
   return { s: Math.max(-1, Math.min(1, (a + b) / 2)), why };
 }
 
+/* ══ 운 점수 (references/28_scoring.md) ═══════════════════
+   ⚠️ 억부 + 조후 2축의 자동 판정이다. 자평진전의 성격·패격·구응, 병약론,
+      종격은 판정하지 않는다. 격의 성패는 별도 감명이 필요하다.          */
+
+/* 통근 등급표 — scripts/saju_calc.py의 ROOT_GRADE와 동일 */
+const ROOT_GRADE = {
+  木: { 寅:"록왕", 卯:"록왕", 亥:"생지", 辰:"여기", 未:"묘고" },
+  火: { 巳:"록왕", 午:"록왕", 寅:"생지", 未:"여기", 戌:"묘고" },
+  土: { 辰:"록왕", 戌:"록왕", 丑:"록왕", 未:"록왕", 巳:"생지", 午:"생지" },
+  金: { 申:"록왕", 酉:"록왕", 巳:"생지", 戌:"여기", 丑:"묘고" },
+  水: { 亥:"록왕", 子:"록왕", 申:"생지", 丑:"여기", 辰:"묘고" }
+};
+const BANDS = [[80,"대길"],[65,"길"],[45,"평"],[30,"흉"],[0,"대흉"]];
+const bandOf = v => (BANDS.find(b => v >= b[0]) || BANDS[4])[1];
+const SIPSIN_OF_OH = (dayGan, oh) => {                     // 오행 → 십신군
+  const d = OG[GAN.indexOf(dayGan)];
+  if (oh === d) return "비겁";
+  if (SHENG[d] === oh) return "식상";
+  if (KE[d] === oh) return "재성";
+  if (KE[oh] === d) return "관성";
+  return "인성";
+};
+
+/** 원국 오행 세력 — 천간 1.0, 지지 본기 1.2, 나머지 장간 0.4, 월지 ×1.6 */
+function ohengPower(natal) {
+  const p = { 木:0, 火:0, 土:0, 金:0, 水:0 };
+  natal.pillars.forEach((gz, i) => {
+    if (!gz) return;
+    const w = i === 1 ? 1.6 : 1;
+    p[OG[GAN.indexOf(gz[0])]] += 1.0 * w;
+    const jg = JANGGAN[gz[1]];
+    jg.split("").forEach((g, k) => {
+      const oh = OG[GAN.indexOf(g)];
+      // 조토불생금(燥土不生金, 25번) — 마른 흙 未·戌 속의 金은 통근처로 세지 않는다
+      if (oh === "金" && (gz[1] === "未" || gz[1] === "戌")) return;
+      p[oh] += (k === jg.length - 1 ? 1.2 : 0.4) * w;
+    });
+  });
+  return p;
+}
+
+/** 신강도 지수 S (28번 §2) */
+function shinGang(natal) {
+  const dayGan = natal.dayGan, dOh = OG[GAN.indexOf(dayGan)];
+  const GRADE = { "록왕":3, "생지":2, "여기":1, "묘고":0.5 };
+  let root = 0;
+  natal.zhis.forEach(z => {
+    if (!z) return;
+    const g = (ROOT_GRADE[dOh] || {})[z];
+    if (g) root += GRADE[g] || 0;
+  });
+  const deuk = (ROOT_GRADE[dOh] || {})[natal.zhis[1]] ? 2 : 0;
+  let saengjo = 0;
+  [natal.pillars[0], natal.pillars[1], natal.pillars[3]].forEach(gz => {
+    if (!gz) return;
+    const o = OG[GAN.indexOf(gz[0])];
+    if (o === dOh || SHENG[o] === dOh) saengjo += 1;
+  });
+  const S = Math.min(10, root + deuk + saengjo);
+  const W_gam = Math.max(13, Math.min(23, 23 - S));
+  return { S, root, deuk, saengjo, W_gam, W_gyeok: 45 - W_gam };
+}
+
+/** 용신·기신 — 억부 + 조후 병용 */
+function yongshin(natal) {
+  const dayGan = natal.dayGan, dOh = OG[GAN.indexOf(dayGan)];
+  const sg = shinGang(natal);
+  const inseong = Object.keys(SHENG).find(o => SHENG[o] === dOh);   // 나를 생하는 오행
+  const bigyeop = dOh;
+  const siksang = SHENG[dOh];
+  const jaeseong = KE[dOh];
+  const gwanseong = Object.keys(KE).find(o => KE[o] === dOh);
+  const weak = sg.S <= 4, strong = sg.S >= 7;
+  const note = [];
+  let yong = new Set(), gi = new Set();
+  if (weak)       { yong = new Set([inseong, bigyeop]); gi = new Set([siksang, jaeseong, gwanseong]); note.push(`신약(S=${sg.S}) — 인성·비겁이 용신`); }
+  else if (strong){ yong = new Set([siksang, jaeseong, gwanseong]); gi = new Set([inseong, bigyeop]); note.push(`신강(S=${sg.S}) — 식상·재성·관성이 용신`); }
+  else            { yong = new Set([inseong, bigyeop]); gi = new Set([jaeseong, gwanseong]); note.push(`중화(S=${sg.S}) — 억부 판정이 약하니 조후를 앞세운다`); }
+
+  // 조후 보정 — 조후 용신 오행을 더하고, 조후 기신은 뺀다
+  const jc = JOHU[dayGan] && JOHU[dayGan][natal.pillars[1][1]];
+  const johuYong = new Set(), johuGi = new Set();
+  if (jc) {
+    jc[0].split("").forEach(g => johuYong.add(OG[GAN.indexOf(g)]));
+    jc[1].split("").forEach(o => johuYong.add(o));
+    jc[4].split("").forEach(g => johuGi.add(OG[GAN.indexOf(g)]));
+    jc[5].split("").forEach(o => johuGi.add(o));
+    johuYong.forEach(o => { if (!gi.has(o)) yong.add(o); });
+    note.push(`조후 용신 ${[...johuYong].join("·") || "—"}`);
+  }
+
+  // 무근 용신 경고 (errata #11) — 원국에 동류가 0인 용신 오행
+  const pw = ohengPower(natal);
+  const rootless = [...yong].filter(o => pw[o] < 0.5);
+  if (rootless.length) note.push(`⚠️ ${rootless.join("·")}는 원국에 뿌리가 없어 용신이어도 무력할 수 있다`);
+  return { ...sg, yong, gi, johuYong, johuGi, rootless: new Set(rootless), note,
+           groups: { inseong, bigyeop, siksang, jaeseong, gwanseong } };
+}
+
+/** 넘치는 오행 집합 (조후 과다 판정용) */
+function excessSet(natal, extraGz) {
+  const p = ohengPower(natal);
+  if (extraGz) { p[OG[GAN.indexOf(extraGz[0])]] += 1; p[OZ[ZHI.indexOf(extraGz[1])]] += 1.2; }
+  const tot = Object.values(p).reduce((a, b) => a + b, 0) || 1;
+  return new Set(Object.keys(p).filter(o => p[o] / tot >= 0.34));
+}
+
+/** 간지 하나를 원국에 대입해 5축 채점 → 0~100 */
+function scoreGz(natal, gz, ys, opts) {
+  opts = opts || {};
+  const g = gz[0], z = gz[1];
+  const gOh = OG[GAN.indexOf(g)], zOh = OZ[ZHI.indexOf(z)];
+  const ex = excessSet(natal, gz);
+  const why = [];
+  const W = { gyeok: ys.W_gyeok, johu: 18, hap: 22, gam: ys.W_gam, wang: 15 };
+
+  // ① 격국축 — 용신/기신 계열인가
+  const gyeokS = oh => ys.yong.has(oh) ? (ys.rootless.has(oh) ? 0.35 : 0.85)
+                     : ys.gi.has(oh) ? -0.8 : 0;
+  const a1g = gyeokS(gOh), a1z = gyeokS(zOh);
+  if (a1g) why.push(`천간 ${g}(${sipsin(natal.dayGan, g)}) ${a1g > 0 ? "용신" : "기신"} 계열`);
+  if (a1z) why.push(`지지 ${z} ${a1z > 0 ? "용신" : "기신"} 계열`);
+
+  // ② 조후축
+  const jo = johuAxis(natal.dayGan, natal.pillars[1][1], g, z, ex);
+  why.push(...jo.why);
+
+  // ③ 합충축
+  const rels = relationsTo(natal, z);
+  const boundInNatal = zh => natal.inner.some(x =>
+    (x.a.endsWith(zh) || x.b.endsWith(zh)) &&
+    x.r.some(v => v === "육합" || v === "반합" || v === "방합"));
+  let a3 = 0;
+  rels.forEach(r => {
+    const rOh = OZ[ZHI.indexOf(r.zhi)];
+    const isYong = ys.yong.has(rOh), isGi = ys.gi.has(rOh);
+    const strong = r.rel.some(x => x === "충" || x === "형" || x === "자형");
+    const bind = r.rel.some(x => x === "육합" || x === "반합" || x === "방합");
+    if (strong) {
+      // §2-2 ① 충산합해 — 원국 합에 묶여 있던 글자를 충하면 손상이 아니라 해방
+      if (boundInNatal(r.zhi) && isYong) {
+        a3 += 0.45;
+        why.push(`${r.pos}지 ${r.zhi} ${r.rel.join("·")} — 합에 묶였던 용신이 풀린다(충산합해)`);
+      } else {
+        a3 += isGi ? 0.5 : isYong ? -0.6 : -0.2;
+        if (r.pos === "월") a3 -= 0.25;                     // 월지 동요는 격국 근거를 흔든다
+        why.push(`${r.pos}지 ${r.zhi} ${r.rel.join("·")} — ${isGi ? "기신 제거" : isYong ? "용신 손상" : "구조 동요"}`);
+      }
+    } else if (bind) {
+      a3 += isYong ? -0.25 : isGi ? 0.3 : 0.1;
+      if (r.pos === "월") a3 -= 0.15;
+    } else a3 -= 0.1;
+  });
+  a3 = Math.max(-1, Math.min(1, a3));
+
+  // 기신 과열 — 이미 넘치는 기신을 또 보태면 가중 처벌
+  let overheat = 0;
+  [gOh, zOh].forEach(o => { if (ys.gi.has(o) && ex.has(o)) overheat -= 0.3; });
+  if (overheat) why.push("이미 넘치는 기신을 더 보탠다");
+
+  // ④ 감당력축 — 일간 뿌리 보전 / 설기
+  const dOh = OG[GAN.indexOf(natal.dayGan)];
+  let a4 = 0;
+  if (zOh === dOh || SHENG[zOh] === dOh) a4 += 0.7;          // 비겁·인성 지지
+  if (SHENG[dOh] === zOh) a4 -= 0.45;                        // 설기
+  if (KE[zOh] === dOh) a4 -= 0.6;                            // 극
+  const hurtRoot = rels.some(r => r.rel.includes("충") &&
+    (ROOT_GRADE[dOh] || {})[r.zhi]);
+  if (hurtRoot) { a4 -= 0.5; why.push("일간 뿌리를 충한다"); }
+  a4 = Math.max(-1, Math.min(1, a4));
+
+  // ⑤ 왕쇠·신살축 (운성 9 / 신살 6)
+  const un = unseong(natal.dayGan, z, "eum");
+  let unS = (UN_POWER[un] || 0) / 3;
+  const s12 = sinsal12(natal.yearZhi, z);
+  const SIN_S = { 장성살:0.5, 반안살:0.5, 년살:0.3, 지살:0.3, 화개살:0.1, 천살:-0.3,
+                  월살:-0.4, 겁살:-0.4, 망신살:-0.3, 육해살:-0.3, 재살:-0.5, 역마살:0 };
+  let sinS = SIN_S[s12] || 0;
+  if (natal.gongmangZhi.includes(z)) { sinS -= 0.4; why.push(`${z}는 공망지`); }
+  const a5 = (unS * 9 + sinS * 6) / 15;
+
+  // 고립 감쇠 (errata #11) — 용신 지지가 원국에 뿌리 없을 때
+  let isolate = 1;
+  if (ys.yong.has(zOh) && ys.rootless.has(zOh)) {
+    isolate = 0.6;
+    const wangChung = rels.some(r => r.rel.includes("충") &&
+      relationsTo(natal, r.zhi).length >= 2);
+    const dissolve = ohengPower(natal)[Object.keys(KE).find(o => KE[o] === zOh) || ""] >= 3;
+    if (wangChung) isolate *= 0.3;
+    if (dissolve) isolate *= 0.4;
+    const freed = rels.some(r => r.rel.some(x => x === "반합" || x === "육합" || x === "방합")) &&
+             !rels.some(r => r.rel.includes("충"));
+    if (freed) isolate = 1;
+    else why.push(`${z}는 뿌리 없는 용신 — 고립 감쇠 ×${isolate.toFixed(2)}`);
+  }
+
+  // 절각 감쇠 — 층위 천간이 어디에도 통근 못 하면
+  const ganRooted = natal.zhis.concat([z]).some(x => x && (ROOT_GRADE[gOh] || {})[x]);
+  const ganDamp = ganRooted ? 1 : 0.7;
+
+  // §2-2 ② 생 사슬(통로) — 기둥 자체가 원국 주 세력의 출구를 열면 순세로 본다
+  const grpOf = oh => SIPSIN_OF_OH(natal.dayGan, oh);
+  let flow = 0;
+  if (SHENG[gOh] === zOh || SHENG[zOh] === gOh) {
+    const pw0 = ohengPower(natal);
+    const domOh = Object.keys(pw0).reduce((a, b) => pw0[a] >= pw0[b] ? a : b);
+    if (ys.gi.has(domOh) && (gOh === domOh || zOh === domOh)) {
+      // 뿌리가 살아 있을 때만 (뿌리 없으면 재다신약 가속)
+      if (natal.roots.length) { flow = 0.35; why.push("과한 기운이 다음 단계로 흘러 나갈 통로가 생긴다"); }
+    }
+  }
+
+  const ganAxes = [a1g * ganDamp + overheat * 0.5 + flow, jo.s, a3 * 0.5, a4 * 0.4, a5 * 0.4];
+  const zhiAxes = [a1z * isolate + overheat + flow, jo.s, a3, a4, a5];
+  const Ws = [W.gyeok, W.johu, W.hap, W.gam, W.wang];
+  const mix = arr => 50 + arr.reduce((acc, v, i) => acc + v * Ws[i], 0) / 2;
+  const ganScore = Math.max(0, Math.min(100, mix(ganAxes)));
+  const zhiScore = Math.max(0, Math.min(100, mix(zhiAxes)));
+  const first = ganScore * 0.7 + zhiScore * 0.3;
+  const last  = ganScore * 0.3 + zhiScore * 0.7;
+  const total = Math.round(Math.max(0, Math.min(100, (first + last) / 2)));
+
+  // 순세 태그 (§4)
+  const sgrp = SIPSIN_OF_OH(natal.dayGan, gOh), zgrp = SIPSIN_OF_OH(natal.dayGan, zOh);
+  let tag = "수렴기";
+  if (rels.some(r => r.rel.includes("충") || r.rel.includes("형"))) tag = "전환기";
+  else if ([sgrp, zgrp].includes("인성")) tag = "축적기";
+  else if ([sgrp, zgrp].some(x => x === "식상" || x === "비겁")) tag = "발산기";
+  if (a1g < 0 && a1z < 0 && a4 < 0) tag = "방어기";
+
+  return { gz, total, band: bandOf(total), tag, ganScore: Math.round(ganScore),
+           zhiScore: Math.round(zhiScore), why,
+           axes: { 격국: +a1z.toFixed(2), 조후: +jo.s.toFixed(2), 합충: +a3.toFixed(2),
+                   감당력: +a4.toFixed(2), 왕쇠신살: +a5.toFixed(2) },
+           un, s12, isolate };
+}
+
+/** 원국 기저점수 — 층위 점수를 체감으로 블렌딩할 때 쓴다 */
+function natalBase(natal, ys) {
+  const pw = ohengPower(natal);
+  const tot = Object.values(pw).reduce((a, b) => a + b, 0) || 1;
+  let s = 0;
+  ys.yong.forEach(o => { s += (pw[o] / tot) * 1.6; });
+  ys.gi.forEach(o => { s -= (pw[o] / tot) * 0.9; });
+  s += Math.min(0.25, natal.roots.length * 0.08);
+  if (natal.sinsal.some(x => x.n === "천을귀인")) s += 0.06;
+  if (natal.sinsal.some(x => x.n === "문창귀인")) s += 0.04;
+  const zero = ["木","火","土","金","水"].filter(o => pw[o] < 0.5);
+  s -= zero.length * 0.08;
+  return Math.max(0, Math.min(100, Math.round(50 + s * 50)));
+}
+const feelScore = (base, layers) => {                        // 체감운 (§1)
+  let num = base * 55, den = 55;
+  layers.forEach(l => { num += l.score * l.w; den += l.w; });
+  return Math.round(num / den);
+};
+
 /* ══ 렌더 ═══════════════════════════════════════ */
 const fmtD  = m => { const d = kd(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
 const fmtDT = m => { const d = kd(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
