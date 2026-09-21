@@ -85,6 +85,7 @@ description: >
 | 십이신살(12신살)·띠 기준 운 | `references/29_sibisinsal.md` |
 | 십이운성·신살 조견표·등급 | `references/30_shinsal_extended.md` |
 | 십성 인종·사고지 개폐 | `references/32_injong.md` |
+| 배우자·연애·궁합·인연 시기 | `references/33_inyeon.md` (격국·용신 선행 필수) |
 | 기간 운세(주간·월간·연간) 서술 | `references/31_unse_narrative.md` |
 | 학파 이견 발생 | `references/23_hakpa_igyeon.md` |
 | 운 점수화 요청 | `references/28_scoring.md` |
@@ -136,6 +137,7 @@ description: >
 | `30_shinsal_extended.md` | 십이운성 정본표·신살 확장 조견표·신뢰도 등급(A~D) |
 | `31_unse_narrative.md` | 기간 운세(주간·월간·연간) 대중 서술 프로토콜 |
 | `32_injong.md` | 십성 인종 — 운 지지에서 십성 10개의 상태·사고지 개폐·원국 교차 4분면 |
+| `33_inyeon.md` | 인연 층위 — 배우자궁·정합 지지·발동×수용 2축 시기 판정. 축별 등급·금지 규범 |
 
 ---
 
