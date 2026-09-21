@@ -426,6 +426,179 @@ def analyze_shinsal(pillars):
                         "'지지육해'와 '12신살 육해살'은 다른 항목이다. (29·30번 참조)")
     return out
 
+# ---------------- 십성 인종(引從) 체계 (references/32) ----------------
+# 일간 → 십성 10개를 각각 천간으로 확정 → 대상 지지에서 음포태 운성을 읽는다.
+# ⚠️ 서술 전용. 통근·강약 판정과 28번 점수식에는 절대 넣지 않는다. (32_injong.md §1)
+
+SIPSEONG_ORDER = ["비견","겁재","식신","상관","편재","정재","편관","정관","편인","정인"]
+SIPSEONG_GROUP = {"비견":"비겁","겁재":"비겁","식신":"식상","상관":"식상",
+                  "편재":"재성","정재":"재성","편관":"관성","정관":"관성",
+                  "편인":"인성","정인":"인성"}
+GROUP_ORDER = ["비겁","식상","재성","관성","인성"]
+
+# 12운성 3상태 — 수치 등급이 아니라 '작동 방식'의 분류 (32_injong.md §3)
+UNSEONG_STATE = {
+    "장생":"활","관대":"활","건록":"활","제왕":"활",   # 그대로 작동
+    "목욕":"전","쇠":"전","병":"전","사":"전",         # 작동하되 성격이 바뀜
+    "묘":"장","절":"장","태":"장","양":"장",           # 형체 없음·잠복
+}
+# 음포태에서 같은 오행 음양 한 쌍이 반드시 함께 떨어지는 슬롯 쌍 (32_injong.md §3-2)
+SLOT_PAIR = {
+    frozenset(("건록","제왕")): "최고조",
+    frozenset(("장생","사")):   "갈림",
+    frozenset(("목욕","병")):   "전환",
+    frozenset(("태","절")):     "최저",
+    frozenset(("관대","쇠")):   "관리",
+    frozenset(("묘","양")):     "창고",
+}
+# 사고지(四庫) — 삼합의 묘고. 개폐 상태를 갖는 유일한 지지군 (32_injong.md §4)
+GOJI_KEY   = {"辰":("申","子"), "戌":("寅","午"), "丑":("巳","酉"), "未":("亥","卯")}
+GOJI_CHUNG = {"辰":"戌", "戌":"辰", "丑":"未", "未":"丑"}
+
+def sipseong_gan(day_gan):
+    """일간 → {십성: 천간}. 10천간과 10십성은 일대일 대응한다."""
+    return {sipsin(day_gan, g): g for g in GAN}
+
+def injong(day_gan, zhi):
+    """일간 기준 십성 10개를 대상 지지에서 인종. {십성: 운성} (음포태)."""
+    return {sipsin(day_gan, g): unseong(g, zhi) for g in GAN}
+
+def injong_pairs(day_gan, zhi):
+    """오행 그룹 5조로 묶은 인종 결과. 저자·실전 서술이 읽는 단위가 개별 십성이 아니라 이 5조다."""
+    row = injong(day_gan, zhi)
+    out = {}
+    for grp in GROUP_ORDER:
+        mem = [s for s in SIPSEONG_ORDER if SIPSEONG_GROUP[s] == grp]
+        us = [row[s] for s in mem]
+        out[grp] = {
+            "십성": {s: row[s] for s in mem},
+            "슬롯": SLOT_PAIR.get(frozenset(us), "혼합"),
+            "상태": "".join(sorted({UNSEONG_STATE[u] for u in us})),
+        }
+    return out
+
+def gaego(zhi, context):
+    """사고지의 개폐(開閉) 판정. context = 대조할 지지 목록(원국 4자 + 세운·대운 지지 등).
+    ⚠️ 개고 조건은 학파 이견 항목 — 충개고가 주류, 합은 작용 강화이지 개폐 조건이 아니다."""
+    if zhi not in GOJI_KEY:
+        return None
+    ch = GOJI_CHUNG[zhi]
+    keys = GOJI_KEY[zhi]
+    hit_ch = [z for z in context if z == ch]
+    hit_hap = [z for z in context if z in keys]
+    out = {"묘고": zhi, "삼합 짝": "·".join(keys), "충 파트너": ch}
+    if hit_ch:
+        out["판정"] = "충개고(沖開庫) — 창고 문이 강제로 열린다"
+        out["근거"] = f"대조 지지에 {ch} 존재 ({zhi}{ch}충)"
+        out["주의"] = "개방과 동시에 손상을 동반한다. 열린 것이 곧 길한 것은 아니다"
+    elif hit_hap:
+        out["판정"] = "합국 성립 — 화개(華蓋) 작용 강화"
+        out["근거"] = f"대조 지지에 {'·'.join(sorted(set(hit_hap)))} 존재 (반합)"
+        out["주의"] = ("⚠️ 삼합 짝은 '작용 강화' 조건이지 개폐 조건이 아니다. "
+                      "합이 묘고를 여는가 오히려 묶는가는 학파 이견 — 병기할 것")
+    else:
+        out["판정"] = "폐고(閉庫) — 잠복 유지"
+        out["근거"] = "대조 지지에 충 파트너도 삼합 짝도 없음"
+        out["주의"] = "입묘한 십성은 이 기간에 기대 영역이 아니다. 정리·보관 쪽으로 읽는다"
+    return out
+
+def ijung_ipmyo(day_gan, zhi):
+    """이중 입묘(二重入墓) — 인종상 墓이면서 그 지지의 지장간이기도 한 십성.
+    戌·丑에서만 성립한다(본기 戊·己가 각각 그 자리의 墓). 辰·未는 본기가 관대라 해당 없음."""
+    if zhi not in GOJI_KEY:
+        return []
+    myo = {sipsin(day_gan, g) for g in GAN if unseong(g, zhi) == "묘"}
+    jang = {sipsin(day_gan, g) for g in JANGGAN[zhi]}
+    return sorted(myo & jang)
+
+def wongug_hold(pillars, day_gan):
+    """원국 보유도 — 각 십성의 천간이 원국에 실제로 있는가. (32_injong.md §5)
+    투간 > 지장간 > 무. 일간 자신은 비견 판정에서 제외한다."""
+    gans = [p[0] for p in pillars]
+    other_gans = [g for i, g in enumerate(gans) if i != 2]
+    jang = [c for p in pillars for c in JANGGAN[p[1]]]
+    out = {}
+    for s, g in sipseong_gan(day_gan).items():
+        if g in other_gans:  out[s] = "투간"
+        elif g in jang:      out[s] = "지장간"
+        else:                out[s] = "무"
+    return out
+
+# 4분면 — 원국 보유도 × 인종 상태 (32_injong.md §5-2)
+QUADRANT = {
+    ("투간","활"):   "실질 발현 — 그대로 서술",
+    ("투간","전"):   "기능 전환 — 있는데 쓰임새가 바뀐다",
+    ("투간","장"):   "공회전 — 가지고 있으나 이 기간엔 굴러가지 않는다",
+    ("지장간","활"): "점화 대기 — 운이 열어주는 영역",
+    ("지장간","전"): "부분 작동 — 조건부로만",
+    ("지장간","장"): "무효 — 서술하지 않는다",
+    ("무","활"):     "⚠️ 허상 — 기회처럼 보이나 무근·고립일 수 있다 (errata #11)",
+    ("무","전"):     "무효 — 서술하지 않는다",
+    ("무","장"):     "무효 — 서술하지 않는다",
+}
+
+def injong_year(pillars, year, tz_hours=9):
+    """세운 + 월운 12달을 인종으로 일괄 전개. 한 해의 '어느 십성이 언제 켜지는가' 시간표."""
+    day = pillars[2][0]
+    zhis = [p[1] for p in pillars]
+    sy = sewoon(year)
+    rows = []
+    for r in wolwoon_table(year, tz_hours):
+        z = r["month_zhi"]
+        pr = injong_pairs(day, z)
+        top = [g for g in GROUP_ORDER if pr[g]["슬롯"] == "최고조"]
+        bot = [g for g in GROUP_ORDER if pr[g]["슬롯"] == "최저"]
+        split = [g for g in GROUP_ORDER if pr[g]["슬롯"] == "갈림"]
+        row = {"월": r["ganzhi"], "절입": f'{r["jie"]} {r["jie_enter"]}',
+               "일간 운성": unseong(day, z),
+               "최고조": top or ["—"], "최저": bot or ["—"], "갈림": split or ["—"],
+               "세운 지지와의 관계": zhi_relations(sy[1], z) or ["없음"]}
+        if z in GOJI_KEY:
+            g = gaego(z, [sy[1]] + zhis)
+            ii = ijung_ipmyo(day, z)
+            row["사고지"] = {"개폐": g["판정"], "근거": g["근거"],
+                           "이중 입묘": "·".join(ii) if ii else "없음(전환·관리 국면)"}
+        rows.append(row)
+    return {
+        "세운": f"{year}년 {sy} (입춘 기준)",
+        "세운 인종": injong_report(day, sy[1], pillars=pillars, context=[sy[1]], label="세운"),
+        "월운 12": rows,
+        "⚠️": ("층위 비중은 세운 12 > 월운 5 (28_scoring.md §1). 월운 인종은 발현 시점 참고이지 "
+              "사건 예언이 아니다. 사고지 4달은 강약이 아니라 개폐로 읽는다"),
+        "⚠️ 개폐 판정 범위": ("이 표의 사고지 개폐는 **세운 지지 + 원국 4지**만 대조한다. "
+                         "대운 지지는 포함되지 않으므로, 대운까지 반영하려면 "
+                         "injong_report(day, zhi, pillars, context=[세운지지, 대운지지])로 직접 호출한다"),
+    }
+
+def injong_report(day_gan, zhi, pillars=None, context=None, label="운"):
+    """인종 전개 1회분. pillars를 주면 원국 교차(4분면)까지 얹는다."""
+    row = injong(day_gan, zhi)
+    kind = "왕지" if zhi in "子午卯酉" else ("생지" if zhi in "寅申巳亥" else "사고지")
+    out = {
+        "대상": f"{label} 지지 {zhi} ({kind})",
+        "기준": "음포태(陰胞胎) 인종 — 서술 전용. 통근·강약·점수에는 쓰지 않는다",
+        "일간 운성": f"{day_gan} → {unseong(day_gan, zhi)}",
+        "십성 인종": {s: row[s] for s in SIPSEONG_ORDER},
+        "오행 5조": injong_pairs(day_gan, zhi),
+    }
+    if kind == "사고지":
+        ctx = list(context or [])
+        if pillars: ctx += [p[1] for p in pillars]
+        out["개폐 판정"] = gaego(zhi, ctx) if ctx else {"판정": "대조 지지 미입력 — 판정 불가"}
+        ii = ijung_ipmyo(day_gan, zhi)
+        out["이중 입묘"] = (f"{'·'.join(ii)} — 인종상 墓이면서 {zhi} 지장간. 이 달 개폐 판정의 주체"
+                        if ii else f"{zhi}는 본기가 墓가 아니다(관대) — 이중 입묘 없음. 창고보다 전환·관리 국면")
+        out["⚠️ 사고지 독법"] = ("사고지는 활(活)이 적은 대신 개폐 상태를 갖는 유일한 지지군이다. "
+                            "'약한 달'이 아니라 '여닫는 달'로 읽는다")
+    if pillars:
+        hold = wongug_hold(pillars, day_gan)
+        out["원국 교차(4분면)"] = {
+            s: f"{row[s]}({UNSEONG_STATE[row[s]]}) · 원국 {hold[s]} → {QUADRANT[(hold[s], UNSEONG_STATE[row[s]])]}"
+            for s in SIPSEONG_ORDER}
+    out["⚠️ 출력 규범"] = ("십성 10개를 나열하지 않는다. 오행 5조로 묶어 최고조 1조·최저 1조·갈림 조를 말하고, "
+                        "4분면에서 '무효'로 떨어진 십성은 서술에서 제외한다. (32_injong.md §6)")
+    return out
+
 def relate_to_unse(pillars, unse_gz, label="운"):
     """운(대운·세운·월운·일운) 간지 하나를 원국에 대입한 관계·신살 전개."""
     labels = ["년","월","일","시"]
@@ -438,7 +611,7 @@ def relate_to_unse(pillars, unse_gz, label="운"):
         f"년지 {yz} 기준": sibisinsal(yz, uz),
         f"일지 {dz} 기준": sibisinsal(dz, uz)}
     out["일간 십이운성"] = f"음포태 {unseong(day, uz)} / 양포태 {unseong(day, uz, 'yang')}"
-    out["십신 인종(음포태)"] = {sipsin(day, g): unseong(g, uz) for g in GAN}
+    out["십성 인종"] = injong_report(day, uz, pillars=pillars, context=[uz], label=label)
     rel = {}
     for i in range(4):
         r = zhi_relations(zhis[i], uz)
@@ -449,6 +622,176 @@ def relate_to_unse(pillars, unse_gz, label="운"):
     if uz in gm: out["공망"] = f"{uz}는 일주 기준 공망지 — 학파 이견 병기 필요"
     return out
 
+
+# ---------------- 인연 층위 (references/33) ----------------
+# ⚠️ 저장소에서 근거가 가장 얇은 층위다. 축별 등급을 반드시 병기한다. (33_inyeon.md §1)
+# ⚠️ 길흉 점수가 아니다. 28_scoring.md 점수 모델과 무관하며 어떤 축에도 합산하지 않는다.
+# ⚠️ 사람을 판정·배제하는 용도로 쓰지 않는다. 상대 명조 없이 단정하지 않는다.
+
+_NEG_REL = {"충","형","자형","파","지지육해","원진","귀문","격각","복음(같은 글자)"}
+_POS_REL = {"육합","반합(왕지 포함)","반합(왕지 미포함)","방합 일부(2자)","삼합","방합"}
+CHEONGAN_HAP = {frozenset(p) for p in [("甲","己"),("乙","庚"),("丙","辛"),("丁","壬"),("戊","癸")]}
+
+def baeuja_gung(pillars):
+    """배우자궁(일지) 구조. 등급 B — 궁위론."""
+    labels = ["년","월","일","시"]
+    zhis = [p[1] for p in pillars]
+    day, dz = pillars[2][0], zhis[2]
+    inner = {}
+    for i in (0, 1, 3):
+        r = zhi_relations(zhis[i], dz)
+        if r: inner[f"{labels[i]}지 {zhis[i]}"] = r
+    return {
+        "배우자궁": f"일지 {dz} — 본기 {BONGI[dz]}({sipsin(day, BONGI[dz])})",
+        "지장간": {c: sipsin(day, c) for c in JANGGAN[dz]},
+        "원국 내 간섭": inner or {"—": ["없음"]},
+        "간섭 강도": f"부정 관계 {sum(1 for v in inner.values() for r in v if r in _NEG_REL)}건",
+        "⚠️": "배우자궁은 등급 B(궁위론)다. 재성=배우자 매핑은 고전의 전제이며 궁위·용신 축과 함께 읽는다",
+    }
+
+def inyeon_fit(pillars, yongsin_oheng=None):
+    """상대 지지 후보 12개의 정합도. yongsin_oheng은 격국·조후로 **먼저 확정한** 실질 용신 오행 리스트.
+    ⚠️ 스크립트는 용신을 판정하지 않는다. 판정은 SKILL.md Step 3-5~7에서 하고 그 결과를 넘긴다."""
+    labels = ["년","월","일","시"]
+    zhis = [p[1] for p in pillars]
+    dz = zhis[2]
+    ys = set(yongsin_oheng or [])
+    out = {}
+    for z in ZHI:
+        rel = {}
+        for i in range(4):
+            r = zhi_relations(zhis[i], z)
+            if r: rel[f"{labels[i]}지{zhis[i]}"] = r
+        neg = sum(1 for v in rel.values() for r in v if r in _NEG_REL)
+        pos = sum(1 for v in rel.values() for r in v if r in _POS_REL)
+        ilji = zhi_relations(dz, z) or []
+        oh = OHENG_Z[z]
+        if not ys:                       yd = "미판정"
+        elif oh == "土" and "土" in ys:   yd = "◎" if z in "辰丑" else "△ 조토 — 실질 무효"
+        elif oh in ys:                   yd = "◎"
+        else:                            yd = "—"
+        row = {"오행": oh, "용신 방향": yd,
+               "일지와": ilji or ["—"], "원국 관계": rel or {"—": ["없음"]},
+               "긍정 관계": pos, "부정 관계": neg}
+        if z in "辰丑":
+            row["비고"] = "습토 — 金을 제대로 생한다 (25_byeongyak.md 조토불생금의 반대편)"
+        elif z in "戌未":
+            row["비고"] = "조토 — 이 위의 金은 통근처로 무효"
+        out[z] = row
+    out["⚠️ 읽는 법"] = ("지지 한 글자는 여덟 중 하나다. 이 표로 사람을 거르지 않는다. "
+                     "상대의 격국·용신·대운이 한 글자를 얼마든지 뒤집는다")
+    return out
+
+def _inyeon_signals(day_gan, gz, zhis):
+    """한 간지(세운·대운)의 인연 층위 신호 목록. 길흉이 아니라 '발동 여부'다."""
+    g, z = gz[0], gz[1]
+    dz = zhis[2]
+    sig = []
+    if frozenset((day_gan, g)) in CHEONGAN_HAP:
+        sig.append(f"일간 천간합({day_gan}{g}합) — 일간이 직접 묶인다. 길흉은 화신·방어간으로 따로 판정")
+    for r in (zhi_relations(dz, z) or []):
+        if r in _POS_REL:   sig.append(f"배우자궁 {r}")
+        elif r in _NEG_REL: sig.append(f"배우자궁 {r}")
+    pr = injong_pairs(day_gan, z)
+    if pr["재성"]["슬롯"] in ("최고조","갈림"):
+        sig.append(f"재성 {pr['재성']['슬롯']}({'·'.join(pr['재성']['십성'].values())})")
+    if sipsin(day_gan, g) in ("편재","정재"):
+        sig.append(f"운 천간이 재성({sipsin(day_gan, g)})")
+    return sig
+
+def _inyeon_capacity(day_gan, z):
+    """감당력(受容) — 들어온 것을 받을 수 있는 상태인가. 일간 운성 + 비겁·인성 조."""
+    u = unseong(day_gan, z)
+    st = UNSEONG_STATE[u]
+    pr = injong_pairs(day_gan, z)
+    bi, inn = pr["비겁"]["슬롯"], pr["인성"]["슬롯"]
+    score = {"활": 2, "전": 0, "장": -2}[st] + {"최고조": 2, "관리": 1, "갈림": 1, "전환": 0, "창고": -1, "최저": -2}.get(bi, 0)
+    lvl = "상" if score >= 3 else ("중" if score >= 0 else "하")
+    return {"일간 운성": f"{u}({st})", "비겁조": bi, "인성조": inn, "감당력": lvl}
+
+def _inyeon_activity(day_gan, z, year_zhi):
+    """활동(活動) 축 — 친밀·활동 층위. (33_inyeon.md §5)
+    ⚠️ 이 문서에서 등급이 가장 낮은 축이다. §4의 발동·수용과 합산하지 않는다.
+    ⚠️ 빈도·성향·능력을 판정하지 않는다. 명리에 그 판정 근거가 없다."""
+    pr = injong_pairs(day_gan, z)
+    sik = pr["식상"]["슬롯"]
+    u = unseong(day_gan, z)
+    sig = []
+    if sik == "최고조": sig.append(("A", f"식상 최고조({'·'.join(pr['식상']['십성'].values())}) — 욕구·표출 축"))
+    elif sik == "갈림": sig.append(("A", "식상 갈림 — 음양이 나뉜다"))
+    if z in "子午卯酉":
+        nm = sibisinsal(year_zhi, z)
+        if nm == "년살": sig.append(("B", f"진도화(년살) — 년지 {year_zhi} 삼합국 기준"))
+        else:            sig.append(("A~B", f"왕지 도화({z}) — 12신살로는 {nm}"))
+    if u == "목욕":
+        sig.append(("A운성/C해석", "일간 목욕 — ⚠️ 정본표는 '씻고 꾸밈·치장·변덕(패지)'로 정의한다. "
+                                  "성적 함의는 민간 확장이며 단독 근거로 쓰지 않는다 (33_inyeon.md §5-2)"))
+    if z == HONGYEOM[day_gan]:
+        sig.append(("C~D", "홍염 — ⚠️ 등급 C~D. 단독 문장으로 쓰지 않는다"))
+    strong = any(gr.startswith("A") and "식상 최고조" in t for gr, t in sig)
+    support = any("도화" in t for _, t in sig) or UNSEONG_STATE[u] == "활"
+    lvl = "강" if (strong and support) else ("중" if sig else "약")
+    return {"활동": lvl, "신호": [f"[{gr}] {t}" for gr, t in sig] or ["없음"],
+            "⚠️": ("활동 강 ≠ 좋은 해가 아니다. 식상 최고조는 설기(洩氣)이기도 하다. "
+                  "일간이 약하거나 재다신약인 명조에서는 소모가 커지는 구간일 수 있으므로 "
+                  "수용 축과 **반드시 함께** 읽는다 (25_byeongyak.md ③)")}
+
+def inyeon_scan(pillars, y0, y1, daewoon=None, activity=False):
+    """연도별 인연 층위 스캔 — 발동(發動) × 수용(受容), 선택적으로 활동(活動).
+    daewoon : 그 구간의 대운 간지(예: "癸未"). 주면 대운 층위 신호를 **별도로** 붙인다.
+    activity: True면 친밀·활동 축(33_inyeon.md §5)을 **별도 축으로** 붙인다. 합산하지 않는다.
+    ⚠️ 사건 예측이 아니라 압력의 방향 지도다. 축도 층위도 합치지 않는다."""
+    day = pillars[2][0]
+    zhis = [p[1] for p in pillars]
+    rows = []
+    for y in range(y0, y1 + 1):
+        gz = sewoon(y)
+        sig = _inyeon_signals(day, gz, zhis)
+        cap = _inyeon_capacity(day, gz[1])
+        rel = {}
+        for i, lab in enumerate(["년","월","일","시"]):
+            r = zhi_relations(zhis[i], gz[1])
+            if r: rel[f"{lab}지{zhis[i]}"] = r
+        pull = "강" if len(sig) >= 3 else ("중" if len(sig) == 2 else ("약" if sig else "무"))
+        row = {"년": y, "세운": gz, "발동": pull, "신호": sig or ["없음"], "수용": cap, "원국 관계": rel or {"—": ["없음"]}}
+        if activity: row["활동"] = _inyeon_activity(day, gz[1], zhis[0])
+        rows.append(row)
+    out = {}
+    if daewoon:
+        out["대운 층위"] = {
+            "대운": daewoon,
+            "신호": _inyeon_signals(day, daewoon, zhis) or ["없음"],
+            "수용": _inyeon_capacity(day, daewoon[1]),
+            "⚠️": ("대운은 세운보다 무겁다(28_scoring.md §1 — 대운 25 vs 세운 12). "
+                  "세운 층위와 합산하지 말고, 대운을 배경으로 깔고 세운을 읽는다"),
+        }
+    out.update({
+        "대상": f"{y0}~{y1} 세운 스캔 (입춘 기준)",
+        "축": ("발동(發動) = 배우자궁·일간합·재성이 움직이는가 — **끌림의 질이 아니라 움직임의 크기다**. 충·형·원진도 발동으로 센다 / 수용(受容) = 그 움직임을 받을 일간 상태"),
+        "연도": rows,
+        "⚠️ 필수 고지": ("① 발동과 수용은 다른 축이다. 합산하지 않는다 "
+                    "② 발동이 강한 해가 좋은 해라는 뜻이 아니다 — 자리가 크게 움직인다는 뜻이다. 충·형으로 움직이는 것도 발동이다 "
+                    "③ 사건 예측이 아니라 압력의 방향이다. 누구를 언제 만나는지 이 표는 정하지 않는다 "
+                    "④ 28_scoring.md 점수 모델과 무관하며 어떤 축에도 합산하지 않는다 "
+                    "⑤ 대운 간지를 주지 않으면 이 표는 **세운 층위만** 본 것이다. "
+                    "대운 천간이 일간과 합하는 구간은 10년 내내 그 신호가 깔리므로 반드시 함께 확인한다"),
+        "⚠️ 활동 축": ("활동(活動)은 '맺어지는가'가 아니라 '그쪽 에너지가 활발한가'라는 별개 질문이다. "
+                   "발동·수용과 합산하지 않는다. 이 문서에서 등급이 가장 낮은 축이며, "
+                   "C~D 항목(홍염·음란지합)은 단독 문장으로 쓰지 않는다. "
+                   "명리는 빈도·성향·능력을 판정하지 않는다 (33_inyeon.md §5-5)") if activity else None,
+    })
+    return out
+
+def _inyeon_cli(a, ps):
+    out = {}
+    ys = [s.strip() for s in a.yongsin.split(",")] if a.yongsin else None
+    if a.inyeon:
+        out["배우자궁"] = baeuja_gung(ps)
+        out["상대 지지 정합도"] = inyeon_fit(ps, ys)
+    if a.inyeon_scan:
+        y0, y1 = (int(x) for x in a.inyeon_scan.split(":"))
+        out["인연 스캔"] = inyeon_scan(ps, y0, y1, a.inyeon_daewoon, a.inyeon_activity)
+    return out
 
 # ---------------- main ----------------
 
@@ -466,6 +809,20 @@ def main():
     ap.add_argument("--year-fortune", type=int, help="해당 연도 세운·월운 간지표만 출력")
     ap.add_argument("--relate", metavar="干支",
                     help="운 간지 하나를 원국에 대입 (--pillars 또는 --birth와 함께). 예: --relate 丁酉")
+    ap.add_argument("--injong", metavar="支",
+                    help="십성 인종 전개. 지지 하나 또는 간지. --pillars/--birth와 함께 쓰면 원국 교차(4분면)까지. 예: --injong 酉")
+    ap.add_argument("--injong-year", type=int, metavar="YYYY",
+                    help="해당 연도 세운+월운 12달을 인종으로 일괄 전개 (--pillars 또는 --birth 필요)")
+    ap.add_argument("--inyeon", action="store_true",
+                    help="인연 층위 — 배우자궁 구조 + 상대 지지 후보 12개 정합도 (33_injong 규범 준수 필수)")
+    ap.add_argument("--yongsin", metavar="오행",
+                    help="실질 용신 오행. 쉼표 구분(예: 水,土). --inyeon의 용신 방향 판정에 쓴다. 격국·조후로 먼저 확정할 것")
+    ap.add_argument("--inyeon-scan", metavar="Y0:Y1",
+                    help="연도 구간의 인연 층위 2축 스캔(발동×수용). 예: --inyeon-scan 2026:2036")
+    ap.add_argument("--inyeon-daewoon", metavar="干支",
+                    help="--inyeon-scan에 대운 배경을 함께 표기. 예: --inyeon-daewoon 癸未")
+    ap.add_argument("--inyeon-activity", action="store_true",
+                    help="--inyeon-scan에 친밀·활동 축(도화·식상·목욕·홍염)을 별도 축으로 추가. 등급 낮음 — 33_inyeon.md §5 규범 준수 필수")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
 
@@ -479,6 +836,9 @@ def main():
         assert len(ps)==4 and all(len(p)==2 and p[0] in GAN and p[1] in ZHI for p in ps), "사주 형식 오류"
         res = analyze_pillars(ps)
         if a.relate: res["운 대입"] = relate_to_unse(ps, a.relate)
+        if a.injong: res["십성 인종"] = injong_report(ps[2][0], a.injong[-1], pillars=ps, context=[a.injong[-1]])
+        if a.injong_year: res["연간 인종"] = injong_year(ps, a.injong_year, a.tz)
+        res.update(_inyeon_cli(a, ps))
         print(json.dumps(res, ensure_ascii=False, indent=2)); return
 
     if not (a.birth and a.gender):
@@ -510,6 +870,9 @@ def main():
     res["절기"] = {"월 구간": f"{minfo['prev_jie_name']}({minfo['prev_jie_local']:%m-%d %H:%M}) ~ {minfo['next_jie_name']}({minfo['next_jie_local']:%m-%d %H:%M})"}
     res["대운"] = daewoon(pillars, a.gender, local, minfo, a.tz)
     if a.relate: res["운 대입"] = relate_to_unse(pillars, a.relate)
+    if a.injong: res["십성 인종"] = injong_report(pillars[2][0], a.injong[-1], pillars=pillars, context=[a.injong[-1]])
+    if a.injong_year: res["연간 인종"] = injong_year(pillars, a.injong_year, a.tz)
+    res.update(_inyeon_cli(a, pillars))
     if warn: res["경고"] = warn
     # 절입 경계 ±1일 경고
     for edge, nm in [(minfo["prev_jie_local"], minfo["prev_jie_name"]),
