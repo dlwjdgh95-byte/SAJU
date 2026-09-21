@@ -709,10 +709,38 @@ def _inyeon_capacity(day_gan, z):
     lvl = "상" if score >= 3 else ("중" if score >= 0 else "하")
     return {"일간 운성": f"{u}({st})", "비겁조": bi, "인성조": inn, "감당력": lvl}
 
-def inyeon_scan(pillars, y0, y1, daewoon=None):
-    """연도별 인연 층위 2축 스캔 — 발동(發動) × 수용(受容).
-    daewoon: 그 구간의 대운 간지(예: "癸未"). 주면 대운 층위 신호를 **별도로** 붙인다.
-    ⚠️ 사건 예측이 아니라 압력의 방향 지도다. 두 축은 합산하지 않고, 층위도 합치지 않는다."""
+def _inyeon_activity(day_gan, z, year_zhi):
+    """활동(活動) 축 — 친밀·활동 층위. (33_inyeon.md §5)
+    ⚠️ 이 문서에서 등급이 가장 낮은 축이다. §4의 발동·수용과 합산하지 않는다.
+    ⚠️ 빈도·성향·능력을 판정하지 않는다. 명리에 그 판정 근거가 없다."""
+    pr = injong_pairs(day_gan, z)
+    sik = pr["식상"]["슬롯"]
+    u = unseong(day_gan, z)
+    sig = []
+    if sik == "최고조": sig.append(("A", f"식상 최고조({'·'.join(pr['식상']['십성'].values())}) — 욕구·표출 축"))
+    elif sik == "갈림": sig.append(("A", "식상 갈림 — 음양이 나뉜다"))
+    if z in "子午卯酉":
+        nm = sibisinsal(year_zhi, z)
+        if nm == "년살": sig.append(("B", f"진도화(년살) — 년지 {year_zhi} 삼합국 기준"))
+        else:            sig.append(("A~B", f"왕지 도화({z}) — 12신살로는 {nm}"))
+    if u == "목욕":
+        sig.append(("A운성/C해석", "일간 목욕 — ⚠️ 정본표는 '씻고 꾸밈·치장·변덕(패지)'로 정의한다. "
+                                  "성적 함의는 민간 확장이며 단독 근거로 쓰지 않는다 (33_inyeon.md §5-2)"))
+    if z == HONGYEOM[day_gan]:
+        sig.append(("C~D", "홍염 — ⚠️ 등급 C~D. 단독 문장으로 쓰지 않는다"))
+    strong = any(gr.startswith("A") and "식상 최고조" in t for gr, t in sig)
+    support = any("도화" in t for _, t in sig) or UNSEONG_STATE[u] == "활"
+    lvl = "강" if (strong and support) else ("중" if sig else "약")
+    return {"활동": lvl, "신호": [f"[{gr}] {t}" for gr, t in sig] or ["없음"],
+            "⚠️": ("활동 강 ≠ 좋은 해가 아니다. 식상 최고조는 설기(洩氣)이기도 하다. "
+                  "일간이 약하거나 재다신약인 명조에서는 소모가 커지는 구간일 수 있으므로 "
+                  "수용 축과 **반드시 함께** 읽는다 (25_byeongyak.md ③)")}
+
+def inyeon_scan(pillars, y0, y1, daewoon=None, activity=False):
+    """연도별 인연 층위 스캔 — 발동(發動) × 수용(受容), 선택적으로 활동(活動).
+    daewoon : 그 구간의 대운 간지(예: "癸未"). 주면 대운 층위 신호를 **별도로** 붙인다.
+    activity: True면 친밀·활동 축(33_inyeon.md §5)을 **별도 축으로** 붙인다. 합산하지 않는다.
+    ⚠️ 사건 예측이 아니라 압력의 방향 지도다. 축도 층위도 합치지 않는다."""
     day = pillars[2][0]
     zhis = [p[1] for p in pillars]
     rows = []
@@ -726,6 +754,7 @@ def inyeon_scan(pillars, y0, y1, daewoon=None):
             if r: rel[f"{lab}지{zhis[i]}"] = r
         pull = "강" if len(sig) >= 3 else ("중" if len(sig) == 2 else ("약" if sig else "무"))
         row = {"년": y, "세운": gz, "발동": pull, "신호": sig or ["없음"], "수용": cap, "원국 관계": rel or {"—": ["없음"]}}
+        if activity: row["활동"] = _inyeon_activity(day, gz[1], zhis[0])
         rows.append(row)
     out = {}
     if daewoon:
@@ -746,6 +775,10 @@ def inyeon_scan(pillars, y0, y1, daewoon=None):
                     "④ 28_scoring.md 점수 모델과 무관하며 어떤 축에도 합산하지 않는다 "
                     "⑤ 대운 간지를 주지 않으면 이 표는 **세운 층위만** 본 것이다. "
                     "대운 천간이 일간과 합하는 구간은 10년 내내 그 신호가 깔리므로 반드시 함께 확인한다"),
+        "⚠️ 활동 축": ("활동(活動)은 '맺어지는가'가 아니라 '그쪽 에너지가 활발한가'라는 별개 질문이다. "
+                   "발동·수용과 합산하지 않는다. 이 문서에서 등급이 가장 낮은 축이며, "
+                   "C~D 항목(홍염·음란지합)은 단독 문장으로 쓰지 않는다. "
+                   "명리는 빈도·성향·능력을 판정하지 않는다 (33_inyeon.md §5-5)") if activity else None,
     })
     return out
 
@@ -757,7 +790,7 @@ def _inyeon_cli(a, ps):
         out["상대 지지 정합도"] = inyeon_fit(ps, ys)
     if a.inyeon_scan:
         y0, y1 = (int(x) for x in a.inyeon_scan.split(":"))
-        out["인연 스캔"] = inyeon_scan(ps, y0, y1, a.inyeon_daewoon)
+        out["인연 스캔"] = inyeon_scan(ps, y0, y1, a.inyeon_daewoon, a.inyeon_activity)
     return out
 
 # ---------------- main ----------------
@@ -788,6 +821,8 @@ def main():
                     help="연도 구간의 인연 층위 2축 스캔(발동×수용). 예: --inyeon-scan 2026:2036")
     ap.add_argument("--inyeon-daewoon", metavar="干支",
                     help="--inyeon-scan에 대운 배경을 함께 표기. 예: --inyeon-daewoon 癸未")
+    ap.add_argument("--inyeon-activity", action="store_true",
+                    help="--inyeon-scan에 친밀·활동 축(도화·식상·목욕·홍염)을 별도 축으로 추가. 등급 낮음 — 33_inyeon.md §5 규범 준수 필수")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
 
