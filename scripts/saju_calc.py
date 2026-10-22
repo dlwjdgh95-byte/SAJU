@@ -698,7 +698,7 @@ def analyze_shinsal(pillars):
     # 개별 신살
     ind = {}
     ya = YANGIN.get(day)
-    if ya: ind["양인(A)"] = [f"{labels[i]}지" for i in range(n) if zhis[i] == ya] or ["없음"]
+    if ya: ind["양인(A)"] = [f"{labels[i]}지" for i in range(n) if zhis[i] == ya] or ["없음" if n == 4 else "연·월·일지에 없음(시지 미상)"]
     else:  ind["양인(A)"] = ["음간 — 양인 없음이 주류 견해"]
     for nm, tb, gr in [("문창귀인", MUNCHANG, "B"), ("학당귀인", HAKDANG, "B"),
                        ("금여", GEUMYEO, "C"), ("홍염살", HONGYEOM, "C~D")]:
@@ -710,7 +710,7 @@ def analyze_shinsal(pillars):
     if hit: ind["천을귀인(B)"] = hit + ["※ 귀인은 결과가 아니라 통로"]
     gm = gongmang(pillars[2])
     hit = [f"{labels[i]}지{zhis[i]}" for i in range(n) if zhis[i] in gm]
-    ind["공망(A~B)"] = [f"공망지 {gm}"] + (hit if hit else ["원국에 해당 없음"])
+    ind["공망(A~B)"] = [f"공망지 {gm}"] + (hit if hit else ["원국에 해당 없음" if n == 4 else "연·월·일지에 해당 없음(시지 미상)"])
     bh = [f"{labels[i]}주 {pillars[i]}" for i in range(n) if pillars[i] in BAEKHO]
     if bh: ind["백호대살(B)"] = bh
     gg = [f"{labels[i]}주 {pillars[i]}" for i in range(n) if pillars[i] in GWAEGANG]
@@ -892,8 +892,9 @@ def injong_year(pillars, year, tz_hours=None, zone="Asia/Seoul"):
         "월운 12": rows,
         "⚠️": ("층위 비중은 세운 12 > 월운 5 (28_scoring.md §1). 월운 인종은 발현 시점 참고이지 "
               "사건 예언이 아니다. 사고지 4달은 강약이 아니라 개폐로 읽는다"),
-        "⚠️ 개폐 판정 범위": (f"이 표의 사고지 개폐는 **세운 지지 + 원국 {len(pillars)}지**만 대조한다. "
-                         "대운 지지는 포함되지 않으므로, 대운까지 반영하려면 "
+        "⚠️ 개폐 판정 범위": (f"이 표의 사고지 개폐는 **세운 지지 + 원국 {len(pillars)}지**만 대조한다"
+                         + ("(시지 미상 — 시지에 충·합 짝이 있으면 개폐가 달라진다). " if len(pillars) == 3 else ". ")
+                         + "대운 지지는 포함되지 않으므로, 대운까지 반영하려면 "
                          "injong_report(day, zhi, pillars, context=[세운지지, 대운지지])로 직접 호출한다"),
     }
 
@@ -912,6 +913,8 @@ def injong_report(day_gan, zhi, pillars=None, context=None, label="운"):
         ctx = list(context or [])
         if pillars: ctx += [p[1] for p in pillars]
         out["개폐 판정"] = gaego(zhi, ctx) if ctx else {"판정": "대조 지지 미입력 — 판정 불가"}
+        if pillars and len(pillars) == 3 and ctx:
+            out["개폐 판정"]["시지 미상"] = "시지에 충 파트너나 삼합 짝이 있으면 판정이 달라진다"
         ii = ijung_ipmyo(day_gan, zhi)
         out["이중 입묘"] = (f"{'·'.join(ii)} — 인종상 墓이면서 {zhi} 지장간. 이 달 개폐 판정의 주체"
                         if ii else f"{zhi}는 본기가 墓가 아니다(관대) — 이중 입묘 없음. 창고보다 전환·관리 국면")
@@ -1248,13 +1251,16 @@ def _parse_pillars(s):
         sys.exit(f"사주 형식 오류: {s!r} — 60갑자 간지 4개, 시각을 모르면 연·월·일 3개 (예: \"乙亥 丙戌 癸巳 乙卯\", \"乙亥 丙戌 癸巳\")")
     return ps
 
+PILLARS3_NOTE = ("ℹ️ 시주 없이 3기둥으로 분석했다 — 격 후보(시간 투출·시지 회국)·통근·원국 지지 관계·신살(양인·공망 등)·"
+                 "개폐 판정·원국 보유도·궁 간섭은 시주에 따라 달라질 수 있다")
+
 def _pillars_warnings(ps):
     """직접 입력한 사주가 월두법·시두법과 맞는지. 시간은 야자시설(익일 일간 시두)도 허용한다."""
     w = []
     if month_gan(ps[0][0], ps[1][1]) != ps[1][0]:
         w.append(f"⚠️ 월주 {ps[1]} — {ps[0][0]}년의 월두법과 맞지 않는다({ps[0][0]}년 {ps[1][1]}월 = {month_gan(ps[0][0], ps[1][1])}{ps[1][1]}). 입력을 확인할 것 (원전 명조에도 전사 오류가 있다)")
     if len(ps) == 3:
-        w.append("ℹ️ 시주 없이 3기둥으로 분석했다 — 시간 투출·시지 회국·시지 관계·원국 보유도·궁 간섭은 시주에 따라 달라질 수 있다")
+        w.append(PILLARS3_NOTE)
         return w
     nxt = GAN[(GAN.index(ps[2][0]) + 1) % 10]
     ok = {hour_pillar(ps[2][0], datetime(2000, 1, 1, h, 30))[0] for h in range(24)}
@@ -1352,9 +1358,9 @@ def _birth_block(a):
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
     zone = _check_zone(a.zone or PLACES[place][1])
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
-    korean = zone in ("Asia/Seoul", "Asia/Pyongyang") if a.tz is None else a.tz in (8.5, 9)
+    korean = zone in ("Asia/Seoul", "Asia/Pyongyang") and (a.tz is None or a.tz in (8.5, 9))    # --zone Asia/Tokyo --tz 9도 한국 밖
     if a.longitude is None and a.place is None and not korean:
-        sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
+        sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None and a.tz not in (8.5, 9) else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
                  "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)")
     t = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar)
     if a.longitude is None and abs(t["lon_corr_min"]) > 60:
@@ -1398,6 +1404,7 @@ def _birth_block(a):
                         + (f"전환 뒤 시계로 읽으면 {alt2}이다. " if alt2 else "전환 뒤 시계로 읽어도 일주는 같다. ")
                         + "그 사이 출생 기록이면 원 기록을 확인할 것")
         warn.append("ℹ️ 시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값이다")
+        warn.append(PILLARS3_NOTE)
     if known and t["ambiguous"]:
         t1 = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar, fold=1)
         p1 = four_pillars(t1["utc"], t1["local"], a.zasi)[0]

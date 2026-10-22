@@ -384,6 +384,7 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     assert d["pillars"] == ["庚申", "戊寅", "庚戌"] and "시간" not in d["sipsin_gan"]
     assert [c["격"] for c in d["격 후보"]["후보"]] == ["편재격", "편인격(변화 후보)"]       # 12:00(壬午시)를 넣으면 寅午戌 회국이 생긴다
     assert any("23:33 이후 출생이면 辛亥일" in w for w in d["경고"])
+    assert any(w.startswith("ℹ️ 시주 없이 3기둥으로 분석했다") for w in d["경고"])   # 날짜만 준 --birth도 3기둥 안내 (errata #41)
     d = json.loads(run_cli("--birth", "1955-09-08", "--gender", "M", "--json"))
     w = " ".join(d["경고"])
     assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번 있다" in w
@@ -403,6 +404,17 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     assert d["tonggn"]["일간甲"] == ["연·월·일지에 뿌리 없음(시지 미상)"]
     p3 = json.loads(run_cli("--pillars", "庚申 戊寅 庚戌", "--relate", "丙午", "--inyeon", "--json"))
     assert p3["pillars"] == ["庚申", "戊寅", "庚戌"] and "시지" not in str(p3["신살"]["원국 지지 관계"]) and "시지" not in p3["운 대입"]["영역"]
+    assert any(w.startswith("ℹ️ 시주 없이 3기둥으로 분석했다") for w in p3["경고"])
+    assert "(시지 미상 — 일지 옆 시지와의 관계는 빠졌다)" in p3["배우자궁"]["간섭 강도"]
+    # 시주에 따라 달라지는 판정은 3기둥이면 '시지 미상'을 붙인다 (errata #40·#41) — 4기둥에는 붙지 않는다
+    q3 = json.loads(run_cli("--pillars", "己巳 丁丑 甲戌", "--injong", "丑", "--json"))
+    assert q3["신살"]["개별 신살"]["양인(A)"] == ["연·월·일지에 없음(시지 미상)"]
+    assert q3["신살"]["개별 신살"]["공망(A~B)"] == ["공망지 申酉", "연·월·일지에 해당 없음(시지 미상)"]
+    assert "시지 미상" in q3["십성 인종"]["개폐 판정"]
+    quad = q3["십성 인종"]["원국 교차(4분면)"]
+    assert any("(연·월·일주 기준, 시주 미상)" in v and v.endswith(" (시주에 있으면 달라진다)") for v in quad.values())
+    q4 = run_cli("--pillars", "己巳 丁丑 甲戌 丙寅", "--injong", "丑", "--inyeon", "--json")
+    assert "시지 미상" not in q4 and "시주 미상" not in q4 and "3기둥" not in q4
 
 
 @pytest.mark.parametrize("argv", [
@@ -420,6 +432,7 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     ["--export-tables", "--json"],
     ["--export-tables", "--birth", ""],
     ["--year-fortune", "2026", "--janggan", "wolryul"],
+    ["--birth", "1990-06-15 12:50", "--gender", "M", "--zone", "Asia/Tokyo", "--tz", "9"],   # --tz 9여도 한국 밖 시간대면 경도가 필요하다
 ])
 def test_cli_conflicting_modes(argv):                     # 한쪽 옵션을 말없이 버리지 않는다
     with pytest.raises(SystemExit) as e:

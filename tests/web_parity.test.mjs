@@ -99,6 +99,13 @@ test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
   assert.ok(f.warn.some(w => w.includes("00:00~00:02 출생이면 戊寅일입니다")), f.warn.join(" / "));
   assert.ok(f.warn.some(w => w.includes("UTC+8:30")), f.warn.join(" / "));
   assert.ok(!E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" }).warn.some(w => w.includes("UTC+8:30") || w.includes("두 번")));
+  // 3기둥 안내와 공망 '시지 미상' — 시각을 알면 붙지 않는다 (saju_calc PILLARS3_NOTE, errata #41)
+  const p3 = s => s.startsWith("시각을 몰라 시주 없이 3기둥");
+  const g3 = E.buildNatal({ date: "2026-03-10", timeKnown: false, gender: "M" });      // 癸未일 — 공망 申酉가 연·월·일지에 없다
+  assert.ok(g3.warn.some(p3), g3.warn.join(" / "));
+  assert.equal(g3.sinsal.find(x => x.n === "공망").v, "공망지 申酉 — 연·월·일지에 없음(시지 미상)");
+  const g4 = E.buildNatal({ date: "2026-03-10", time: "12:00", timeKnown: true, gender: "M" });
+  assert.ok(!g4.warn.some(p3) && g4.sinsal.find(x => x.n === "공망").v === "공망지 申酉 — 원국에 없음");
 });
 
 test("서머타임 전환 시각 — 겹치거나 없는 벽시계 시각을 알린다", () => {

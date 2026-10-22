@@ -145,19 +145,24 @@ def build():
             "cases": rows, "unknown": unknown, "corpus": corpus()}
 
 
+def _checker():
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
+    import check_consistency as C
+    return C
+
+
 def johu_quotes():
-    """{일간: {월지: {"quote": json 인용, "wonmun": 그 달 '원문' 줄의 「」 인용 목록}}}."""
-    import glob, re
+    """{일간: {월지: {"quote": json 인용, "wonmun": 그 달 '원문' 줄의 「」 인용 목록}}}. 월별 절은 check_consistency와 같이 읽는다."""
+    import re
+    C = _checker()
     ref = os.path.join(HERE, "..", "references")
     with open(os.path.join(ref, "johu_wonmun.json"), encoding="utf-8") as f:
         table = json.load(f)["table"]
-    files = sorted(glob.glob(os.path.join(ref, "0[1-9]_gungbok_*.md"))) + sorted(glob.glob(os.path.join(ref, "10_gungbok_*.md")))
     out = {}
-    for g, path in zip(S.GAN, files):
+    for g, path in zip(S.GAN, johu_files()):
         with open(path, encoding="utf-8") as f:
             txt = f.read()
-        heads = list(re.finditer(r"^### .*?\(([子丑寅卯辰巳午未申酉戌亥])月生\)", txt, re.M))
-        secs = {h.group(1): txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)] for i, h in enumerate(heads)}
+        secs = C._month_sections(txt)
         out[g] = {}
         for z in S.MONTH_ZHI:
             wl = re.search(r"^\*\*원문 \(窮通寶鑑\)\*\*: (.+)$", secs.get(z, ""), re.M)
@@ -166,9 +171,7 @@ def johu_quotes():
 
 
 def johu_files():
-    import glob
-    ref = os.path.join(HERE, "..", "references")
-    return sorted(glob.glob(os.path.join(ref, "0[1-9]_gungbok_*.md"))) + sorted(glob.glob(os.path.join(ref, "10_gungbok_*.md")))
+    return [os.path.join(HERE, "..", "references", n) for n in _checker().JOHU_FILES]
 
 
 def johu_docs():
@@ -194,13 +197,24 @@ def johu_docs():
 
 if __name__ == "__main__":
     if "--johu" in sys.argv or "--quotes" in sys.argv:
-        for path, data in [(QUOTES, johu_quotes()), (DOCS, johu_docs())]:
+        try:
+            with open(QUOTES, encoding="utf-8") as f:
+                old = json.load(f)
+        except (OSError, ValueError):
+            old = {}
+        new = johu_quotes()
+        for g in new:                                   # 인용이 빠지거나 바뀐 달은 원문과 다시 대조하라고 보여 준다
+            for z, e in new[g].items():
+                o = old.get(g, {}).get(z)
+                if o and o != e:
+                    gone = [q for q in [o["quote"]] + o["wonmun"] if q not in [e["quote"]] + e["wonmun"]]
+                    print(f" · 인용이 바뀐 달 {g}{z}월: " + ("빠진 인용 " + " / ".join(f"「{q[:24]}…」" for q in gone) if gone else "인용 추가"))
+        for path, data in [(QUOTES, new), (DOCS, johu_docs())]:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=1)
                 f.write("\n")
         print(f"{QUOTES} — 120개월 인용 고정\n{DOCS} — 01~10번 본문 절 고정")
-        sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
-        import check_consistency as C
+        C = _checker()
         C.check_johu()
         C.check_errata_pins()
         for n_ in C.notes:

@@ -15,9 +15,13 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
        그 달 단락이 있으면 json 인용은 그 단락(또는 그 달 N月로 시작하는 머리말 문장)에서, 1순위 글자를 담아야 한다
        json·'원문' 줄 인용 모두 그 달 자리에서 시작해야 하고(달 숫자·첫머리 N月·바로 앞 달 표시·조건 말 或若如凡 바로 뒤가 아님), 그 인용들과
        그 달 N月(또는 그 계절 이름 三秋甲木)으로 시작하는 원문 문장의 순위 말(先X后Y·无X用Y·取X辅Y·XY为要·Y次之·X为主·X为先)이 order와 맞아야 하고,
-       첫 으뜸 말(先X·专用X·独爱X·X为用 …)은 1순위, 次·佐로 둔 글자는 1순위가 아니어야 한다
-     - references/01~10 월별 원문 줄(「」 전부, 취용 글자가 모두 근거로 나오는지)·취용 순서 줄·매트릭스(순서 포함)·본문 용신·희신(N순위)·기신 목록(십성 이름 포함) ↔ json
-     - references/01~10 본문의 'A → B → C' 화살표 사슬(천간 이름만으로 된 것)은 그 달 order의 앞머리부터 차례대로 고른 글자여야 한다 — 달을 정할 수 없는 사슬도 실패
+       첫 으뜸 말(先X·专用X·独爱X·X为用 …)은 1순위, 次·佐로 둔 글자는 1순위가 아니어야 한다.
+       조건문(或·若·凡·如, 문장 머리의 「…者，」「X多、」「无X用Y」, '원문' 줄에 '조건 「…」'으로 적은 인용)은 순위로 읽지 않는다
+     - references/01~10 월별 원문 줄(한 줄, 「」 전부, 취용 글자가 모두 근거로 나오는지)·취용 순서 줄·매트릭스(순서 포함)·본문 용신·희신(N순위)·기신 목록(십성 이름 포함) ↔ json.
+       같은 (X月生) 머리가 두 번 있으면 실패
+     - errata로 바로잡은 문장(ERRATA_PINNED)과 그 달 '원문' 줄 인용(WONMUN_PINNED)이 빠지면 실패
+     - 본문 산문의 순서 표기('A → B → C' 화살표·「A·B 순」·先X後Y 등)와 매트릭스 계절 칸은 '확인 권장'으로만 알린다(errata #40).
+       대신 01~10 본문은 tests/fixtures/johu_docs.json이 절마다 고정한다(tests/build_fixtures.py --johu로만 갱신 — 갱신할 때 확인 권장·실패를 함께 출력)
      - 원문이 순위 말을 두지 않은 글자 쌍은 여기서 잡을 수 없으므로 tests/test_calc.py의 JOHU_PINNED가 120개월 order를 고정한다
   7. 마크다운 표 깨짐 (빈 줄로 끊긴 표 등)
   8. SKILL.md·README·references/*.md가 가리키는 파일의 존재 (경로를 쓴 참조와 파일 이름만 쓴 참조 모두)
@@ -221,7 +225,8 @@ NEG_USE = re.compile(RUN + r"(?:不用|无用|不可为用|不可用)|(?:不用|
                      + "|" + RUN + r"[^。，；]{0,4}[，,]为[木火土金水]{1,2}之病|见" + RUN + "则否|" + RUN + r"一透[，,][^。，]{0,4}不全")
 EXAM = re.compile("科甲|甲第|甲科")          # 과거 급제를 이르는 말 속 甲은 천간이 아니다
 NOT_FIRST = re.compile(r"不可专用(" + HZ + ")")     # 不可专用X — X는 1순위가 아니다
-COND = re.compile(r"\s*(?:或|若|凡|如)")           # 조건문 — 그 조건에서의 취용이라 그 달 순위로 읽지 않는다
+# 조건문 — 그 조건에서의 취용이라 그 달 순위로 읽지 않는다. 或·若·凡·如와, 문장 머리의 「化金者，」「甲多、」「无甲用庚」
+COND = re.compile(r"\s*(?:或|若|凡|如|[^，。、,]{1,6}者[，,]|(?:[甲乙丙丁戊己庚辛壬癸][木火土金水]?){1,2}(?:太|过)?多[、，,]|无[甲乙丙丁戊己庚辛壬癸][木火土金水]?(?:则)?(?:用|取))")
 LEAD = re.compile(r"(?:总之[，,]?|故)?" + MK.pattern)
 # 원문이 스스로 순위를 엇갈리게 말하는 달과 그 글자 쌍 — md 상황 분석에 따로 적어 두었다. 다른 쌍의 순위는 그대로 본다.
 # 둘째 값이 True인 달만 json 인용 자체가 엇갈리는 두 문장을 담는다 — 나머지 달의 json 인용은 예외 없이 order와 맞아야 한다
@@ -262,7 +267,17 @@ ERRATA_PINNED = [
     ("09_gungbok_imsu.md", "병화가 임수를 보면 귀하다는 말은 후대의 풀이이고, 궁통보감 원문 문장은 아니다", "#39 ②"),
     ("07_gungbok_gyunggeum.md", "인월(暖庚性)·축월(解冻)은 1순위, 묘·사·유·해·자월은 보좌", "#34 ⑧"),
     ("10_gungbok_gyesu.md", "- 목일간: 갑목은 경금·정화(벽갑인정), 을목은 병화로 온기", "#34 ⑧"),
+    ("03_gungbok_byunghwa.md", "지지 신(申)에 장생의 물이 있으면", "#41"),
+    ("09_gungbok_imsu.md", "묘월·사월에는 신금을 경금보다 앞에 두며, 미월에는 경금 없이 신금만 쓴다", "#41"),
+    ("10_gungbok_gyesu.md", "경금(庚金) 중심 (묘·사월은 신금이 앞, 미월은 신금만)", "#41"),
 ]
+# errata로 바로잡은 그 달 '원문' 줄 인용 — 줄에서 빼면 실패한다. --johu로 다시 만들어도 풀리지 않는다
+WONMUN_PINNED = {("丁", "亥"): ("三冬丁火，甲木为尊，庚金佐之", "#32 ③·#34 ⑤"),
+                 ("庚", "巳"): ("次取戊土，丙火佐之", "#34 ⑤"),
+                 ("辛", "寅"): ("先己后壬。己为君，庚为佐", "#36 ①")}
+JOHU_FILES = ["01_gungbok_gapmok.md", "02_gungbok_eulmok.md", "03_gungbok_byunghwa.md", "04_gungbok_junghwa.md",
+              "05_gungbok_muto.md", "06_gungbok_gito.md", "07_gungbok_gyunggeum.md", "08_gungbok_singeum.md",
+              "09_gungbok_imsu.md", "10_gungbok_gyesu.md"]      # 일간 차례 — 다른 이름의 사본이 끼어도 일간이 밀리지 않는다
 # 취용 글자가 그 달 '원문' 줄 인용에 글자로 나오지 않는 달
 COVER_EXEMPT = {("癸", "未"): "壬", }         # 「宜比劫助身」의 比劫으로만 나온다 (10번 미월 상황 분석)
 # 그 달 단락이 원문에 없어 계절 단락 전체에서 인용을 찾는 달 — md에 공통 단락임을 밝혀 두었다
@@ -309,13 +324,16 @@ def _unqualified(item, day):
     return out
 
 
-MONTH_HEAD_RE = re.compile(r"^### .*?\(([子丑寅卯辰巳午未申酉戌亥])月生\)", re.M)    # (正月生)·(閏月生) 같은 머리는 월별 절이 아니다
+MONTH_HEAD_RE = re.compile(r"^### .*?[(（]([子丑寅卯辰巳午未申酉戌亥])月生[)）·]", re.M)    # (正月生)·(閏月生) 같은 머리는 월별 절이 아니다. (寅月生·正月生)·（寅月生）도 읽는다
 
 
 def _month_sections(txt):
+    """{월지: 절 본문}. 같은 달 머리가 두 번 있으면 첫 절을 쓴다 — 중복은 check_johu가 따로 알린다."""
     heads = list(MONTH_HEAD_RE.finditer(txt))
-    return {h.group(1): txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)]
-            for i, h in enumerate(heads)}
+    out = {}
+    for i, h in enumerate(heads):
+        out.setdefault(h.group(1), txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)])
+    return out
 
 
 def _bullets(sec, title):
@@ -662,13 +680,14 @@ def _chains(txt, g):
 def check_johu():
     table = json.loads(read("references/johu_wonmun.json"))["table"]
     src = source_blocks()
-    files = sorted(glob.glob(os.path.join(REF, "0[1-9]_gungbok_*.md"))) + sorted(glob.glob(os.path.join(REF, "10_gungbok_*.md")))
-    for g, f in zip(S.GAN, files):
-        txt = open(f, encoding="utf-8").read()
-        name = os.path.basename(f)
+    for g, name in zip(S.GAN, JOHU_FILES):
+        txt = read("references/" + name)
         secs = _month_sections(txt)
         if sorted(secs) != sorted(S.MONTH_ZHI):
             problems.append(f"{name}: 월별 절(### X월생(…月生)) 12개를 찾지 못했다 ({len(secs)}개)")
+        heads = [h.group(1) for h in MONTH_HEAD_RE.finditer(txt)]
+        for z in dict.fromkeys(z for z in heads if heads.count(z) > 1):
+            problems.append(f"{name}: 「({z}月生)」 머리가 {heads.count(z)}번 있다 — (…月生)은 월별 절 머리에만 쓴다(사례·비교 절은 다른 제목으로)")
         rows = re.findall(r"^\| (" + "|".join(MON) + r") \|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|", txt, re.M)[:12]
         if [MON[r[0]] for r in rows] != list(S.MONTH_ZHI):
             problems.append(f"{name}: 조후 매트릭스 12행(인월~축월 순)을 찾지 못했다 ({len(rows)}행)")
@@ -731,12 +750,19 @@ def check_johu():
             wl = re.search(r"^\*\*원문 \(窮通寶鑑\)\*\*: (.+)$", sec, re.M)
             if not wl or f"「{q}」" not in wl.group(1):
                 problems.append(f"{name} {MON_HEAD[z]}: johu_wonmun.json 원문 인용이 그 달 '원문' 줄에 그대로 없다")
-            quotes = re.findall(r"「([^」]+)」", wl.group(1) if wl else "")
+            qms = list(re.finditer(r"(조건\s*)?「([^」]+)」", wl.group(1) if wl else ""))
+            quotes = [m_.group(2) for m_ in qms]
+            ranked_q = [m_.group(2) for m_ in qms if not m_.group(1)]     # '조건 「…」'으로 적은 조건문은 순위로 읽지 않는다
+            if wl and wl.group(1).count("「") != wl.group(1).count("」"):
+                problems.append(f"{name} {MON_HEAD[z]}: '원문' 줄의 「」가 짝이 맞지 않는다 — '원문' 줄은 한 줄로 쓴다(줄을 바꾸면 뒷줄은 읽지 않는다)")
+            if (g, z) in WONMUN_PINNED and WONMUN_PINNED[g, z][0] not in "　".join(quotes):
+                problems.append(f"{name} {MON_HEAD[z]}: errata {WONMUN_PINNED[g, z][1]}로 넣은 인용 「{WONMUN_PINNED[g, z][0]}」이 '원문' 줄에 없다")
             for qq in quotes:
                 if not _in_order(qq, allowed):
                     problems.append(f"{name} {MON_HEAD[z]}: '원문' 줄 인용 「{qq[:20]}…」이 원문 그 달 단락에 없다")
             # 인용 자리·순위 말은 json 인용과 '원문' 줄 인용 모두, 그리고 그 달 N月로 시작하는 원문 문장에서 본다
-            whys = [w for qq in dict.fromkeys([q] + quotes) for w in _anchor_problems(z, qq, allowed) + _rank_problems(g, z, qq, order, qq == q)]
+            whys = [w for qq in dict.fromkeys([q] + quotes) for w in _anchor_problems(z, qq, allowed)
+                    + (_rank_problems(g, z, qq, order, qq == q) if qq == q or qq in ranked_q else [])]
             whys += ["원문 문장 — " + w for s_ in _month_sentences(z, allowed) for w in _rank_problems(g, z, s_, order)]
             for why in dict.fromkeys(whys):
                 problems.append(f"{name} {MON_HEAD[z]}: {why}")
