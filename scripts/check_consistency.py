@@ -179,8 +179,8 @@ MON = dict(zip(["인월", "묘월", "진월", "사월", "오월", "미월", "신
 MON_HEAD = {z: m for m, z in MON.items()}
 NAME = re.compile("|".join(KO))
 GLOSS = re.compile(r"(?<![가-힣])[갑을병정무기경신임계]\(([甲乙丙丁戊己庚辛壬癸])[^)]*\)")    # 병(丙) → 丙
-COMPOUND = re.compile(r"(?<![가-힣])([갑을병정무기경신임계]{2,3})[목화토금수]?(?![가-힣])")   # 무기토·병정·임계수·경신
-QUAL = re.compile(r"과다|추가|혼잡|(?<![종적])합|인접")   # 원문 용신을 조건부로 꺼릴 때 쓰는 말(무계 합화, 병신 인접). 괄호 밖에 있어야 한다 — 종합·부적합의 '합'은 아니다
+COMPOUND = re.compile(r"(?<![가-힣])(?!(?:경계|기신|정신)(?![가-힣(]))([갑을병정무기경신임계]{2,3})[목화토금수]?(?![가-힣])")   # 무기토·병정·임계수·경신 (경계·기신·정신은 낱말)
+QUAL = re.compile(r"과다|과잉|과왕|과중|태과|태다|범람|다수|중중|중첩|일파|추가|혼잡|(?<![종적])합|인접")   # 원문 용신을 조건부로 꺼릴 때 쓰는 말(무계 합화, 병신 인접). 괄호 밖에 있어야 한다 — 종합·부적합의 '합'은 아니다
 NO_STEM = re.compile(r"(?<![가-힣])무[갑을병정경신임계](?=\s*시|\)|\s*$)")   # '무갑'·'(무정 시)'는 無甲·無丁 — 戊甲이 아니다 (무계 합화의 무계는 戊癸)
 SIPSIN_WORD = {"비견": ["비견"], "겁재": ["겁재"], "비겁": ["비견", "겁재"], "식신": ["식신"], "상관": ["상관"], "식상": ["식신", "상관"],
                "정재": ["정재"], "편재": ["편재"], "재성": ["정재", "편재"], "정관": ["정관"], "편관": ["편관"], "칠살": ["편관"],
@@ -233,6 +233,29 @@ RANK_EXEMPT = {("乙", "午"): ({frozenset("丙癸")}, True, "三夏 머리말 �
 # 그 달 단락이 있는데도 json 인용을 계절 머리말(三秋甲木 같은 달 숫자 없는 단락 포함)에서 가져온 달 — 그 달 단락에 취용 순서를 밝힌 문장이 없을 때만.
 # 머리말 문장 중간에 그 달이 나오는 인용(「…七月甲堪为戟…」)도 N月로 시작하지 않으면 여기에 올려야 통과한다. 지금은 비어 있다
 PREFACE_OK = {}
+# RANK_EXEMPT 달마다 md 그 달 절에 엇갈림을 밝힌 문장 — 이 문장이 빠지면 면제의 근거가 사라진다
+RANK_EXEMPT_NOTE = {("乙", "午"): "원문이 스스로 갈리는 곳",
+                    ("乙", "酉"): "추분 후에는 병화를 먼저",
+                    ("乙", "申"): "원문이 스스로 엇갈리는 대목",
+                    ("壬", "未"): "두 문장이 甲·癸 순서에서 엇갈린다",
+                    ("癸", "寅"): "경금은 신금이 없을 때의 대용(3순위)",
+                    ("己", "戌"): "「九月土盛，宜甲木疏之，余皆酌用」을 더한다"}
+# 매트릭스 계절 칸의 첫말 — 인월부터
+SEASON_CELL = ["초봄", "봄 극성", "늦봄", "초여름", "한여름", "늦여름", "초가을", "가을 극성", "늦가을", "초겨울", "한겨울", "늦겨울"]
+# errata로 고친 요약·비교 문장 가운데 검사기가 뜻으로 읽지 못하는 것 — 되돌리면 실패한다. 고칠 때는 errata와 함께 이 목록도 고친다
+ERRATA_PINNED = [
+    ("09_gungbok_imsu.md", "묘·사월은 신금이 경금보다 앞서고 미월은 신금만 쓴다", "#36 ⑦"),
+    ("10_gungbok_gyesu.md", "갑목은 계수 → 정화 → 경금(미월은 계수 없이 정화·경금), 을목은 계수(미월은 병화가 먼저)", "#36 ⑦"),
+    ("10_gungbok_gyesu.md", "을목·기토 겨울의 1순위, 무토는 자·축월 1순위(해월은 갑목 다음)", "#36 ⑦"),
+    ("02_gungbok_eulmok.md", "사·술월엔 신금, 신월엔 기토, 유월엔 정화가 더해진다", "#37 ·#38 ④"),
+    ("02_gungbok_eulmok.md", "단 사·술월은 병화 없이 계수·신금이고(사월은 경금까지)", "#37"),
+    ("10_gungbok_gyesu.md", "계수는 병화 해동(해월은 병화 없이 경신)", "#38 ④"),
+    ("03_gungbok_byunghwa.md", "무토는 임수가 많을 때 제방으로만 쓰고(1·2·7·10·11월)", "#34 ⑧"),
+    ("04_gungbok_junghwa.md", "8월 甲丙庚(취용 순서는 甲庚丙)", "#34 ⑧"),
+    ("06_gungbok_gito.md", "여름·가을엔 계수가 생명을 주는 단비(1순위 용신)", "#34 ⑧"),
+    ("07_gungbok_gyunggeum.md", "인월(暖庚性)·축월(解冻)은 1순위, 묘·사·유·해·자월은 보좌", "#34 ⑧"),
+    ("10_gungbok_gyesu.md", "- 목일간: 갑목은 경금·정화(벽갑인정), 을목은 병화로 온기", "#34 ⑧"),
+]
 # 취용 글자가 그 달 '원문' 줄 인용에 글자로 나오지 않는 달
 COVER_EXEMPT = {("癸", "未"): "壬", }         # 「宜比劫助身」의 比劫으로만 나온다 (10번 미월 상황 분석)
 # 그 달 단락이 원문에 없어 계절 단락 전체에서 인용을 찾는 달 — md에 공통 단락임을 밝혀 두었다
@@ -291,7 +314,8 @@ def _bullets(sec, title):
 
 
 def _bullet_stems(lines):
-    return [s_ for l in lines if l.startswith("- **") for s_ in _stems(re.match(r"- \*\*(.+?)\*\*", l).group(1), keep_paren=False)]
+    """굵은 이름 목록 → 천간. 굵은 글씨가 닫히지 않은 줄은 건너뛴다(check_johu가 따로 알린다)."""
+    return [s_ for l in lines for m in [re.match(r"- \*\*(.+?)\*\*", l)] if m for s_ in _stems(m.group(1), keep_paren=False)]
 
 
 def _months_of(marker):
@@ -428,10 +452,16 @@ def _month_sentences(z, text):
             yield s_ if not ex else s_[ex.start():] if i in _months_of(ex.group(1)) else s_[: ex.start()]
 
 
+def _simile(seg, mm):
+    """비유·견줌 속 달 이름 — 如七八月之间旱, 与五月一理. 그 달 문장이라는 표시가 아니다."""
+    pre, post = seg[max(0, mm.start() - 1): mm.start()], seg[mm.end(): mm.end() + 2]
+    return pre in ("与", "同", "似", "犹") or post == "一理" or (pre == "如" and post == "之间")
+
+
 def _anchor_problems(z, q, allowed):
     """인용이 그 달 자리에서 시작하는가 — 달 숫자 중간·다른 달 첫머리·다른 달 표시 뒤에서 자른 인용을 잡는다."""
     out, i, k = [], S.MONTH_ZHI.index(z), allowed.find(q)
-    lead = re.match(r"(?:总之[，,]?)?" + MK.pattern, q)
+    lead = re.match(r"(?:总之[，,]?|[或若如凡])?" + MK.pattern, q)       # 或五月乏癸 — 인용이 제 달을 밝히고 시작한다
     if k > 0 and allowed[k - 1] in NUM and re.match("[" + NUM + "]*月", q):
         out.append(f"인용이 원문의 달 숫자 중간에서 시작한다(「{allowed[k - 1]}{q[:6]}…」)")
     if k > 0 and allowed[k - 1] in "或若如凡":
@@ -439,23 +469,43 @@ def _anchor_problems(z, q, allowed):
     if lead and i not in _months_of(lead.group(1) + "月"):
         out.append(f"인용 첫머리 {lead.group(1)}月이 {MON_HEAD[z]}이 아니다")
     if k >= 0 and not lead:
-        prev = list(MK.finditer(allowed[allowed.rfind(chr(10), 0, k) + 1: k]))
+        seg = allowed[allowed.rfind(chr(10), 0, k) + 1: k]
+        prev = [mm for mm in MK.finditer(seg) if not _simile(seg, mm)]
+        head = LEAD.match(seg)
         if prev and i not in _months_of(prev[-1].group(0)):
-            out.append(f"인용 바로 앞의 달 표시가 {prev[-1].group(0)}이다 — 다른 달 문장")
+            joint = head and i in _months_of(head.group(0)) and _months_of(prev[-1].group(0)) <= _months_of(head.group(0))
+            if not (joint and seg[prev[-1].end():].count("。") >= 2):    # 五六月 단락의 「六月…」은 그 문장과 다음 문장까지만 六月이다
+                out.append(f"인용 바로 앞의 달 표시가 {prev[-1].group(0)}이다 — 다른 달 문장")
     return out
 
 
 KO_MONTH = dict(zip("인묘진사오미신유술해자축", S.MONTH_ZHI))
 KO_MONTH_NO = {"정": 0, "이": 1, "삼": 2, "사": 3, "오": 4, "육": 5, "칠": 6, "팔": 7, "구": 8, "십": 9, "십일": 10, "십이": 11, "동짓": 10, "섣": 11}
 KO_STEM = "갑목|을목|병화|정화|무토|기토|경금|신금|임수|계수"
-CHAIN_ITEM = r"(?:[가-힣]{2}(?:\([^)]*\))?|" + HZ + HE + ")"
+GLOSS_ITEM = r"[갑을병정무기경신임계]\(" + HZ + r"[^)]*\)"                      # 무(戊) — 한 글자 이름에 한자를 단 것
+STEM_ITEM = r"(?:(?:" + KO_STEM + r")(?:\([^)]*\))?|" + GLOSS_ITEM + "|" + HZ + HE + ")"
+CHAIN_ITEM = r"(?:[가-힣]{2}(?:\([^)]*\))?|" + GLOSS_ITEM + "|" + HZ + HE + ")"
 CHAIN = re.compile(CHAIN_ITEM + r"(?:\s*→\s*" + CHAIN_ITEM + ")+")
+ARROW_ALT = re.compile(r"\s*(?:⇒|->|=>|—>|–>|⟶|⟹|➔|➜|➡|⇨|→)\s*")              # 다른 화살표도 →로 읽는다
+ARROW_GT = re.compile("(" + STEM_ITEM + r")\s*>\s*(?=" + STEM_ITEM + ")")         # 천간 사이의 > 도 →
+ARROW_BACK = re.compile(STEM_ITEM + r"\s*(?:<-|<|←|⟵)\s*" + STEM_ITEM)            # 거꾸로 화살표 — 순서를 거꾸로 읽게 되니 쓰지 않는다
+SOON = re.compile(r"(" + STEM_ITEM + r"(?:\s*[·,，、]\s*" + STEM_ITEM + r")+)\s*(?:의\s*)?순(?=으로|이다|이며|[^가-힣]|$)")   # 무토·경금·병화 순 ('甲·癸 순서에서'는 순서를 말하지 않는다)
+RANK_SEQ = re.compile(r"([1-4])순위\s*(?:는|은|가|이|:)?\s*(" + STEM_ITEM + ")")       # 1순위 무토, 2순위 경금
+RANK_AFTER = re.compile("(" + STEM_ITEM + r")\s*(?:—\s*|\(\s*)([1-4])순위(?!\s*" + STEM_ITEM + ")")    # 경금(3순위)·경금 — 3순위 (— 1순위 정화를 …는 RANK_SEQ)
+RANK_SUBJ = re.compile(r"(?:^-?\s*|[,，.。;；:：]\s*)(" + KO_STEM + r")(?:\([^)]*\))?[은는][^,，.。;；]*?\(([1-4])순위\)")   # 경금은 …대용(3순위)
+PAIR_MD = re.compile(r"先(?:用|取|看)?(" + HZ + ")" + HE + r"(?:後|后|次)(?:用|取|看)?(" + HZ + ")|(" + HZ + ")" + HE + "先(" + HZ + ")" + HE + "(?:後|后)")
+MON_RUN = re.compile(r"(?:(?:[인묘진사오미신유술해자축]·)*[인묘진사오미신유술해자축]월|(?:십일|십이|[정이삼사오육칠팔구십])+월)[은는]\s*((?:" + HZ + "){2,4})(?![木火土金水]|" + HZ + ")")   # 해월은 庚丁
+KO_FIRST = re.compile("(" + STEM_ITEM + r")[을를이가]\s*먼저[^,，。.;；]*?[,，]\s*(" + STEM_ITEM + r")[을를이가은는]\s*(?:나중|다음|그다음|뒤)")
 KO_MONTHS = re.compile(r"((?:[인묘진사오미신유술해자축]·)*[인묘진사오미신유술해자축])월|((?:십일|십이|[정이삼사오육칠팔구십])+)월|(동짓|섣)달|(?<![\d·])(\d+(?:·\d+)*)월")
 SEASON_KO = {"봄": "寅卯辰", "여름": "巳午未", "가을": "申酉戌", "겨울": "亥子丑"}
 SEASON_HEAD = re.compile(r"^(?:- )?(봄|여름|가을|겨울)(?:\s*\(([인묘진사오미신유술해자축·]+)\))?\s*(?:[:：]|공통)")
-STEM_SUBJ = re.compile(r"(?:^-?\s*|[,，.。;；:：]\s*)(" + KO_STEM + ")[은는](?![가-힣])")     # 마디 첫머리의 'X는' — 다른 일간 이야기
+# 마디 첫머리의 'X는'·'X 일간은'·'X에게는'·'X의 경우'·'X(乙)은'·'乙木은' — 다른 일간 이야기
+STEM_SUBJ = re.compile(r"(?:(?:^-?\s*|[,，.。;；:：|]\s*)(" + KO_STEM + "|" + HZ + r"[木火土金水])(?:\([^)]*\))?\s*(?:일간\s*)?(?:은|는|에게는|에겐|의 경우|일 때는?)(?![가-힣])"
+                       r"|(?<![가-힣])(" + KO_STEM + r")의(?=\s*(?:[인묘진사오미신유술해자축]·?)+월))")    # 마디 첫머리 주어, 또는 어디서든 '갑목의 진월'
 # 조건·반론 마디의 사슬은 그 달 취용 순서가 아니다 — '…하면', '…때', 다른 해석을 소개하는 말
-CHAIN_SKIP = re.compile(r"[가-힣]면(?![가-힣])|때(?![가-힣])|해석|견해|학파|현대|일부|흔히|잘못|오류|폐기|아니라")
+CHAIN_SKIP = re.compile(r"[가-힣]면(?![가-힣])|때(?![가-힣])|해석|견해|학파|현대|일부|흔히|잘못|오류|폐기|아니라|支会|支成|[若或如凡]")
+GEN = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
+ELEM = {c: e for e, cs in zip("木火土金水", ["甲乙", "丙丁", "戊己", "庚辛", "壬癸"]) for c in cs}
 
 
 def _ko_months(m):
@@ -473,53 +523,119 @@ def _months_in(text):
     return [z for mm in KO_MONTHS.finditer(text) for z in _ko_months(mm)]
 
 
+def _item_stem(p_):
+    return (_stems(p_, keep_paren=False) or ["?"])[0]
+
+
+def _table_cells(line):
+    """표 줄 → [(칸 시작, 칸 끝)]."""
+    bars = [i for i, c in enumerate(line) if c == "|"]
+    return list(zip(bars, bars[1:]))
+
+
 def _chains(txt, g):
-    """01~10 본문의 'A → B → C' 사슬 가운데 천간 이름만으로 된 것 → (줄 번호, 천간, 지지 목록, 사슬, 천간 차례).
-    천간은 사슬 앞의 'X는·X은'(다른 일간을 말할 때), 없으면 그 파일의 일간이다.
+    """01~10 본문에서 취용 순서를 말하는 곳 → (줄 번호, 천간, 지지 목록, 원문 조각, 천간 차례, 종류).
+    종류: 'chain' — 'A → B → C' 사슬과 'A·B·C 순'(앞머리부터 차례대로 고른 글자여야 한다), 'pair' — 先X後Y·X先Y後·'X를 먼저, Y를 나중에'(앞뒤만 본다),
+    'rank' — 'N순위 X'·'X(N순위)'·'X는 …(N순위)'(천간 차례에 순위 번호를 단다: [(N, X)]).
+    천간은 사슬 앞의 'X는·X 일간은·X에게는·X의 경우' 같은 주어, 표 칸이면 그 열 머리의 일간, 없으면 그 파일의 일간이다.
     달은 ① 사슬 앞 마디(쉼표·마침표 뒤, 쌍점은 끊지 않는다)의 달 이름 → ② 사슬 바로 뒤 괄호가 달 이름뿐이면 그 달 → ③ 그 줄이 든 X월생 절의 달 →
     ④ 그 줄이나 단락 머리의 계절(봄·여름·가을·겨울, '(사·오·미)')에서, 같은 천간 마디 안에 따로 이름이 나온 달을 뺀 달이다. 못 정하면 지지 목록이 비어 있다.
-    굵은 글씨·⇒·->는 지우거나 →로 읽는다. 양력 달 표기, 코드 블록, '원문 취용 순서' 줄(따로 검사), 조건·반론 마디(CHAIN_SKIP)의 사슬은 읽지 않는다."""
-    sec, block, code = None, None, False
+    굵은 글씨는 지우고, ⇒·->·⟶·➔ 같은 화살표와 천간 사이의 >는 →로 읽는다(거꾸로 화살표는 'back'으로 따로 낸다).
+    양력 달 표기, 코드 블록, '원문 (窮通寶鑑)'·'원문 취용 순서' 줄(따로 검사), 「」 속 원문, 조건·반론 마디(CHAIN_SKIP)는 읽지 않는다.
+    상생 흐름(경금 → 임수 → 갑목 → 병화처럼 일간까지 이어지는 오행 흐름)은 취용 순서가 아니다."""
+    sec, block, code, head = None, None, False, None
     for ln, raw in enumerate(txt.splitlines(), 1):
         if raw.startswith("```"):
             code = not code
-        if code or raw.startswith("**원문 취용 순서**"):
+        if code or raw.startswith(("**원문 취용 순서**", "**원문 (窮通寶鑑)**")):
             continue
         if raw.startswith("#"):
             mh = re.match(r"^### .*?\((.)月生\)", raw)
             sec, block = (mh.group(1) if mh else None), None
             continue
         if not raw.strip():
-            block = None
+            block = head = None
             continue
         line = re.sub(r"양력\s*[\d·~]+월", "", raw.replace("**", ""))
-        line = re.sub(r"\s*(?:⇒|->|=>)\s*", " → ", line)
+        line = re.sub(r"「[^」]*」|\"[^\"]*[一-鿿][^\"]*\"", lambda m: "＿" * len(m.group(0)), line)    # 원문 인용(「」·\"…\")은 따로 검사 — 자리만 남긴다
+        line = ARROW_ALT.sub(" → ", line)
+        line = ARROW_GT.sub(r"\1 → ", line)
+        is_row = line.lstrip().startswith("|")
+        cells = _table_cells(line) if is_row else []
+        if is_row and not head:                     # 표 머리줄 — 열마다 일간 이름이 있으면 그 열의 천간
+            head = [next((KO[n] for n in re.findall(KO_STEM, line[a:b])), None) or
+                    next((c for c in re.findall(HZ + "(?=[木火土金水])", line[a:b])), None) for a, b in cells]
+            continue
         sh = SEASON_HEAD.match(line)
         if sh:
             block = [KO_MONTH[c] for c in sh.group(2) if c != "·"] if sh.group(2) else list(SEASON_KO[sh.group(1)])
-        subj = [(m.start(1), m.group(1)) for m in STEM_SUBJ.finditer(line)]
-        for ch in CHAIN.finditer(line):
-            parts = re.split(r"\s*→\s*", ch.group(0))
-            if not all(re.fullmatch("(?:" + KO_STEM + ")|" + HZ + HE, re.sub(r"\([^)]*\)", "", p_).strip()) for p_ in parts):
-                continue
-            clause = re.split(r"[,，。.;；]", line[: ch.start()])[-1]
-            if CHAIN_SKIP.search(clause):
-                continue
-            before = [s_ for s_ in subj if s_[0] < ch.start()]
-            stem = KO[before[-1][1]] if before else g
-            seg_a = before[-1][0] if before else 0
-            seg_b = next((s_[0] for s_ in subj if s_[0] > ch.start()), len(line))
-            after = re.search(r"\(([^)]*)\)$", parts[-1]) or re.match(r"\s*\(([^)]*)\)", line[ch.end():])    # 마지막 항목에 붙은 괄호나 사슬 뒤 괄호
+        subj = [(m.start(k), KO.get(m.group(k), m.group(k)[0])) for m in STEM_SUBJ.finditer(line) for k in (1, 2) if m.group(k)]
+
+        def where(a, b, after_text=""):
+            """[a, b) 조각 → (천간, 지지 목록, 마디)."""
+            op = line.rfind("(", 0, a)
+            if op >= 0 and ")" not in line[op: a]:      # 괄호 속이면 괄호 앞 마디까지 — 「…이루면 …(支成土局，先甲后丁)」
+                clause = re.split(r"[,，。.;；|]", line[: op])[-1] + line[op: a]
+                inner = re.split(r"[,，。.;；|]", line[op: a])[-1]
+                if _months_in(inner):                  # 괄호 속에 달 이름이 있으면 그 달 — '10월 목왕 시 (정월은 …)'
+                    clause = inner
+            else:
+                clause = re.split(r"[,，。.;；|]", line[: a])[-1]
+            before = [s_ for s_ in subj if s_[0] < a]
+            col = next((k for k, (x, y) in enumerate(cells) if x < a < y), None)
+            col_stem = head[col] if head and col is not None and col < len(head) else None
+            cell_a = cells[col][0] if col is not None else 0
+            if before and before[-1][0] >= cell_a:
+                stem, seg_a = before[-1][1], before[-1][0]
+            else:
+                stem, seg_a = col_stem or (before[-1][1] if before and not is_row else g), (cell_a if col is not None else (before[-1][0] if before else 0))
+            seg_b = next((s_[0] for s_ in subj if s_[0] > b), cells[col][1] if col is not None else len(line))
             zs = _months_in(clause)
-            if not zs and after and _months_in(after.group(1)) and not re.sub(KO_MONTHS.pattern + r"|[,·\s]", "", after.group(1)):
-                zs = _months_in(after.group(1))
+            if not zs and after_text and _months_in(after_text) and not re.sub(KO_MONTHS.pattern + r"|[,·\s]", "", after_text):
+                zs = _months_in(after_text)
             if not zs and sec:
                 zs = [sec]
             if not zs and block:
                 named = set(_months_in(line[seg_a: seg_b]))
                 zs = [z for z in block if z not in named]
-            stems = [(_stems(p_, keep_paren=False) or ["?"])[0] for p_ in parts]
-            yield ln, stem, zs, ch.group(0), stems
+            return stem, zs, clause
+
+        for m in ARROW_BACK.finditer(line):
+            yield ln, g, [], m.group(0), [], "back"
+        found = [(ch.start(), ch.end(), ch.group(0), re.split(r"\s*→\s*", ch.group(0))) for ch in CHAIN.finditer(line)]
+        found += [(m.start(), m.end(), m.group(0), re.split(r"\s*[·,，、]\s*", m.group(1))) for m in SOON.finditer(line)]
+        found += [(m.start(1), m.end(), m.group(0), list(m.group(1))) for m in MON_RUN.finditer(line)]
+        for a, b, text, parts in found:
+            if not all(re.fullmatch("(?:" + KO_STEM + ")|" + HZ + HE + "|" + GLOSS_ITEM, re.sub(r"\((?!" + HZ + r")[^)]*\)", "", p_).strip()) for p_ in parts):
+                continue
+            after = re.search(r"\(([^)]*)\)$", parts[-1]) or re.match(r"\s*\(([^)]*)\)", line[b:])    # 마지막 항목에 붙은 괄호나 사슬 뒤 괄호
+            stem, zs, clause = where(a, b, after.group(1) if after else "")
+            if CHAIN_SKIP.search(clause):
+                continue
+            stems = [_item_stem(p_) for p_ in parts]
+            if len(stems) >= 3 and stem in stems and all(GEN[ELEM.get(x, "木")] == ELEM.get(y) for x, y in zip(stems, stems[1:])):
+                continue                            # 상생 흐름
+            yield ln, stem, zs, text, stems, "chain"
+        pairs = [(m.start(), m.end(), m.group(0), (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))) for m in PAIR_MD.finditer(line)]
+        pairs += [(m.start(), m.end(), m.group(0), (_item_stem(m.group(1)), _item_stem(m.group(2)))) for m in KO_FIRST.finditer(line)]
+        for a, b, text, xy in pairs:
+            stem, zs, clause = where(a, b)
+            if not CHAIN_SKIP.search(clause):
+                yield ln, stem, zs, text, list(xy), "pair"
+        if is_row:
+            continue                                # 표 칸의 순위 숫자(12개월 중 10개월 1순위)는 달별 순위가 아니다
+        ranks = []
+        for m in RANK_SEQ.finditer(line):               # '1순위 무토, 2순위 경금, 3순위 병화'는 한 묶음 — 첫 항목의 달로 읽는다
+            if ranks and re.fullmatch(r"\s*[,，、]\s*", line[ranks[-1][1]: m.start()]):
+                ranks[-1] = (ranks[-1][0], m.end(), line[ranks[-1][0]: m.end()], ranks[-1][3] + [(int(m.group(1)), _item_stem(m.group(2)))])
+            else:
+                ranks.append((m.start(), m.end(), m.group(0), [(int(m.group(1)), _item_stem(m.group(2)))]))
+        ranks += [(m.start(), m.end(), m.group(0), [(int(m.group(2)), _item_stem(m.group(1)))]) for m in RANK_AFTER.finditer(line)]
+        ranks += [(m.start(1), m.end(), m.group(0), [(int(m.group(2)), KO[m.group(1)])]) for m in RANK_SUBJ.finditer(line)]
+        for a, b, text, nx in ranks:
+            stem, zs, clause = where(a, b)
+            if not CHAIN_SKIP.search(clause) and (sec or _months_in(clause)):
+                yield ln, stem, zs, text, nx, "rank"
 
 
 def check_johu():
@@ -535,9 +651,11 @@ def check_johu():
         rows = re.findall(r"^\| (" + "|".join(MON) + r") \|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|", txt, re.M)[:12]
         if [MON[r[0]] for r in rows] != list(S.MONTH_ZHI):
             problems.append(f"{name}: 조후 매트릭스 12행(인월~축월 순)을 찾지 못했다 ({len(rows)}행)")
-        for m, _season, yong, hui, gi in rows:
+        for m, season, yong, hui, gi in rows:
             z = MON[m]
             order = table[g][z]["order"]
+            if not season.strip().startswith(SEASON_CELL[S.MONTH_ZHI.index(z)]):
+                problems.append(f"{name} {m}: 매트릭스 계절 칸 '{season.strip()}'이 '{SEASON_CELL[S.MONTH_ZHI.index(z)]}'로 시작하지 않는다 (errata #32 ④)")
             ys, hs = _stems(yong, keep_paren=False), _stems(hui, keep_paren=False)    # 괄호 속 조건으로 내린 취용 글자는 빠진 것으로 본다
             if order[0] not in ys:
                 problems.append(f"{name} {m}: 원문 1순위 {order[0]}이 용신 칸에 없다")
@@ -555,6 +673,9 @@ def check_johu():
             if by is None or bh is None or bg is None:
                 problems.append(f"{name} {m}: 본문에 용신·희신·기신 목록이 없다")
                 continue
+            for l in by + bh + bg:
+                if l.startswith("- **") and not re.match(r"- \*\*(.+?)\*\*", l):
+                    problems.append(f"{name} {m}: 목록 줄의 굵은 이름이 닫히지 않았다 — {l[:30]}")
             # 본문 기신은 굵은 이름과 그 뒤 꾸밈말까지 — ' — '나 ':' 뒤의 설명 속 '과다'는 조건이 아니다
             items = [p.strip() for p in re.split(r"[,，/、]", gi)] + [re.match(r"(\*\*.+?\*\*)?(.*?)(?: — |[:：]|$)", l[2:]).group(0) for l in bg]
             for it in items:
@@ -602,6 +723,8 @@ def check_johu():
             for s_ in order:
                 if s_ != g and s_ not in cited and COVER_EXEMPT.get((g, z)) != s_:
                     problems.append(f"{name} {MON_HEAD[z]}: 취용 {s_}의 근거가 '원문' 줄 인용에 없다 (꺼리는 말 속 글자는 근거가 아니다)")
+            if (g, z) in RANK_EXEMPT_NOTE and RANK_EXEMPT_NOTE[g, z] not in sec:
+                problems.append(f"{name} {MON_HEAD[z]}: RANK_EXEMPT의 근거 문장 「{RANK_EXEMPT_NOTE[g, z]}」이 그 달 절에 없다")
             ol = re.search(r"^\*\*원문 취용 순서\*\*: (.+)$", sec, re.M)
             got = None
             if ol:                                        # 괄호 밖 '→'로만 나눈다 — 괄호 속 주석의 '경금 → 정화'는 순서가 아니다
@@ -621,14 +744,31 @@ def check_johu():
                     got.append(m2.group(1) if m2 else "?")
             if got != order:
                 problems.append(f"{name} {MON_HEAD[z]}: '원문 취용 순서' {''.join(got or [])} ≠ json order {''.join(order)}")
-        for ln, stem, zs, chain, stems in _chains(txt, g):     # 본문·요약의 화살표 사슬은 order의 앞머리부터 차례대로 고른 글자여야 한다
-            if not zs:
-                problems.append(f"{name} {ln}행: 사슬 「{chain}」의 달을 정할 수 없다 — 사슬 앞에 달 이름을 적을 것")
+        for ln, stem, zs, chain, stems, kind in _chains(txt, g):     # 본문·요약의 순서 말은 원문 취용 순서와 맞아야 한다
+            if kind == "back":
+                problems.append(f"{name} {ln}행: 「{chain}」 — 거꾸로 화살표(<·←)는 쓰지 않는다. 취용 순서는 → 로 적을 것")
+                continue
+            if not zs and kind != "rank":
+                problems.append(f"{name} {ln}행: 「{chain}」의 달을 정할 수 없다 — 앞에 달 이름을 적을 것")
             for z in zs:
                 order = table[stem][z]["order"]
+                if kind == "rank":
+                    bad = [(n, x) for n, x in stems if x != stem and (x not in order or order.index(x) + 1 != n)]
+                    if bad:
+                        problems.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 — {bad[0][1]}은 원문 취용 순서 {''.join(order)}에서 "
+                                        f"{order.index(bad[0][1]) + 1 if bad[0][1] in order else '없음'}순위")
+                    continue
                 idx = [order.index(s_) if s_ in order else None for s_ in stems]
-                if None in idx or idx != sorted(idx) or stems[0] not in (order[0], stem):
+                if None in idx or idx != sorted(idx) or (kind == "chain" and stems[0] not in (order[0], stem)):
                     problems.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 ≠ 원문 취용 순서 {''.join(order)}")
+
+
+def check_errata_pins():
+    for f, phrase, no in ERRATA_PINNED:
+        if phrase not in read("references/" + f):
+            problems.append(f"{f}: errata {no}로 고친 문장 「{phrase}」이 없다 — 되돌렸다면 errata와 함께 ERRATA_PINNED도 고칠 것")
+    if sorted(RANK_EXEMPT) != sorted(RANK_EXEMPT_NOTE):
+        problems.append("RANK_EXEMPT와 RANK_EXEMPT_NOTE의 달이 다르다")
 
 
 # 7 ─ 마크다운 표
@@ -682,6 +822,9 @@ def check_paths():
 def check_web():
     import build_web_tables as B
     html = read("web/unui-sigantable.html")
+    if B.BEGIN not in html or B.END not in html:
+        problems.append("web/unui-sigantable.html에 GENERATED:TABLES 구획 표시가 없다 — 표시 줄을 되돌리고 python3 scripts/build_web_tables.py")
+        return
     a, b = html.index(B.BEGIN), html.index(B.END) + len(B.END)
     if html[a:b] != B.block():
         problems.append("web/unui-sigantable.html 표 구획이 saju_calc.py와 다르다 — python3 scripts/build_web_tables.py")
@@ -693,6 +836,7 @@ def main():
     check_shinsal_doc()
     check_samhyeong()
     check_johu()
+    check_errata_pins()
     check_tables([os.path.join(ROOT, "SKILL.md"), os.path.join(ROOT, "github-linked", "SKILL.md"),
                   os.path.join(ROOT, "README.md")] + sorted(glob.glob(os.path.join(REF, "*.md"))))
     check_paths()

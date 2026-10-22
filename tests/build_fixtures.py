@@ -7,6 +7,10 @@ Python 테스트(test_calc.py)는 현재 계산이 이 파일과 같은지, Node
 웹 엔진이 이 파일과 같은지 본다. 계산 규칙을 일부러 바꿨을 때만 다시 만들고, 바뀐 줄을 리뷰한다.
 
   python3 tests/build_fixtures.py
+  python3 tests/build_fixtures.py --quotes   # 조후 원문 인용 고정 파일(tests/fixtures/johu_quotes.json)만
+
+--quotes는 johu_wonmun.json 인용과 01~10번 그 달 '원문' 줄의 「」 인용을 고정한다. 원문 인용을 일부러 바꿨을 때만
+다시 만들고(errata에 근거를 적는다), 바뀐 줄을 리뷰한다 — 옛 인용으로 되돌린 것을 잡는 장치다(errata #39).
 """
 
 import json, os, sys
@@ -16,6 +20,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
 import saju_calc as S  # noqa: E402
 
 OUT = os.path.join(HERE, "fixtures", "natal_cases.json")
+QUOTES = os.path.join(HERE, "fixtures", "johu_quotes.json")
 
 # (날짜, 시각, 성별, 메모) — 입력은 그때 그 지역(서울) 벽시계 시각
 CASES = [
@@ -70,6 +75,8 @@ UNKNOWN_CASES = [
     ("1905-03-03", "M", "지방시(LMT) — 23:01부터 익일 일주"),
     ("2026-02-04", "F", "입춘일 — 연주·월주 미정"),
     ("2026-03-15", "M", "보통 날 — 23:33부터 익일 일주"),
+    ("1948-06-01", "F", "서머타임 시작일 — 00시대가 없다(경계 줄 없음)"),
+    ("1961-08-10", "M", "UTC+8:30 → +9 전환일 — 00:00~00:29가 없다"),
 ]
 
 
@@ -82,7 +89,7 @@ def compute_unknown(date, gender):
     dw = S.daewoon(p3, gender, t["utc"], minfo)
     sc = S.unknown_time_scan(day0)
     return {"pillars": p3, "gyeok": gyeok_names(p3), "oheng": S.analyze_pillars(p3)["oheng_count"],
-            "day_alt": [list(x) for x in sc["alt"]], "amb": list(sc["amb"]) if sc["amb"] else None,
+            "day_alt": [list(x) for x in sc["alt"]], "amb": list(sc["amb"]) if sc["amb"] else None, "amb_gap": sc["gap"],
             "daewoon": {"start_age": dw["start_age"], "list": [x["ganzhi"] for x in dw["list"]]}}
 
 
@@ -134,7 +141,33 @@ def build():
             "cases": rows, "unknown": unknown, "corpus": corpus()}
 
 
+def johu_quotes():
+    """{일간: {월지: {"quote": json 인용, "wonmun": 그 달 '원문' 줄의 「」 인용 목록}}}."""
+    import glob, re
+    ref = os.path.join(HERE, "..", "references")
+    with open(os.path.join(ref, "johu_wonmun.json"), encoding="utf-8") as f:
+        table = json.load(f)["table"]
+    files = sorted(glob.glob(os.path.join(ref, "0[1-9]_gungbok_*.md"))) + sorted(glob.glob(os.path.join(ref, "10_gungbok_*.md")))
+    out = {}
+    for g, path in zip(S.GAN, files):
+        with open(path, encoding="utf-8") as f:
+            txt = f.read()
+        heads = list(re.finditer(r"^### .*?\((.)月生\)", txt, re.M))
+        secs = {h.group(1): txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)] for i, h in enumerate(heads)}
+        out[g] = {}
+        for z in S.MONTH_ZHI:
+            wl = re.search(r"^\*\*원문 \(窮通寶鑑\)\*\*: (.+)$", secs.get(z, ""), re.M)
+            out[g][z] = {"quote": table[g][z]["quote"], "wonmun": re.findall(r"「([^」]+)」", wl.group(1) if wl else "")}
+    return out
+
+
 if __name__ == "__main__":
+    if "--quotes" in sys.argv:
+        with open(QUOTES, "w", encoding="utf-8") as f:
+            json.dump(johu_quotes(), f, ensure_ascii=False, indent=1)
+            f.write("\n")
+        print(f"{QUOTES} — 120개월 인용 고정")
+        sys.exit(0)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(build(), f, ensure_ascii=False, indent=1)

@@ -2398,6 +2398,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2444,6 +2445,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 1,
      "list": [
@@ -2489,6 +2491,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 8,
      "list": [
@@ -2534,6 +2537,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 8,
      "list": [
@@ -2582,6 +2586,7 @@
      1380,
      1439
     ],
+    "amb_gap": false,
     "daewoon": {
      "start_age": 10,
      "list": [
@@ -2627,6 +2632,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2673,6 +2679,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2719,6 +2726,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 1,
      "list": [
@@ -2764,6 +2772,7 @@
      ]
     ],
     "amb": null,
+    "amb_gap": false,
     "daewoon": {
      "start_age": 7,
      "list": [
@@ -2777,6 +2786,98 @@
       "己亥",
       "庚子",
       "辛丑"
+     ]
+    }
+   }
+  },
+  {
+   "date": "1948-06-01",
+   "gender": "F",
+   "memo": "서머타임 시작일 — 00시대가 없다(경계 줄 없음)",
+   "expect": {
+    "pillars": [
+     "戊子",
+     "丁巳",
+     "丁巳"
+    ],
+    "gyeok": [
+     "월겁격"
+    ],
+    "oheng": {
+     "木": 0,
+     "火": 4,
+     "土": 1,
+     "金": 0,
+     "水": 1
+    },
+    "day_alt": [],
+    "amb": [
+     0,
+     59
+    ],
+    "amb_gap": true,
+    "daewoon": {
+     "start_age": 9,
+     "list": [
+      "丙辰",
+      "乙卯",
+      "甲寅",
+      "癸丑",
+      "壬子",
+      "辛亥",
+      "庚戌",
+      "己酉",
+      "戊申",
+      "丁未"
+     ]
+    }
+   }
+  },
+  {
+   "date": "1961-08-10",
+   "gender": "M",
+   "memo": "UTC+8:30 → +9 전환일 — 00:00~00:29가 없다",
+   "expect": {
+    "pillars": [
+     "辛丑",
+     "丙申",
+     "乙亥"
+    ],
+    "gyeok": [
+     "정관격"
+    ],
+    "oheng": {
+     "木": 1,
+     "火": 1,
+     "土": 1,
+     "金": 2,
+     "水": 1
+    },
+    "day_alt": [
+     [
+      1413,
+      1439,
+      "丙子"
+     ]
+    ],
+    "amb": [
+     0,
+     29
+    ],
+    "amb_gap": true,
+    "daewoon": {
+     "start_age": 1,
+     "list": [
+      "乙未",
+      "甲午",
+      "癸巳",
+      "壬辰",
+      "辛卯",
+      "庚寅",
+      "己丑",
+      "戊子",
+      "丁亥",
+      "丙戌"
      ]
     }
    }

@@ -386,9 +386,15 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     assert any("23:33 이후 출생이면 辛亥일" in w for w in d["경고"])
     d = json.loads(run_cli("--birth", "1955-09-08", "--gender", "M", "--json"))
     w = " ".join(d["경고"])
-    assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번" in w
+    assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번 있다" in w
+    w = " ".join(json.loads(run_cli("--birth", "1948-06-01", "--gender", "M", "--json"))["경고"])
+    assert "00:00~00:59의 벽시계 시각이 없다" in w and "위 일주 경계" not in w           # 경계 줄이 없으면 '위 경계'를 말하지 않는다
+    w = " ".join(json.loads(run_cli("--birth", "1905-03-03", "--gender", "M", "--zasi", "same", "--json"))["경고"])
+    assert "00:00 출생이면" in w and "00:00~00:00" not in w
+    d = json.loads(run_cli("--birth", "1990-01-09", "--gender", "M", "--json"))
+    assert d["tonggn"]["일간甲"] == ["연·월·일지에 뿌리 없음(시지 미상)"]
     p3 = json.loads(run_cli("--pillars", "庚申 戊寅 庚戌", "--relate", "丙午", "--inyeon", "--json"))
-    assert p3["pillars"] == ["庚申", "戊寅", "庚戌"] and "시지" not in str(p3["신살"]["원국 지지 관계"])
+    assert p3["pillars"] == ["庚申", "戊寅", "庚戌"] and "시지" not in str(p3["신살"]["원국 지지 관계"]) and "시지" not in p3["운 대입"]["영역"]
 
 
 @pytest.mark.parametrize("argv", [
@@ -396,6 +402,12 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--relate", "丙午", "--year-fortune", "2026"],
     ["--year-fortune", "2026", "--inyeon"],
     ["--pillars", "乙亥 丙戌"],
+    ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--gender", "M"],                 # --pillars는 대운을 내지 않는다
+    ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--zasi", "same"],
+    ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--place", "부산"],               # --injong-year 없이
+    ["--year-fortune", "2026", "--yongsin", "水"],
+    ["--year-fortune", "2026", "--gender", "F", "--lunar"],
+    ["--export-tables", "--birth", "1990-01-01 10:00"],
 ])
 def test_cli_conflicting_modes(argv):                     # 한쪽 옵션을 말없이 버리지 않는다
     with pytest.raises(SystemExit) as e:
@@ -531,3 +543,13 @@ def test_johu_orders_pinned():
         table = json.load(f)["table"]
     got = {g: " ".join("".join(table[g][z]["order"]) for z in S.MONTH_ZHI) for g in S.GAN}
     assert got == JOHU_PINNED
+
+
+def test_johu_quotes_pinned():
+    """json 인용과 01~10번 '원문' 줄 인용을 고정한다 — 원문 문장을 빼거나 옛 인용으로 되돌리면 검사기가 못 잡는 경우가 있다(errata #39).
+    인용을 일부러 바꿨으면 python3 tests/build_fixtures.py --quotes 로 다시 고정하고 바뀐 줄을 리뷰한다."""
+    with open(F.QUOTES, encoding="utf-8") as f:
+        pinned = json.load(f)
+    got = F.johu_quotes()
+    diff = [f"{g}{z}" for g in S.GAN for z in S.MONTH_ZHI if got[g][z] != pinned[g][z]]
+    assert not diff, f"인용이 고정 파일과 다른 달: {' '.join(diff)}"

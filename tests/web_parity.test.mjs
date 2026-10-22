@@ -43,6 +43,7 @@ for (const c of fx.unknown) {
     const w = n.warn.find(s => s.startsWith("이날은 표준시"));
     const m = w && w.match(/(\d\d):(\d\d)~(\d\d):(\d\d)/);
     assert.deepEqual(m ? [+m[1] * 60 + +m[2], +m[3] * 60 + +m[4]] : null, x.amb, "같은 시각이 두 번 있거나 없는 구간");
+    if (w) assert.ok(w.includes(x.amb_gap ? "시각이 없습니다" : "시각이 두 번 있습니다"), "없는 시각인지 두 번 있는 시각인지");
     assert.equal(n.dw.startAge, x.daewoon.start_age, "대운수(정오 어림)");
     assert.deepEqual(n.dw.list.map(d => d.gz), x.daewoon.list, "대운 간지");
   });
