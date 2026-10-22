@@ -717,7 +717,7 @@ function buildNatal(profile) {
   const pillars = [yp, mp, dp, hp];
 
   // 확인할 점 — saju_calc.py 경고의 웹판(--longitude·--tz 같은 CLI 옵션 경고는 없다)
-  const warn = [];
+  const warn = [], dayAlt = [];       // dayAlt: 시각 모름일 때 일주가 정오와 다른 [시작분, 끝분, 일주]
   const pm = i => { const s = jieSlot(i), y = yearPillar(s.jieYear), z = MONTH_ZHI[s.k]; return y + "년 " + monthGan(y[0], z) + z + "월"; };
   if (!known) {
     const d0 = kmin(new Date(Date.UTC(Y, M - 1, D, 0, 0))), d1 = d0 + 1439;
@@ -731,11 +731,15 @@ function buildNatal(profile) {
     const c0 = lmt(o0 - s0), c1 = lmt(o1 - s1);
     const early = dayPillar(d0 - s0 + c0), last = s0 - c0 - 60;           // 벽시계 00:00~last가 전날 일주
     const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;     // 벽시계 cut 이후가 익일 일주
-    const alt = [];
-    if (early !== dp && last >= 0) alt.push(`00:00~${hm(last)} 출생이면 일주가 ${early}`);
-    if (late !== dp && cut < 1440) alt.push(`${hm(cut)} 이후 출생이면 일주가 ${late}`);
-    if (alt.length)
-      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${alt.join(", ")}로 바뀝니다(자시 정설·경도 보정${s0 || s1 ? "·서머타임" : ""}).`);
+    if (early !== dp && last >= 0) dayAlt.push([0, last, early]);
+    if (late !== dp && cut < 1440) dayAlt.push([cut, 1439, late]);
+    if (dayAlt.length)
+      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${dayAlt.map(([a, b, gz]) => `${b < 1439 ? `${hm(a)}~${hm(b)}` : `${hm(a)} 이후`} 출생이면 ${gz}일`).join(", ")}입니다(자시 정설·경도 보정${s0 || s1 ? "·서머타임" : ""}).`);
+    // 그날 안에 같은 시계 시각이 두 번 있거나 없는 구간 — 위 경계는 앞쪽 오프셋 기준이다 (saju_calc.unknown_time_scan의 amb)
+    const amb = TZ_SEOUL.map((t, i) => [Math.ceil(t[0] - Math.abs(t[1] - (i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0]))), Math.ceil(t[0]) - 1])
+      .find(([a, b]) => b >= a && a <= d1 && b >= d0);
+    if (amb)
+      warn.push(`이날은 표준시·서머타임 전환이 있어 ${hm(Math.max(amb[0], d0) - d0)}~${hm(Math.min(amb[1], d1) - d0)}의 시계 시각이 두 번 있거나 없습니다 — 위 경계는 앞쪽 오프셋 기준이라, 그 사이 출생이면 원 기록을 확인하세요.`);
     warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
@@ -807,7 +811,7 @@ function buildNatal(profile) {
   const dw = daewoon(profile, yp[0], mp, instMin, slot);
 
   return { profile, pillars, zhis, dayGan, yearZhi: yp[1], dayZhi: dp[1],
-           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn,
+           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn, dayAlt,
            guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: instMin, solarMin: corrected,
            tz: { off, dst, corr } };
 }

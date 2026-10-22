@@ -13,9 +13,12 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
   6. 조후 용신
      - johu_wonmun.json 인용·취용 ↔ 窮通寶鑑 원문(tests/fixtures/qtbj_wikisource.txt): 인용은 그 달 단락이나 계절 머리말에, 취용 글자는 계절 단락에 있어야 한다
        그 달 단락이 있으면 json 인용은 그 단락(또는 그 달 N月로 시작하는 머리말 문장)에서, 1순위 글자를 담아야 한다
-       json·'원문' 줄 인용 모두 그 달 자리에서 시작해야 하고(달 숫자·첫머리 N月·바로 앞 달 표시), 그 인용들과 그 달 N月로 시작하는 원문 문장의
-       순위 말(先X后Y·无X用Y·取X辅Y·Y次之·X为主·X为先)이 order와 맞아야 한다
+       json·'원문' 줄 인용 모두 그 달 자리에서 시작해야 하고(달 숫자·첫머리 N月·바로 앞 달 표시·조건 말 或若如凡 바로 뒤가 아님), 그 인용들과
+       그 달 N月(또는 그 계절 이름 三秋甲木)으로 시작하는 원문 문장의 순위 말(先X后Y·无X用Y·取X辅Y·XY为要·Y次之·X为主·X为先)이 order와 맞아야 하고,
+       첫 으뜸 말(先X·专用X·独爱X·X为用 …)은 1순위, 次·佐로 둔 글자는 1순위가 아니어야 한다
      - references/01~10 월별 원문 줄(「」 전부, 취용 글자가 모두 근거로 나오는지)·취용 순서 줄·매트릭스(순서 포함)·본문 용신·희신(N순위)·기신 목록(십성 이름 포함) ↔ json
+     - references/01~10 본문의 'A → B → C' 화살표 사슬(천간 이름만으로 된 것)은 그 달 order의 앞머리부터 차례대로 고른 글자여야 한다 — 달을 정할 수 없는 사슬도 실패
+     - 원문이 순위 말을 두지 않은 글자 쌍은 여기서 잡을 수 없으므로 tests/test_calc.py의 JOHU_PINNED가 120개월 order를 고정한다
   7. 마크다운 표 깨짐 (빈 줄로 끊긴 표 등)
   8. SKILL.md·README·references/*.md가 가리키는 파일의 존재 (경로를 쓴 참조와 파일 이름만 쓴 참조 모두)
   9. 웹 엔진 표 구획이 최신인지 (scripts/build_web_tables.py --check와 같음)
@@ -196,19 +199,26 @@ RUN = "((?:" + HZ + HE + ")+)"
 STEMS = "甲乙丙丁戊己庚辛壬癸"
 # 원문 순위 말 — 先X后Y·X先Y后·先X…次Y·先X…后用Y·无X用Y는 X가 Y보다 앞, 取Y辅X는 X가 Y보다 앞
 PAIR = re.compile(r"先(?:用|取|看)?(" + HZ + ")" + HE + r"[^。；]{0,6}?(?:后|次)(?:用|取|看)?(" + HZ + ")|(" + HZ + ")先(" + HZ + ")后"
-                  r"|无(" + HZ + ")" + HE + r"[^。；，]{0,2}?用(" + HZ + ")|取(" + HZ + ")" + HE + "辅(" + HZ + ")")
+                  r"|无(" + HZ + ")" + HE + r"[^。；，]{0,2}?用(" + HZ + ")|取(" + HZ + ")" + HE + "辅(" + HZ + ")"
+                  r"|(?<![甲乙丙丁戊己庚辛壬癸木火土金水])(" + HZ + ")" + HE + "(" + HZ + ")" + HE + "为(?:要|上)")    # 庚丁为要·丙甲为上 — 앞 글자가 먼저
 # 뒤에 오는 글자 — XY次之·XY为佐·次用XY·取Y辅佐의 Y(여럿이면 모두)는 같은 문장의 앞 글자와 앞 문장들의 으뜸 글자보다 뒤
 FOLLOW = re.compile(RUN + r"(?:又)?(?:次之|佐之|为佐|为辅|再次|辅佐|为臣)|次(?:用|取|看)" + RUN + "|取(" + HZ + ")" + HE + r"(?:辅佐|为佐|佐之)")
 # 酌用·亦不可少·参酌 — 같은 문장의 앞 글자보다 뒤라는 순서만 본다(order에 없어도 된다)
 WEAK = re.compile(RUN + r"(?:亦)?(?:权宜)?(?:酌用|亦不可少|不可少|参酌)")
-# 으뜸 말 — 先X·专用X·耑用X·X为尊/为主/为最/为先·取X为尊/为用. X先Y后의 先, 专用XY의 둘 이상 글자는 으뜸 말이 아니다
-HEADW = re.compile(r"(?<![甲乙丙丁戊己庚辛壬癸木火土金水])先(?:用|取|看)?(" + HZ + ")|(?:专|耑|端)(?:用|取)(" + HZ + ")" + HE + "(?!" + HZ + ")"
-                   r"|(" + HZ + ")" + HE + r"为(?:尊|主|最|先)|取(" + HZ + ")为(?:尊|用)")
+# 으뜸 말 — 先X·专用X·耑用X·独爱X·X为尊/为主/为最/为先/为用/为专·XY为要/为上의 X. X先Y后의 先, 专用XY의 둘 이상 글자,
+# 木盛先庚처럼 형편을 단 先(盛·多·旺·重 뒤)은 으뜸 말이 아니다
+NOT_AFTER = "(?<![甲乙丙丁戊己庚辛壬癸木火土金水])"
+HEADW = re.compile(NOT_AFTER + r"(?<![盛多旺重])先(?:用|取|看)?(" + HZ + ")|(?:专|耑|端)(?:用|取)(" + HZ + ")" + HE + "(?!" + HZ + ")"
+                   r"|独(?:爱|用|取)(" + HZ + ")|" + NOT_AFTER + "(" + HZ + ")" + HE + r"为(?:尊|主|最|先|用|专)"
+                   r"|" + NOT_AFTER + "(" + HZ + ")" + HE + HZ + HE + "为(?:要|上)")
 NAMED = re.compile(r"(" + HZ + ")" + HE + r"(?:为上|为主|为尊|为要|为先|次之|佐之|为佐)|(" + HZ + ")(" + HZ + ")" + HE + r"(?:为上|为要)")
 HEAD_NEXT = re.compile(r"(" + HZ + ")" + HE + r"(?:为主|为尊)[，,]?(" + HZ + ")" + HE + r"(?:次之|为佐|佐之)")   # X为主，Y次之 → Y는 X 바로 다음 (为君·为佐는 임금과 보좌라 순위가 아니다)
-NEG = re.compile(r"(?:不用|忌|无|不宜|不可专用)(" + HZ + ")")
-NEG_USE = re.compile(RUN + r"(?:不用|无用|不可为用|不可用)|(?:不用|忌见?|不宜(?:乱)?用?|防|怕|不见|不可专用)" + RUN     # 꺼리는 말 속 천간은 근거가 아니다
-                     + r"|(?:以|见)" + RUN + "为病|为" + RUN + "之病|无" + RUN + "亦可|恐" + RUN + r"[^。，]{0,6}为病")
+# 맨 无X는 꺼리는 말이 아니다 — 「无癸曰旱田」은 癸가 없으면 안 된다는 말이다(无X亦可·无X用Y는 따로 읽는다)
+NEG = re.compile(r"(?:不用|忌|不宜|不可专用)(" + HZ + ")")
+NEG_USE = re.compile(RUN + r"(?:不用|无用|不可为用|不可用)|(?:不用|忌见?|不宜(?:乱)?用?|防|怕|不见|不可专用|所忌者)" + RUN     # 꺼리는 말 속 천간은 근거가 아니다
+                     + r"|(?:以|见)" + RUN + "为病|为" + RUN + "之病|无" + RUN + "亦可|恐" + RUN + r"[^。，]{0,6}为病"
+                     + "|" + RUN + r"[^。，；]{0,4}[，,]为[木火土金水]{1,2}之病|见" + RUN + "则否|" + RUN + r"一透[，,][^。，]{0,4}不全")
+EXAM = re.compile("科甲|甲第|甲科")          # 과거 급제를 이르는 말 속 甲은 천간이 아니다
 NOT_FIRST = re.compile(r"不可专用(" + HZ + ")")     # 不可专用X — X는 1순위가 아니다
 COND = re.compile(r"\s*(?:或|若|凡|如)")           # 조건문 — 그 조건에서의 취용이라 그 달 순위로 읽지 않는다
 LEAD = re.compile(r"(?:总之[，,]?|故)?" + MK.pattern)
@@ -216,8 +226,9 @@ LEAD = re.compile(r"(?:总之[，,]?|故)?" + MK.pattern)
 # 둘째 값이 True인 달만 json 인용 자체가 엇갈리는 두 문장을 담는다 — 나머지 달의 json 인용은 예외 없이 order와 맞아야 한다
 RANK_EXEMPT = {("乙", "午"): ({frozenset("丙癸")}, True, "三夏 머리말 「五六月先丙后癸」와 오월 단락 「余皆用癸水为先」가 엇갈리고, json 인용도 「柱多金水，丙火为先，余皆用癸水为先」을 함께 담는다"),
                ("乙", "酉"): ({frozenset("丙癸")}, True, "上下月이 갈린다 — 「耑用癸水…又宜用丙，癸水次之」"),
+               ("乙", "申"): ({frozenset("丙己")}, True, "「七月喜己土为用」이 己를 앞세우지만 같은 단락이 丙 투간을 「科甲」, 己+丙을 「上命」이라 하고 三秋 머리말이 「先丙后癸」다"),
                ("壬", "未"): ({frozenset("甲癸")}, True, "「先用辛金癸水，次用甲木」과 「先辛后甲，次取癸水」가 甲·癸 순서에서 엇갈린다"),
-               ("癸", "寅"): ({frozenset("辛庚"), frozenset("丙庚")}, False, "「先用辛金…次用丙火」와 「辛金为主，庚金次之，丙亦不可少」가 丙·庚 순서에서 엇갈린다"),
+               ("癸", "寅"): ({frozenset("辛庚"), frozenset("丙庚")}, False, "「先用辛金…次用丙火」와 「辛金为主，庚金次之，丙亦不可少」가 丙·庚 순서에서 엇갈린다 — 그래서 「辛金为主，庚金次之」의 庚이 辛 바로 다음이 아닌 것(辛·庚 쌍)도 뺀다"),
                ("己", "戌"): ({frozenset("甲癸")}, True, "三秋 공통 「先癸后丙」 뒤에 「九月土盛，宜甲木疏之」가 九月만 甲을 앞세운다")}
 # 그 달 단락이 있는데도 json 인용을 계절 머리말(三秋甲木 같은 달 숫자 없는 단락 포함)에서 가져온 달 — 그 달 단락에 취용 순서를 밝힌 문장이 없을 때만.
 # 머리말 문장 중간에 그 달이 나오는 인용(「…七月甲堪为戟…」)도 N月로 시작하지 않으면 여기에 올려야 통과한다. 지금은 비어 있다
@@ -334,13 +345,13 @@ def _negated(text):
     return {c for m in NEG.finditer(text) for c in m.group(1)} | {c for m in NEG_USE.finditer(text) for grp in m.groups() if grp for c in grp if c in STEMS}
 
 
-def _head_stems(s_, g):
-    """문장의 으뜸 말 글자 차례 — 일간과 꺼리는 말 속 글자는 뺀다."""
+def _head_stems(s_, g, keep_g=False):
+    """문장의 으뜸 말 글자 차례 — 꺼리는 말 속 글자는 빼고, keep_g가 아니면 일간도 뺀다(专取壬水比肩의 壬은 일간이 1순위인 달)."""
     spans = [m.span() for m in NEG.finditer(s_)] + [m.span() for m in NEG_USE.finditer(s_)]
     out = []
     for m in HEADW.finditer(s_):
-        k = next(i for i in range(1, 5) if m.group(i))
-        if m.group(k) != g and not any(a <= m.start(k) < b for a, b in spans):
+        k = next(i for i in range(1, len(m.groups()) + 1) if m.group(i))
+        if (keep_g or m.group(k) != g) and not any(a <= m.start(k) < b for a, b in spans):
             out.append(m.group(k))
     return out
 
@@ -348,7 +359,7 @@ def _head_stems(s_, g):
 def _rank_problems(g, z, q, order, is_json=False):
     """인용·원문 문장의 순위 말 ↔ order. 어긋나면 그 까닭을 돌려준다 — RANK_EXEMPT의 글자 쌍만 뺀다.
     ① 쌍(PAIR)·뒤(FOLLOW)·약한 뒤(WEAK)·바로 다음(HEAD_NEXT)의 앞뒤, ② 순위 말이 매긴 글자(꺼리는 말 속 글자 빼고)가 order에 있는가,
-    ③ 不可专用X의 X가 1순위가 아닌가, ④ json 인용은 첫 으뜸 말 글자가 1순위인가(1순위가 일간이면 건너뛴다). 조건문은 읽지 않는다."""
+    ③ 不可专用X의 X와 次·佐로 둔 글자가 1순위가 아닌가, ④ 첫 으뜸 말 글자가 1순위인가(일간도 센다 — 专取壬水比肩). 조건문은 읽지 않는다."""
     out, o = [], "".join(order)
     sents = _kept_sentences(q)
     text = "".join(sents)
@@ -363,15 +374,21 @@ def _rank_problems(g, z, q, order, is_json=False):
         sneg = _negated(s_)
         for m in PAIR.finditer(s_):
             gs = m.groups()
-            a, b = next((gs[k], gs[k + 1]) for k in (0, 2, 4) if gs[k]) if not gs[6] else (gs[7], gs[6])
+            a, b = (gs[7], gs[6]) if gs[6] else next((gs[k], gs[k + 1]) for k in (0, 2, 4, 8) if gs[k])
             ranked |= {a, b}
             if a in order and b in order and order.index(a) > order.index(b):
                 out.append(({a, b}, f"「{m.group(0)}」는 {a}가 {b}보다 앞인데 취용 순서는 {o}"))
         for m, strong in [(m, True) for m in FOLLOW.finditer(s_)] + [(m, False) for m in WEAK.finditer(s_)]:
             ys = [c for c in (m.group(1) or m.group(2) or m.group(3)) if c in STEMS]
+            lead = []
+            if m.group(1) and len(ys) > 1 and re.search(r"(?:后|次)(?:用|取|看)?$", s_[: m.start(1)]):
+                lead = ys[:1]                  # 先癸后丁庚金次之 — 丁은 后의 글자라 庚보다 앞이다
+                ys = ys[1:]
             if strong:
                 ranked |= set(ys)
-            xs = [c for c in dict.fromkeys(s_[: m.start()]) if c in order and c not in ys and c != g and c not in sneg]
+                if order and order[0] != g and order[0] in ys:
+                    out.append(({order[0]}, f"「{m.group(0)}」는 {order[0]}를 보좌(次·佐)로 두는데 취용 1순위다"))
+            xs = [c for c in dict.fromkeys(s_[: m.start()] + "".join(lead)) if c in order and c not in ys and c != g and c not in sneg]
             xs += [h for h in heads if strong and h not in xs and h not in ys]
             for y in ys:
                 for x in xs:
@@ -390,23 +407,25 @@ def _rank_problems(g, z, q, order, is_json=False):
                 out.append(({m.group(1)}, f"「{m.group(0)}」인데 {m.group(1)}이 취용 1순위다"))
     for s_ in sorted(ranked - set(order) - {g} - neg):
         out.append((None, f"순위 말이 매긴 {s_}이 취용 순서 {o}에 없다"))
-    if is_json:
-        hs = next((h for h in map(lambda t: _head_stems(t, g), sents) if h), [])
-        if hs and hs[0] != order[0] and order[0] != g:
-            out.append(({hs[0], order[0]}, f"json 인용의 첫 으뜸 말이 {hs[0]}인데 취용 1순위는 {order[0]}"))
+    hs = next((h for h in map(lambda t: _head_stems(t, g, keep_g=True), sents) if h), [])    # 첫 으뜸 말은 1순위 — 일간이 1순위인 달도 본다
+    if hs and order and hs[0] != order[0] and (hs[0] != g or g in order):
+        out.append(({hs[0], order[0]}, f"{'json 인용' if is_json else '인용·원문 문장'}의 첫 으뜸 말이 {hs[0]}인데 취용 1순위는 {order[0]}"))
     pairs, json_ok, _why = RANK_EXEMPT.get((g, z), (set(), False, ""))
     exempt = pairs if json_ok or not is_json else set()
     return [msg for pair, msg in out if pair is None or frozenset(pair) not in exempt]
 
 
 def _month_sentences(z, text):
-    """그 달을 덮는 N月(总之·故 N月)로 시작하는 원문 문장 — 或·若·凡 조건문과 支成·支会 문장은 뺀다."""
+    """그 달을 덮는 N月(总之·故 N月)이나 그 계절 이름(三秋甲木)으로 시작하는 원문 문장 — 或·若·凡 조건문과 支成·支会 문장은 뺀다."""
     i = S.MONTH_ZHI.index(z)
     for s_ in re.split(r"(?<=。)|\n", text):
         s_ = s_.strip()
         m = LEAD.match(s_)
-        if m and i in _months_of(m.group(0)) and not re.match("或|若|凡", s_) and not re.search("支成|支会", s_):
-            yield s_
+        sm = re.match(r"(?:总之[，,]?|故)?(三春|三夏|三秋|三冬)", s_)
+        if (m and i in _months_of(m.group(0)) or sm and SEASONS.index(sm.group(1)) == i // 3) \
+                and not re.match("或|若|凡", s_) and not re.search("支成|支会", s_):
+            ex = re.search(r"(?:惟|唯|独)(" + MK.pattern + ")", s_) if sm else None    # 三秋乙木…先丙后癸，惟九月耑用癸水 — 九月은 뒤쪽만, 나머지 달은 앞쪽만
+            yield s_ if not ex else s_[ex.start():] if i in _months_of(ex.group(1)) else s_[: ex.start()]
 
 
 def _anchor_problems(z, q, allowed):
@@ -415,7 +434,7 @@ def _anchor_problems(z, q, allowed):
     lead = re.match(r"(?:总之[，,]?)?" + MK.pattern, q)
     if k > 0 and allowed[k - 1] in NUM and re.match("[" + NUM + "]*月", q):
         out.append(f"인용이 원문의 달 숫자 중간에서 시작한다(「{allowed[k - 1]}{q[:6]}…」)")
-    if k > 0 and allowed[k - 1] in "或若":
+    if k > 0 and allowed[k - 1] in "或若如凡":
         out.append(f"인용이 원문의 조건 말 {allowed[k - 1]} 바로 뒤에서 시작한다(「{allowed[k - 1]}{q[:6]}…」) — {allowed[k - 1]}까지 인용할 것")
     if lead and i not in _months_of(lead.group(1) + "月"):
         out.append(f"인용 첫머리 {lead.group(1)}月이 {MON_HEAD[z]}이 아니다")
@@ -428,32 +447,79 @@ def _anchor_problems(z, q, allowed):
 
 KO_MONTH = dict(zip("인묘진사오미신유술해자축", S.MONTH_ZHI))
 KO_MONTH_NO = {"정": 0, "이": 1, "삼": 2, "사": 3, "오": 4, "육": 5, "칠": 6, "팔": 7, "구": 8, "십": 9, "십일": 10, "십이": 11, "동짓": 10, "섣": 11}
+KO_STEM = "갑목|을목|병화|정화|무토|기토|경금|신금|임수|계수"
 CHAIN_ITEM = r"(?:[가-힣]{2}(?:\([^)]*\))?|" + HZ + HE + ")"
 CHAIN = re.compile(CHAIN_ITEM + r"(?:\s*→\s*" + CHAIN_ITEM + ")+")
-KO_MONTHS = re.compile(r"((?:[인묘진사오미신유술해자축]·)*[인묘진사오미신유술해자축])월|((?:십일|십이|동짓|섣|[정이삼사오육칠팔구십])+)월|(\d+(?:·\d+)*)월")
+KO_MONTHS = re.compile(r"((?:[인묘진사오미신유술해자축]·)*[인묘진사오미신유술해자축])월|((?:십일|십이|[정이삼사오육칠팔구십])+)월|(동짓|섣)달|(?<![\d·])(\d+(?:·\d+)*)월")
+SEASON_KO = {"봄": "寅卯辰", "여름": "巳午未", "가을": "申酉戌", "겨울": "亥子丑"}
+SEASON_HEAD = re.compile(r"^(?:- )?(봄|여름|가을|겨울)(?:\s*\(([인묘진사오미신유술해자축·]+)\))?\s*(?:[:：]|공통)")
+STEM_SUBJ = re.compile(r"(?:^-?\s*|[,，.。;；:：]\s*)(" + KO_STEM + ")[은는](?![가-힣])")     # 마디 첫머리의 'X는' — 다른 일간 이야기
+# 조건·반론 마디의 사슬은 그 달 취용 순서가 아니다 — '…하면', '…때', 다른 해석을 소개하는 말
+CHAIN_SKIP = re.compile(r"[가-힣]면(?![가-힣])|때(?![가-힣])|해석|견해|학파|현대|일부|흔히|잘못|오류|폐기|아니라")
 
 
 def _ko_months(m):
-    """'사·오월'·'정이월'·'4·5월' → 지지 목록."""
+    """'사·오월'·'정이월'·'동짓달'·'4·5월'(음력 순서, 1월=인월) → 지지 목록."""
     if m.group(1):
         return [KO_MONTH[c] for c in m.group(1).split("·")]
     if m.group(2):
-        return [S.MONTH_ZHI[KO_MONTH_NO[t]] for t in re.findall("십일|십이|동짓|섣|[정이삼사오육칠팔구십]", m.group(2))]
-    return [S.MONTH_ZHI[int(t) - 1] for t in m.group(3).split("·")]
+        return [S.MONTH_ZHI[KO_MONTH_NO[t]] for t in re.findall("십일|십이|[정이삼사오육칠팔구십]", m.group(2))]
+    if m.group(3):
+        return [S.MONTH_ZHI[KO_MONTH_NO[m.group(3)]]]
+    return [S.MONTH_ZHI[(int(t) - 1) % 12] for t in m.group(4).split("·")]
 
 
-def _summary_chains(txt):
-    """'계절별 핵심 원칙' 줄의 'A → B → C' 화살표 사슬 → (지지 목록, 사슬, 천간 차례). 사슬 앞 같은 마디(쉼표·마침표·쌍점 뒤)의
-    달 이름을 따르고, 달 이름이 없으면 그 줄 계절의 석 달 가운데 줄 안에서 따로 이름이 나오지 않은 달로 본다."""
-    m = re.search(r"\*\*계절별 핵심 원칙[^\n]*\n(.*?)(?=\n\n|\Z)", txt, re.S)
-    for line in (m.group(1).splitlines() if m else []):
-        sm = re.match(r"- \*\*[^(*]*\(([인묘진사오미신유술해자축·]+)\)\*\*", line)
-        named = {z for mm in KO_MONTHS.finditer(line) for z in _ko_months(mm)}
+def _months_in(text):
+    return [z for mm in KO_MONTHS.finditer(text) for z in _ko_months(mm)]
+
+
+def _chains(txt, g):
+    """01~10 본문의 'A → B → C' 사슬 가운데 천간 이름만으로 된 것 → (줄 번호, 천간, 지지 목록, 사슬, 천간 차례).
+    천간은 사슬 앞의 'X는·X은'(다른 일간을 말할 때), 없으면 그 파일의 일간이다.
+    달은 ① 사슬 앞 마디(쉼표·마침표 뒤, 쌍점은 끊지 않는다)의 달 이름 → ② 사슬 바로 뒤 괄호가 달 이름뿐이면 그 달 → ③ 그 줄이 든 X월생 절의 달 →
+    ④ 그 줄이나 단락 머리의 계절(봄·여름·가을·겨울, '(사·오·미)')에서, 같은 천간 마디 안에 따로 이름이 나온 달을 뺀 달이다. 못 정하면 지지 목록이 비어 있다.
+    굵은 글씨·⇒·->는 지우거나 →로 읽는다. 양력 달 표기, 코드 블록, '원문 취용 순서' 줄(따로 검사), 조건·반론 마디(CHAIN_SKIP)의 사슬은 읽지 않는다."""
+    sec, block, code = None, None, False
+    for ln, raw in enumerate(txt.splitlines(), 1):
+        if raw.startswith("```"):
+            code = not code
+        if code or raw.startswith("**원문 취용 순서**"):
+            continue
+        if raw.startswith("#"):
+            mh = re.match(r"^### .*?\((.)月生\)", raw)
+            sec, block = (mh.group(1) if mh else None), None
+            continue
+        if not raw.strip():
+            block = None
+            continue
+        line = re.sub(r"양력\s*[\d·~]+월", "", raw.replace("**", ""))
+        line = re.sub(r"\s*(?:⇒|->|=>)\s*", " → ", line)
+        sh = SEASON_HEAD.match(line)
+        if sh:
+            block = [KO_MONTH[c] for c in sh.group(2) if c != "·"] if sh.group(2) else list(SEASON_KO[sh.group(1)])
+        subj = [(m.start(1), m.group(1)) for m in STEM_SUBJ.finditer(line)]
         for ch in CHAIN.finditer(line):
-            ms = list(KO_MONTHS.finditer(re.split(r"[,，。:：]", line[: ch.start()])[-1]))
-            zs = _ko_months(ms[-1]) if ms else [KO_MONTH[c] for c in (sm.group(1).split("·") if sm else []) if KO_MONTH[c] not in named]
-            stems = [(_stems(part, keep_paren=False) or ["?"])[0] for part in re.split(r"\s*→\s*", ch.group(0))]
-            yield zs, ch.group(0), stems
+            parts = re.split(r"\s*→\s*", ch.group(0))
+            if not all(re.fullmatch("(?:" + KO_STEM + ")|" + HZ + HE, re.sub(r"\([^)]*\)", "", p_).strip()) for p_ in parts):
+                continue
+            clause = re.split(r"[,，。.;；]", line[: ch.start()])[-1]
+            if CHAIN_SKIP.search(clause):
+                continue
+            before = [s_ for s_ in subj if s_[0] < ch.start()]
+            stem = KO[before[-1][1]] if before else g
+            seg_a = before[-1][0] if before else 0
+            seg_b = next((s_[0] for s_ in subj if s_[0] > ch.start()), len(line))
+            after = re.search(r"\(([^)]*)\)$", parts[-1]) or re.match(r"\s*\(([^)]*)\)", line[ch.end():])    # 마지막 항목에 붙은 괄호나 사슬 뒤 괄호
+            zs = _months_in(clause)
+            if not zs and after and _months_in(after.group(1)) and not re.sub(KO_MONTHS.pattern + r"|[,·\s]", "", after.group(1)):
+                zs = _months_in(after.group(1))
+            if not zs and sec:
+                zs = [sec]
+            if not zs and block:
+                named = set(_months_in(line[seg_a: seg_b]))
+                zs = [z for z in block if z not in named]
+            stems = [(_stems(p_, keep_paren=False) or ["?"])[0] for p_ in parts]
+            yield ln, stem, zs, ch.group(0), stems
 
 
 def check_johu():
@@ -517,7 +583,7 @@ def check_johu():
             if own.strip() and q not in own and not (lead and S.MONTH_ZHI.index(z) in _months_of(lead.group(0))) and (g, z) not in PREFACE_OK:
                 problems.append(f"{name} {MON_HEAD[z]}: 그 달 단락이 있는데 json 인용이 {season} 머리말 문장이다 — 그 달 단락에서 인용할 것")
             for s_ in order:
-                if s_ != g and s_ not in plain:
+                if s_ != g and s_ not in EXAM.sub(" ", plain):
                     problems.append(f"{name} {MON_HEAD[z]}: 취용 {s_}이 원문 {season}{g} 단락에 한 번도 나오지 않는다")
             sec = secs.get(z, "")
             wl = re.search(r"^\*\*원문 \(窮通寶鑑\)\*\*: (.+)$", sec, re.M)
@@ -532,7 +598,7 @@ def check_johu():
             whys += ["원문 문장 — " + w for s_ in _month_sentences(z, allowed) for w in _rank_problems(g, z, s_, order)]
             for why in dict.fromkeys(whys):
                 problems.append(f"{name} {MON_HEAD[z]}: {why}")
-            cited = NEG_USE.sub(" ", "　".join(quotes))
+            cited = EXAM.sub(" ", NEG_USE.sub(" ", "　".join(quotes)))
             for s_ in order:
                 if s_ != g and s_ not in cited and COVER_EXEMPT.get((g, z)) != s_:
                     problems.append(f"{name} {MON_HEAD[z]}: 취용 {s_}의 근거가 '원문' 줄 인용에 없다 (꺼리는 말 속 글자는 근거가 아니다)")
@@ -555,12 +621,14 @@ def check_johu():
                     got.append(m2.group(1) if m2 else "?")
             if got != order:
                 problems.append(f"{name} {MON_HEAD[z]}: '원문 취용 순서' {''.join(got or [])} ≠ json order {''.join(order)}")
-        for zs, chain, stems in _summary_chains(txt):     # 요약의 화살표 사슬은 order의 앞머리부터 차례대로 고른 글자여야 한다
+        for ln, stem, zs, chain, stems in _chains(txt, g):     # 본문·요약의 화살표 사슬은 order의 앞머리부터 차례대로 고른 글자여야 한다
+            if not zs:
+                problems.append(f"{name} {ln}행: 사슬 「{chain}」의 달을 정할 수 없다 — 사슬 앞에 달 이름을 적을 것")
             for z in zs:
-                order = table[g][z]["order"]
+                order = table[stem][z]["order"]
                 idx = [order.index(s_) if s_ in order else None for s_ in stems]
-                if None in idx or idx != sorted(idx) or stems[0] not in (order[0], g):
-                    problems.append(f"{name} 핵심 요약 {MON_HEAD[z]}: 「{chain}」 ≠ 원문 취용 순서 {''.join(order)}")
+                if None in idx or idx != sorted(idx) or stems[0] not in (order[0], stem):
+                    problems.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 ≠ 원문 취용 순서 {''.join(order)}")
 
 
 # 7 ─ 마크다운 표

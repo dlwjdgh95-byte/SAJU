@@ -59,6 +59,32 @@ CASES = [
     ("1985-11-30", "10:00", "F", "대운 교체 연도 — 출생 연도+대운수 근사와 1년 차"),
 ]
 
+# 시각 모름 (날짜, 성별, 메모) — 정오로 연·월·일주, 시주 없이 분석. 웹 buildNatal(timeKnown:false)과 대조
+UNKNOWN_CASES = [
+    ("1980-02-07", "M", "시주를 넣으면 寅午戌 회국이 생긴다 — 빼야 웹과 같다"),
+    ("1980-02-08", "F", "시간 甲이 본기 투출로 잡혀 변화 후보를 가린다 — 빼야 웹과 같다"),
+    ("1987-07-01", "M", "서머타임 — 00:00~00:32 전날 일주"),
+    ("1958-07-01", "F", "UTC+8:30·서머타임 — 00:00~00:02 전날 일주"),
+    ("1955-09-08", "M", "서머타임 종료일 — 23시대가 두 번 있다"),
+    ("1910-06-01", "F", "UTC+8:30 — 23:03부터 익일 일주"),
+    ("1905-03-03", "M", "지방시(LMT) — 23:01부터 익일 일주"),
+    ("2026-02-04", "F", "입춘일 — 연주·월주 미정"),
+    ("2026-03-15", "M", "보통 날 — 23:33부터 익일 일주"),
+]
+
+
+def compute_unknown(date, gender):
+    from datetime import datetime
+    day0 = datetime.strptime(date, "%Y-%m-%d")
+    t = S.resolve_time(day0.replace(hour=12))
+    pillars, minfo = S.four_pillars(t["utc"], t["local"], "next")
+    p3 = pillars[:3]
+    dw = S.daewoon(p3, gender, t["utc"], minfo)
+    sc = S.unknown_time_scan(day0)
+    return {"pillars": p3, "gyeok": gyeok_names(p3), "oheng": S.analyze_pillars(p3)["oheng_count"],
+            "day_alt": [list(x) for x in sc["alt"]], "amb": list(sc["amb"]) if sc["amb"] else None,
+            "daewoon": {"start_age": dw["start_age"], "list": [x["ganzhi"] for x in dw["list"]]}}
+
 
 def compute(date, time, gender):
     from datetime import datetime
@@ -102,8 +128,10 @@ def build():
     for date, time, gender, memo in CASES:
         rows.append({"date": date, "time": time, "gender": gender, "memo": memo,
                      "expect": compute(date, time, gender)})
+    unknown = [{"date": date, "gender": gender, "memo": memo, "expect": compute_unknown(date, gender)}
+               for date, gender, memo in UNKNOWN_CASES]
     return {"_note": "saju_calc.py 기본 옵션(Asia/Seoul·서울 경도·LMT·자시 정설) 기준. tests/build_fixtures.py로 생성",
-            "cases": rows, "corpus": corpus()}
+            "cases": rows, "unknown": unknown, "corpus": corpus()}
 
 
 if __name__ == "__main__":
@@ -111,4 +139,4 @@ if __name__ == "__main__":
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(build(), f, ensure_ascii=False, indent=1)
         f.write("\n")
-    print(f"{OUT} — {len(CASES)}명조")
+    print(f"{OUT} — {len(CASES)}명조 + 시각 모름 {len(UNKNOWN_CASES)}")

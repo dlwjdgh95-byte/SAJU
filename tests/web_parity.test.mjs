@@ -31,6 +31,23 @@ for (const c of fx.cases) {
   });
 }
 
+for (const c of fx.unknown) {
+  test(`시각 모름 ${c.date} ${c.gender} — ${c.memo}`, () => {
+    const n = E.buildNatal({ date: c.date, timeKnown: false, gender: c.gender });
+    const x = c.expect;
+    assert.equal(n.pillars[3], null, "시주 없음");
+    assert.deepEqual(n.pillars.slice(0, 3), x.pillars, "연·월·일주(정오)");
+    assert.deepEqual(n.gyeokList, x.gyeok, "격 후보 — 시주 없이");
+    assert.deepEqual(n.cnt, x.oheng, "오행 분포 — 시주 없이");
+    assert.deepEqual(n.dayAlt, x.day_alt, "일주가 정오와 다른 구간");
+    const w = n.warn.find(s => s.startsWith("이날은 표준시"));
+    const m = w && w.match(/(\d\d):(\d\d)~(\d\d):(\d\d)/);
+    assert.deepEqual(m ? [+m[1] * 60 + +m[2], +m[3] * 60 + +m[4]] : null, x.amb, "같은 시각이 두 번 있거나 없는 구간");
+    assert.equal(n.dw.startAge, x.daewoon.start_age, "대운수(정오 어림)");
+    assert.deepEqual(n.dw.list.map(d => d.gz), x.daewoon.list, "대운 간지");
+  });
+}
+
 test("격 후보 — 24번 원전 명조 전부 Python과 같다 (errata #20)", () => {
   assert.ok(fx.corpus.length >= 86);
   for (const c of fx.corpus) assert.deepEqual(E.gyeokCandidates(c.pillars), c.gyeok, `${c.id} ${c.pillars.join(" ")}`);
@@ -68,16 +85,16 @@ test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
   assert.ok(k.warn.some(w => w.startsWith("절입일 출생 — 시각을 모르면 월주가")), k.warn.join(" / "));
   const m = E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" });
   assert.ok(!m.warn.some(w => w.startsWith("절입일 출생")));
-  assert.ok(m.warn.some(w => w.includes("23:33 이후 출생이면 일주가 己丑")), m.warn.join(" / "));
+  assert.ok(m.warn.some(w => w.includes("23:33 이후 출생이면 己丑일")), m.warn.join(" / "));
   const s = E.buildNatal({ date: "1960-07-01", timeKnown: false, gender: "M" });   // 서머타임: 23:59도 보정 후 당일
-  assert.ok(!s.warn.some(w => w.includes("이후 출생이면 일주가")), s.warn.join(" / "));
-  assert.ok(s.warn.some(w => w.includes("00:00~00:02 출생이면 일주가")), s.warn.join(" / "));     // UTC+8:30·서머타임: 새벽 2분은 전날 亥시
+  assert.ok(!s.warn.some(w => w.includes("이후 출생이면")), s.warn.join(" / "));
+  assert.ok(s.warn.some(w => w.includes("00:00~00:02 출생이면 己丑일")), s.warn.join(" / "));     // UTC+8:30·서머타임: 새벽 2분은 전날 亥시
   const e = E.buildNatal({ date: "1987-07-01", timeKnown: false, gender: "M" });
-  assert.ok(e.warn.some(w => w.includes("00:00~00:32 출생이면 일주가 庚戌")), e.warn.join(" / "));
+  assert.ok(e.warn.some(w => w.includes("00:00~00:32 출생이면 庚戌일입니다")), e.warn.join(" / "));
   assert.equal(E.buildNatal({ date: "1987-07-01", time: "00:32", timeKnown: true, gender: "M" }).pillars[2], "庚戌");
   assert.equal(E.buildNatal({ date: "1987-07-01", time: "00:33", timeKnown: true, gender: "M" }).pillars[2], "辛亥");
   const f = E.buildNatal({ date: "1958-07-01", timeKnown: false, gender: "M" });
-  assert.ok(f.warn.some(w => w.includes("00:00~00:02 출생이면 일주가 戊寅")), f.warn.join(" / "));
+  assert.ok(f.warn.some(w => w.includes("00:00~00:02 출생이면 戊寅일입니다")), f.warn.join(" / "));
   assert.ok(f.warn.some(w => w.includes("UTC+8:30")), f.warn.join(" / "));
   assert.ok(!E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" }).warn.some(w => w.includes("UTC+8:30") || w.includes("두 번")));
 });

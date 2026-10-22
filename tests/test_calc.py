@@ -317,6 +317,9 @@ def test_fixtures_unchanged():
     for c in fx["cases"]:
         assert F.compute(c["date"], c["time"], c["gender"]) == c["expect"], (c["date"], c["time"], c["memo"])
     assert F.corpus() == fx["corpus"]
+    assert [(c["date"], c["gender"]) for c in fx["unknown"]] == [c[:2] for c in F.UNKNOWN_CASES]
+    for c in fx["unknown"]:
+        assert F.compute_unknown(c["date"], c["gender"]) == c["expect"], (c["date"], c["memo"])
 
 
 # ── 출력·CLI ──────────────────────────────────────────────────
@@ -374,6 +377,30 @@ def test_cli_clean_errors(argv, capsys):
     with pytest.raises(SystemExit) as e:
         run_cli(*argv)
     assert isinstance(e.value.code, str)          # 메시지로 끝난다 (traceback 아님)
+
+
+def test_cli_time_unknown():                              # errata #38 — 시주 없이 분석해야 웹과 같다
+    d = json.loads(run_cli("--birth", "1980-02-07", "--gender", "M", "--json"))
+    assert d["pillars"] == ["庚申", "戊寅", "庚戌"] and "시간" not in d["sipsin_gan"]
+    assert [c["격"] for c in d["격 후보"]["후보"]] == ["편재격", "편인격(변화 후보)"]       # 12:00(壬午시)를 넣으면 寅午戌 회국이 생긴다
+    assert any("23:33 이후 출생이면 辛亥일" in w for w in d["경고"])
+    d = json.loads(run_cli("--birth", "1955-09-08", "--gender", "M", "--json"))
+    w = " ".join(d["경고"])
+    assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번" in w
+    p3 = json.loads(run_cli("--pillars", "庚申 戊寅 庚戌", "--relate", "丙午", "--inyeon", "--json"))
+    assert p3["pillars"] == ["庚申", "戊寅", "庚戌"] and "시지" not in str(p3["신살"]["원국 지지 관계"])
+
+
+@pytest.mark.parametrize("argv", [
+    ["--birth", "1995-10-29 06:30", "--gender", "M", "--pillars", "甲子 丙寅 甲子 甲子"],
+    ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--relate", "丙午", "--year-fortune", "2026"],
+    ["--year-fortune", "2026", "--inyeon"],
+    ["--pillars", "乙亥 丙戌"],
+])
+def test_cli_conflicting_modes(argv):                     # 한쪽 옵션을 말없이 버리지 않는다
+    with pytest.raises(SystemExit) as e:
+        run_cli(*argv)
+    assert isinstance(e.value.code, str)
 
 
 def test_daewoon_age_display_matches_start_age():
@@ -480,3 +507,27 @@ def test_johu_fixed_months(g, z, order, quote):
         e = json.load(f)["table"][g][z]
     assert "".join(e["order"]) == order
     assert quote in e["quote"]
+
+
+# 6차 검수(errata #38)에서 원문과 120개월을 모두 대조한 취용 순서 — 寅월부터 丑월까지.
+# 원문이 순위 말을 두지 않은 글자 쌍(「庚辛壬参酌并用」 등)은 check_consistency가 원문에서 순서를 읽어 낼 수 없으므로, 여기서 고정한다.
+# 바꾸려면 원문 근거와 함께 이 표·johu_wonmun.json·01~10번 문서·00_errata.md를 같이 고친다.
+JOHU_PINNED = {
+    "甲": "丙癸 庚戊丙丁 庚壬 癸丁庚 癸丁庚 丁庚 丁庚 丁丙庚 丁壬癸庚 庚丁丙戊 丁庚丙 庚丁",
+    "乙": "丙癸 丙癸 癸丙 癸辛庚 癸丙 丙癸 丙己癸 癸丙丁 癸辛 丙戊 丙 丙",
+    "丙": "壬庚 壬己 壬甲 壬庚癸 壬庚 壬庚 壬戊 壬癸 甲壬 甲戊庚壬 壬戊 壬甲",
+    "丁": "庚甲 庚甲 甲庚 甲庚 壬庚癸 甲壬 甲庚丙 甲庚丙 甲庚 甲庚 甲庚 甲庚",
+    "戊": "丙甲癸 丙甲癸 甲丙癸 甲丙癸 壬甲丙 癸丙甲 丙癸甲 丙癸 甲癸丙 甲丙 丙甲 丙甲",
+    "己": "丙戊 甲癸丙 丙癸甲 癸丙 癸丙 癸丙 癸丙辛 癸丙辛 甲癸丙辛 丙甲戊 丙甲 丙甲",
+    "庚": "丙甲丁 丁甲庚丙 甲丁 壬戊丙 壬癸 丁甲 丁甲 丁甲丙 甲壬 丁丙甲 丁甲丙 丙丁甲",
+    "辛": "己壬庚 壬甲 壬甲 壬甲癸 己壬癸 壬庚 壬甲戊 壬甲 壬甲 壬丙 壬丙 丙壬戊己",
+    "壬": "庚丙戊 戊辛庚 甲庚 壬辛庚癸 癸庚辛 辛甲癸 戊丁 甲庚 甲丙 戊丙庚 戊丙 丙丁甲",
+    "癸": "辛丙庚 庚辛 丙辛甲 辛庚壬 庚辛壬癸 庚辛壬癸 丁甲 辛丙 辛甲壬癸 庚辛 丙辛 丙丁",
+}
+
+
+def test_johu_orders_pinned():
+    with open(os.path.join(ROOT, "references", "johu_wonmun.json"), encoding="utf-8") as f:
+        table = json.load(f)["table"]
+    got = {g: " ".join("".join(table[g][z]["order"]) for z in S.MONTH_ZHI) for g in S.GAN}
+    assert got == JOHU_PINNED
