@@ -532,7 +532,6 @@ function sipsin(dayGan, other) {
 /* ── 12신살 (references/29) ───────────────────── */
 const SAMHAP = T.SAMHAP;
 const GUK_NAME = { "申子辰":"수국", "亥卯未":"목국", "寅午戌":"화국", "巳酉丑":"금국" };
-const GUK_TTI = { "申子辰":"원숭이·쥐·용", "亥卯未":"돼지·토끼·양", "寅午戌":"호랑이·말·개", "巳酉丑":"뱀·닭·소" };
 const MYO = T.MYO;
 const SINSAL12 = T.SINSAL12;
 const gukOf = z => SAMHAP.find(s => s.includes(z));
@@ -756,8 +755,9 @@ function buildNatal(profile) {
     warn.push("시각을 몰라 시주 없이 3기둥으로 분석했습니다 — 격 후보(시간 투출·시지 회국)·오행 분포·일간 뿌리·원국 관계·신살(양인·공망 등)은 시주에 따라 달라질 수 있습니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
-    if (gap < 2) warn.push("절입 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 1분 다를 수 있습니다. 천문연 역서로 월주를 확인하세요.");
-    else if (gap < 1440) warn.push("절입 ±24시간 이내 출생 — 출생 시각 기록의 정확도가 월주를 가릅니다.");
+    const pz = (instMin - slot.start <= slot.end - instMin ? slot.k : (slot.k + 1) % 12) === 0 ? "연주·월주" : "월주";   // 입춘은 연주와 대운 순역까지 가른다
+    if (gap < 2) warn.push(`절입 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 1분 다를 수 있습니다. 천문연 역서로 ${pz}를 확인하세요.`);
+    else if (gap < 1440) warn.push(`절입 ±24시간 이내 출생 — 출생 시각 기록의 정확도가 ${pz}를 가릅니다.`);
     if (corr) {
       const dStd = dayPillar(stdMin), hStd = hourPillar(dStd[0], stdMin);
       if (dStd !== dp || hStd !== hp)
@@ -1197,7 +1197,7 @@ function render() {
 /* ══════════════════════════════════════════════════════════════
    DAILY — 매일 아침 다시 쓰이는 구간. 이 블록만 갱신됩니다.
    for      : 이 글이 가리키는 날짜 (KST, YYYY-MM-DD)
-   profile  : 이 글을 쓴 기준 명식 "생년월일|시각|성별"
+   profile  : 이 글을 쓴 기준 명식 "생년월일|시각|성별" (시각을 모르면 "모름")
    ══════════════════════════════════════════════════════════════ */
 const DAILY = {
   for: "2026-09-06",
@@ -1216,7 +1216,7 @@ function renderDaily(natal) {
   const s12 = sinsal12(natal.yearZhi, zT);
   const un = unseong(natal.dayGan, zT, "eum");
   const rels = relationsTo(natal, zT);
-  const sameProfile = `${natal.profile.date}|${natal.profile.time}|${natal.profile.gender}` === DAILY.profile;
+  const sameProfile = `${natal.profile.date}|${natal.profile.timeKnown ? natal.profile.time : "모름"}|${natal.profile.gender}` === DAILY.profile;
   const fresh = DAILY.for === todayKey && sameProfile;
 
   const meta = `<div class="meta">` +

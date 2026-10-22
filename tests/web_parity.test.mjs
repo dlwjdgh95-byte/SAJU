@@ -126,6 +126,32 @@ test("공망 — 같은 지지가 두 자리에 있으면 둘 다 적는다 (tes
   assert.ok(u.sinsal.find(x => x.n === "공망").v.endsWith("년지 戌·월지 戌"), u.sinsal.find(x => x.n === "공망").v);
 });
 
+test("절입 ±24시간·2분 경고 — 입춘이면 연주·월주 (test_calc.test_cli_warnings와 같다)", () => {
+  const w = (d, t) => E.buildNatal({ date: d, time: t, timeKnown: true, gender: "M" }).warn.join(" / ");
+  assert.ok(w("2026-02-04", "05:03").includes("천문연 역서로 연주·월주를 확인하세요"), w("2026-02-04", "05:03"));
+  for (const [d, t] of [["2026-02-04", "05:30"], ["2026-02-03", "12:00"]])
+    assert.ok(w(d, t).includes("±24시간 이내 출생 — 출생 시각 기록의 정확도가 연주·월주를 가릅니다"), w(d, t));
+  assert.ok(w("2026-03-05", "12:00").includes("정확도가 월주를 가릅니다"), w("2026-03-05", "12:00"));
+  assert.ok(w("1987-07-01", "12:00").includes("서머타임 기간 — 입력 시각에서 60분을 빼"), w("1987-07-01", "12:00"));
+  const u = E.buildNatal({ date: "2026-03-10", timeKnown: false, gender: "M" }).warn.find(s => s.startsWith("시각을 몰라 시주 없이 3기둥"));
+  assert.ok(u.includes("오행 분포·일간 뿌리·원국 관계·신살(양인·공망 등)"), u);
+});
+
+test("신살·원국 지지 관계·일간 뿌리 (test_calc.test_shared_outputs와 같은 명조·같은 값)", () => {
+  const a = E.buildNatal({ date: "1995-10-29", time: "06:30", timeKnown: true, gender: "M" });
+  assert.deepEqual(a.inner.map(r => `${r.a}—${r.b}:${r.r.join("·")}`),
+    ["년지亥—일지巳:충", "년지亥—시지卯:반합", "월지戌—일지巳:원진·귀문", "월지戌—시지卯:육합", "일지巳—시지卯:격각"]);
+  assert.deepEqual(a.sinsal.map(s => `${s.n}:${s.v}`),
+    ["문창귀인:시지 卯", "학당귀인:시지 卯", "천을귀인:巳·卯 — 결과가 아니라 통로", "공망:공망지 午未 — 원국에 없음", "백호대살:丙戌", "천라:戌亥"]);
+  assert.deepEqual(a.roots, ["년지 亥"]);
+  const b = E.buildNatal({ date: "1960-01-19", time: "19:30", timeKnown: true, gender: "M" });
+  assert.deepEqual(b.pillars, ["己亥", "丁丑", "丙午", "戊戌"]);
+  assert.equal(b.sinsal.find(s => s.n === "양인").v, "일지 午");
+  assert.equal(b.sinsal.find(s => s.n === "천을귀인").v, "亥 — 결과가 아니라 통로");
+  assert.deepEqual(b.inner.filter(r => r.a === "월지丑").map(r => r.r.join("·")), ["지지육해·원진·귀문", "형"]);
+  assert.deepEqual(b.roots, ["일지 午", "시지 戌"]);
+});
+
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {
   const n = E.buildNatal({ date: "2000-01-07", time: "23:20", timeKnown: true, gender: "M" });
   assert.ok(n.warn.some(w => w.includes("甲子일 乙亥시") && w.includes("乙丑일 丙子시")), n.warn.join(" / "));

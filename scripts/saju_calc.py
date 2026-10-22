@@ -51,8 +51,6 @@ except ImportError:          # Python < 3.9
 
 GAN = "甲乙丙丁戊己庚辛壬癸"
 ZHI = "子丑寅卯辰巳午未申酉戌亥"
-GAN_KO = dict(zip(GAN, "갑을병정무기경신임계"))
-ZHI_KO = dict(zip(ZHI, "자축인묘진사오미신유술해"))
 OHENG = dict(zip(GAN, ["木","木","火","火","土","土","金","金","水","水"]))
 OHENG_Z = dict(zip(ZHI, ["水","土","木","木","土","火","火","土","金","金","土","水"]))
 YIN = {g: (i % 2 == 1) for i, g in enumerate(GAN)}  # 乙丁己辛癸 = 음간
@@ -299,6 +297,9 @@ def jie_display(dt):
     """절입 시각 표시용 — 분 단위 반올림(한국천문연구원 발표 관례). 비교에는 쓰지 않는다."""
     return dt + timedelta(seconds=30)
 
+KOREA_ZONES = ("Asia/Seoul", "Asia/Pyongyang")
+KOREA_DST_TZ = (9.5, 10)     # 한국 서머타임 오프셋(1948~51·1987~88 UTC+10, 1955~60 UTC+9:30) — 표준시로 쓰인 적이 없어 --tz로 주면 서머타임으로 본다
+
 def utc_to_wall(utc, zone="Asia/Seoul", tz=None):
     """UTC(naive) → 그 지역 벽시계(naive). tz를 주면 고정 오프셋."""
     if tz is not None:
@@ -317,7 +318,8 @@ def resolve_time(wall, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt
     ⚠️ 절입 비교·대운수는 반환값의 utc로, 시주·자시 판정은 local로 한다 (errata #18).
     보정량은 분 단위로 반올림한다 — JS 엔진과 같은 규칙."""
     if tz is not None:
-        off, dst, tzname, ambiguous = timedelta(hours=tz), timedelta(0), f"UTC{tz:+g}(고정)", False
+        dst = timedelta(hours=1) if zone in KOREA_ZONES and tz in KOREA_DST_TZ else timedelta(0)
+        off, tzname, ambiguous = timedelta(hours=tz), f"UTC{tz:+g}(고정{', 서머타임' if dst else ''})", False
     else:
         if ZoneInfo is None:
             sys.exit("zoneinfo 미지원(Python 3.9 미만) — --tz로 오프셋을 직접 지정할 것")
@@ -831,6 +833,14 @@ def gaego(zhi, context):
         out["주의"] = "입묘한 십성은 이 기간에 기대 영역이 아니다. 정리·보관 쪽으로 읽는다"
     return out
 
+def gaego_hour_note(zhi, verdict):
+    """시지 미상(3기둥)일 때 시지에 따라 개폐가 바뀌는 경우. 충개고는 시지가 무엇이든 그대로다 — 충을 먼저 본다(gaego)."""
+    if verdict.startswith("폐고"):
+        return f"시지가 {GOJI_CHUNG[zhi]}(충)이면 충개고, {'·'.join(GOJI_KEY[zhi])}(삼합 짝)이면 합국으로 바뀐다"
+    if verdict.startswith("합국"):
+        return f"시지가 {GOJI_CHUNG[zhi]}(충)이면 충개고로 바뀐다"
+    return None
+
 def ijung_ipmyo(day_gan, zhi):
     """이중 입묘(二重入墓) — 인종상 墓이면서 그 지지의 지장간이기도 한 십성.
     戌·丑에서만 성립한다(본기 戊·己가 각각 그 자리의 墓). 辰·未는 본기가 관대라 해당 없음."""
@@ -887,6 +897,9 @@ def injong_year(pillars, year, tz_hours=None, zone="Asia/Seoul"):
             ii = ijung_ipmyo(day, z)
             row["사고지"] = {"개폐": g["판정"], "근거": g["근거"],
                            "이중 입묘": "·".join(ii) if ii else "없음(전환·관리 국면)"}
+            note = gaego_hour_note(z, g["판정"]) if len(pillars) == 3 else None
+            if note:
+                row["사고지"]["시지 미상"] = note
         rows.append(row)
     return {
         "세운": f"{year}년 {sy} (입춘 기준)",
@@ -895,7 +908,7 @@ def injong_year(pillars, year, tz_hours=None, zone="Asia/Seoul"):
         "⚠️": ("층위 비중은 세운 12 > 월운 5 (28_scoring.md §1). 월운 인종은 발현 시점 참고이지 "
               "사건 예언이 아니다. 사고지 4달은 강약이 아니라 개폐로 읽는다"),
         "⚠️ 개폐 판정 범위": (f"이 표의 사고지 개폐는 **세운 지지 + 원국 {len(pillars)}지**만 대조한다"
-                         + ("(시지 미상 — 충개고가 아닌 달은 시지가 충 파트너나 삼합 짝이면 개폐가 달라진다). " if len(pillars) == 3 else ". ")
+                         + ("(시지 미상 — 시지에 따라 개폐가 바뀌는 달은 그 달의 '시지 미상' 항목에 적었다). " if len(pillars) == 3 else ". ")
                          + "대운 지지는 포함되지 않으므로, 대운까지 반영하려면 "
                          "injong_report(day, zhi, pillars, context=[세운지지, 대운지지])로 직접 호출한다"),
     }
@@ -915,12 +928,10 @@ def injong_report(day_gan, zhi, pillars=None, context=None, label="운"):
         ctx = list(context or [])
         if pillars: ctx += [p[1] for p in pillars]
         out["개폐 판정"] = gaego(zhi, ctx) if ctx else {"판정": "대조 지지 미입력 — 판정 불가"}
-        if pillars and len(pillars) == 3 and ctx:              # 충개고는 시지가 무엇이든 그대로다 — 충을 먼저 본다(gaego)
-            v = out["개폐 판정"]["판정"]
-            if v.startswith("폐고"):
-                out["개폐 판정"]["시지 미상"] = f"시지가 {GOJI_CHUNG[zhi]}(충)이면 충개고, {'·'.join(GOJI_KEY[zhi])}(삼합 짝)이면 합국으로 바뀐다"
-            elif v.startswith("합국"):
-                out["개폐 판정"]["시지 미상"] = f"시지가 {GOJI_CHUNG[zhi]}(충)이면 충개고로 바뀐다"
+        if pillars and len(pillars) == 3 and ctx:
+            note = gaego_hour_note(zhi, out["개폐 판정"]["판정"])
+            if note:
+                out["개폐 판정"]["시지 미상"] = note
         ii = ijung_ipmyo(day_gan, zhi)
         out["이중 입묘"] = (f"{'·'.join(ii)} — 인종상 墓이면서 {zhi} 지장간. 이 달 개폐 판정의 주체"
                         if ii else f"{zhi}는 본기가 墓가 아니다(관대) — 이중 입묘 없음. 창고보다 전환·관리 국면")
@@ -1364,9 +1375,9 @@ def _birth_block(a):
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
     zone = _check_zone(a.zone or PLACES[place][1])
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
-    korean = zone in ("Asia/Seoul", "Asia/Pyongyang") and (a.tz is None or a.tz in (8.5, 9))    # --zone Asia/Tokyo --tz 9도 한국 밖
+    korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) + KOREA_DST_TZ)    # --zone Asia/Tokyo --tz 9도 한국 밖
     if a.longitude is None and a.place is None and not korean:
-        sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None and a.tz not in (8.5, 9) else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
+        sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None and zone in KOREA_ZONES else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
                  "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)")
     t = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar)
     if a.longitude is None and abs(t["lon_corr_min"]) > 60:
@@ -1381,7 +1392,7 @@ def _birth_block(a):
     warn = []
     if t["dst_min"]:
         warn.append(f"⚠️ 서머타임 기간({t['tzname']}) — 입력 시각에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다. "
-                    "기록된 시각이 이미 표준시라면 --tz로 고정 오프셋을 주어 다시 계산할 것" if known else
+                    f"기록된 시각이 이미 표준시라면 --tz {(t['offset_min'] - t['dst_min']) / 60:g}로 다시 계산할 것" if known else
                     f"⚠️ 서머타임 기간({t['tzname']}) — 기준 시각(정오)에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다")
     if a.tz is None and zone == "Asia/Seoul" and t["offset_min"] - t["dst_min"] == 510:
         warn.append("ℹ️ 당시 한국 표준시는 UTC+8:30 (1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했다")
@@ -1422,11 +1433,12 @@ def _birth_block(a):
     for edge, nm in [(minfo["prev_jie_utc"], minfo["prev_jie_name"]),
                      (minfo["next_jie_utc"], minfo["next_jie_name"])]:
         gap = abs((t["utc"] - edge).total_seconds()) if known else math.inf     # 시각 모름은 위의 절입일 경고로 본다
+        pz = "연주·월주" if nm == "입춘" else "월주"                       # 입춘은 연주와 대운 순역까지 가른다
         if gap < 120:
             warn.append(f"⚠️ 절입({nm}) 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 최대 1분 다를 수 있다. "
-                        "천문연 역서(월력요항) 시각으로 월주를 재확인할 것")
+                        f"천문연 역서(월력요항) 시각으로 {pz}를 재확인할 것")
         elif gap < 86400:
-            warn.append(f"⚠️ 절입({nm} {jie_display(wall_fn(edge)):%m-%d %H:%M}) ±24시간 이내 출생 — 출생 시각 기록의 정확도가 월주를 가른다")
+            warn.append(f"⚠️ 절입({nm} {jie_display(wall_fn(edge)):%m-%d %H:%M}) ±24시간 이내 출생 — 출생 시각 기록의 정확도가 {pz}를 가른다")
     if known and t["corr_min"]:
         alt, _ = four_pillars(t["utc"], t["civil_std"], a.zasi)
         if alt[2:] != pillars[2:]:
@@ -1476,7 +1488,7 @@ def build_parser():
     ap.add_argument("--combo", metavar="라벨:干支,...",
                     help="원국 + 운 간지 여러 개의 삼합·방합·삼형·천간합충 일괄 판정. 예: --combo 대운:癸未,세운:丙午,월운:庚寅")
     ap.add_argument("--injong", metavar="支",
-                    help="십성 인종 전개. 지지 하나 또는 간지. --pillars/--birth와 함께 쓰면 원국 교차(4분면)까지. 예: --injong 酉")
+                    help="십성 인종 전개 (일간이 필요해 --pillars 또는 --birth와 함께 쓴다 — 원국 교차(4분면)까지 나온다). 지지 하나 또는 간지. 예: --injong 酉")
     ap.add_argument("--injong-year", type=int, metavar="YYYY",
                     help="해당 연도 세운+월운 12달을 인종으로 일괄 전개 (--pillars 또는 --birth 필요)")
     ap.add_argument("--inyeon", action="store_true",

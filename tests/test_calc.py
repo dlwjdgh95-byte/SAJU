@@ -384,7 +384,8 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     assert d["pillars"] == ["庚申", "戊寅", "庚戌"] and "시간" not in d["sipsin_gan"]
     assert [c["격"] for c in d["격 후보"]["후보"]] == ["편재격", "편인격(변화 후보)"]       # 12:00(壬午시)를 넣으면 寅午戌 회국이 생긴다
     assert any("23:33 이후 출생이면 辛亥일" in w for w in d["경고"])
-    assert any(w.startswith("ℹ️ 시주 없이 3기둥으로 분석했다") for w in d["경고"])   # 날짜만 준 --birth도 3기둥 안내 (errata #41)
+    assert any(w.startswith("ℹ️ 시주 없이 3기둥으로 분석했다") and "오행 분포·통근·천간 관계·원국 지지 관계" in w
+               for w in d["경고"])                                          # 날짜만 준 --birth도 3기둥 안내 (errata #41)
     d = json.loads(run_cli("--birth", "1955-09-08", "--gender", "M", "--json"))
     w = " ".join(d["경고"])
     assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번 있다" in w
@@ -419,6 +420,13 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     assert any("(연·월·일주 기준, 시주 미상)" in v and v.endswith(" (시주에 있으면 달라진다)") for v in quad.values())
     q4 = run_cli("--pillars", "己巳 丁丑 甲戌 丙寅", "--injong", "丑", "--inyeon", "--json")
     assert "시지 미상" not in q4 and "시주 미상" not in q4 and "3기둥" not in q4
+    # --injong-year도 달마다 같은 규칙 — 합국 달(戊戌, 세운 午)은 시지 충만, 충개고 달은 표시하지 않는다 (errata #43)
+    y = json.loads(run_cli("--pillars", "己巳 丁丑 甲戌", "--injong-year", "2026", "--json"))["연간 인종"]
+    goji = {r["월"]: r["사고지"] for r in y["월운 12"] if "사고지" in r}
+    assert goji["戊戌"]["개폐"].startswith("합국") and goji["戊戌"]["시지 미상"] == "시지가 辰(충)이면 충개고로 바뀐다"
+    assert all("시지 미상" not in g for g in goji.values() if g["개폐"].startswith("충개고"))
+    assert "'시지 미상' 항목" in y["⚠️ 개폐 판정 범위"]
+    assert "시지 미상" not in run_cli("--pillars", "己巳 丁丑 甲戌 丙寅", "--injong-year", "2026", "--json")
 
 
 @pytest.mark.parametrize("argv", [
@@ -451,6 +459,31 @@ def test_daewoon_age_display_matches_start_age():
     assert d["start_age"] == 1 and d["나이 기준"].startswith("대운수 1은 출생 후 경과 연수(만 0년 0개월)를 반올림하면 0이라 최소 1세 관례")
 
 
+def test_daewoon_age_particle():                           # 대운수 N은/는 — 숫자 읽기(일·삼·육·칠·팔·십은, 이·사·오·구는)
+    want = dict(zip(range(1, 11), "은는은는는은은은는은"))
+    seen = set()
+    for m in range(1, 13):
+        for dd, g in [(1, "M"), (11, "F"), (21, "M")]:
+            d = json.loads(run_cli("--birth", f"1990-{m:02d}-{dd:02d} 12:00", "--gender", g, "--json"))["대운"]
+            seen.add(d["start_age"])
+            assert d["나이 기준"].startswith(f"대운수 {d['start_age']}{want[d['start_age']]} "), d["나이 기준"]
+    assert len(seen) >= 6, seen
+
+
+def test_shared_outputs():                                  # web_parity.test.mjs '신살·원국 지지 관계·일간 뿌리'와 같은 명조·같은 값
+    d = json.loads(run_cli("--birth", "1995-10-29 06:30", "--gender", "M", "--json"))
+    assert d["신살"]["원국 지지 관계"] == {"년지亥—일지巳": ["충"], "년지亥—시지卯": ["반합(왕지 포함)"], "월지戌—일지巳": ["원진", "귀문"],
+                                     "월지戌—시지卯": ["육합"], "일지巳—시지卯": ["격각"]}
+    ind = d["신살"]["개별 신살"]
+    assert ind["천을귀인(B)"][:2] == ["일지巳", "시지卯"] and ind["천라(C)"] == ["戌亥 동시 존재"] and ind["백호대살(B)"] == ["월주 丙戌"]
+    assert ind["문창귀인(B)"] == ["卯 @ 시지"] and ind["학당귀인(B)"] == ["卯 @ 시지"] and d["tonggn"]["일간癸"] == ["년지亥(록왕)"]
+    d = json.loads(run_cli("--birth", "1960-01-19 19:30", "--gender", "M", "--json"))
+    assert d["pillars"] == ["己亥", "丁丑", "丙午", "戊戌"]
+    assert d["신살"]["개별 신살"]["양인(A)"] == ["일지"] and d["신살"]["개별 신살"]["천을귀인(B)"][0] == "년지亥"
+    assert d["신살"]["원국 지지 관계"]["월지丑—일지午"] == ["지지육해", "원진", "귀문"] and d["신살"]["원국 지지 관계"]["월지丑—시지戌"] == ["형"]
+    assert d["tonggn"]["일간丙"] == ["일지午(록왕)", "시지戌(묘고)"]
+
+
 def test_gongmang_same_branch_twice():                     # 같은 공망 지지가 두 자리에 있으면 둘 다 (웹과 같다)
     d = json.loads(run_cli("--birth", "1971-06-15 23:10", "--gender", "F", "--json"))
     assert d["pillars"] == ["辛亥", "甲午", "辛未", "己亥"] and d["신살"]["개별 신살"]["공망(A~B)"] == ["공망지 戌亥", "년지亥", "시지亥"]
@@ -461,7 +494,25 @@ def test_cli_warnings():
     w = " ".join(d["경고"])
     assert "서머타임" in w and "UTC+8:30" in w
     d = json.loads(run_cli("--birth", "2026-02-04 05:03", "--gender", "M", "--json"))
-    assert any("2분 이내" in x for x in d["경고"])
+    assert any("2분 이내" in x and "연주·월주를 재확인" in x for x in d["경고"])          # 입춘은 연주·대운 순역까지 가른다
+    for b, pz in [("2026-02-04 05:30", "연주·월주를 가른다"), ("2026-02-03 12:00", "연주·월주를 가른다"),
+                  ("2026-03-05 12:00", "정확도가 월주를 가른다")]:
+        w = " ".join(json.loads(run_cli("--birth", b, "--gender", "M", "--json"))["경고"])
+        assert "±24시간 이내" in w and pz in w, (b, w)
+
+
+def test_cli_korean_dst_offset_as_tz():                   # 한국 서머타임 오프셋(UTC+10·+9:30)은 --tz로 줘도 서머타임으로 받는다 (errata #43)
+    for b, tz in [("1987-07-01 12:00", "10"), ("1958-07-01 12:00", "9.5")]:
+        auto = json.loads(run_cli("--birth", b, "--gender", "M", "--json"))
+        fixed = json.loads(run_cli("--birth", b, "--gender", "M", "--tz", tz, "--json"))
+        assert (fixed["pillars"], fixed["입력"]["시각 보정(분)"], fixed["대운"]["start_date"]) == \
+               (auto["pillars"], auto["입력"]["시각 보정(분)"], auto["대운"]["start_date"])
+        std = "9" if tz == "10" else "8.5"
+        assert all(any(f"이미 표준시라면 --tz {std}로 다시 계산" in w for w in r["경고"]) for r in (auto, fixed))
+    gap = " ".join(json.loads(run_cli("--birth", "1987-05-10 02:30", "--gender", "M", "--json"))["경고"])
+    assert "전환 뒤 시계로 읽으면 丁卯 乙巳 己未 甲子" in gap
+    d = json.loads(run_cli("--birth", "1987-05-10 02:30", "--gender", "M", "--tz", "10", "--json"))    # 경고가 알려 준 '전환 뒤' 값을 그대로 다시 낸다
+    assert d["pillars"] == ["丁卯", "乙巳", "己未", "甲子"]
 
 
 def test_cli_correction_boundary_warning():              # errata #30

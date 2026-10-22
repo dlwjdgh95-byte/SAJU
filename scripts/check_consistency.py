@@ -11,6 +11,7 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
   4. 신살 조견표: references/30 §3-1·3-2 ↔ saju_calc 표 (행이 빠지거나 형식이 바뀌면 실패)
   5. 삼형 명칭: references/22·SKILL.md 정본 줄(子卯 포함)·22 §4-1 머리 ↔ saju_calc.SAMHYEONG·HYEONG_PAIRS
   6. 조후 용신
+     - 원문 사본(tests/fixtures/qtbj_wikisource.txt)은 SRC_SHA256으로 고정한다 — 바뀌면 실패
      - johu_wonmun.json 인용·취용 ↔ 窮通寶鑑 원문(tests/fixtures/qtbj_wikisource.txt): 인용은 그 달 단락이나 계절 머리말에, 취용 글자는 계절 단락에 있어야 한다
        그 달 단락이 있으면 json 인용은 그 단락(또는 그 달 N月로 시작하는 머리말 문장)에서, 1순위 글자를 담아야 한다
        json·'원문' 줄 인용 모두 그 달 자리에서 시작해야 하고(달 숫자·첫머리 N月·바로 앞 달 표시·조건 말 或若如凡 바로 뒤가 아님), 그 인용들과
@@ -18,8 +19,8 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
        첫 으뜸 말(先X·专用X·独爱X·X为用 …)은 1순위, 次·佐로 둔 글자는 1순위가 아니어야 한다.
        조건문(或·若·凡·如, 문장 머리의 「…者，」「X多、」「无X用Y」, '원문' 줄에 '조건 「…」'으로 적은 인용)은 순위로 읽지 않는다
      - references/01~10 월별 원문 줄(한 줄, 「」 전부, 취용 글자가 모두 근거로 나오는지)·취용 순서 줄·매트릭스(순서 포함)·본문 용신·희신(N순위)·기신 목록(십성 이름 포함) ↔ json.
-       같은 (X月生) 머리가 두 번 있으면 실패
-     - errata로 바로잡은 문장(ERRATA_PINNED)과 그 달 '원문' 줄 인용(WONMUN_PINNED)이 빠지면 실패
+       같은 (X月生) 머리가 두 번 있거나, 한 달에 '원문 (…)' 줄·'원문 취용 순서' 줄이 둘 이상이면 실패(둘째 줄은 읽지 않으므로)
+     - errata로 바로잡은 문장(ERRATA_PINNED — 요약·비교 문장과 미월 매트릭스 계절 칸 「늦여름」)과 그 달 '원문' 줄 인용(WONMUN_PINNED)이 빠지면 실패
      - 본문 산문의 순서 표기('A → B → C' 화살표·「A·B 순」·先X後Y 등)와 매트릭스 계절 칸은 '확인 권장'으로만 알린다(errata #40).
        대신 01~10 본문은 tests/fixtures/johu_docs.json이 절마다 고정한다(tests/build_fixtures.py --johu로만 갱신 — 갱신할 때 확인 권장·실패를 함께 출력)
      - 원문이 순위 말을 두지 않은 글자 쌍은 여기서 잡을 수 없으므로 tests/test_calc.py의 JOHU_PINNED가 120개월 order를 고정한다
@@ -28,7 +29,7 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
   9. 웹 엔진 표 구획이 최신인지 (scripts/build_web_tables.py --check와 같음)
 """
 
-import glob, json, os, re, sys
+import glob, hashlib, json, os, re, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -192,6 +193,7 @@ SIPSIN_WORD = {"비견": ["비견"], "겁재": ["겁재"], "비겁": ["비견", 
                "관성": ["정관", "편관"], "관살": ["정관", "편관"], "정인": ["정인"], "편인": ["편인"], "인성": ["정인", "편인"]}
 SIPSIN_RE = re.compile(r"(?<![가-힣])(" + "|".join(SIPSIN_WORD) + r")(?![가-힣])")
 SRC = "tests/fixtures/qtbj_wikisource.txt"     # 維基文庫 窮通寶鑑 raw — johu_wonmun.json의 _source
+SRC_SHA256 = "8ba17242f116583de2e10172e006f5ce5f74b23ccfc0bd24b886be135e9f20bd"   # 원문 사본이 바뀌면 모든 대조의 기준이 바뀐다 — 다시 받았을 때만 고친다
 SEASONS = ["三春", "三夏", "三秋", "三冬"]
 MONTH_NO = {"正": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "七": 6, "八": 7, "九": 8, "十": 9, "十一": 10, "十二": 11}
 BOLD = "'" * 3
@@ -248,6 +250,9 @@ RANK_EXEMPT_NOTE = {("乙", "午"): "원문이 스스로 갈리는 곳",
                     ("己", "戌"): "「九月土盛，宜甲木疏之，余皆酌用」을 더한다"}
 # 매트릭스 계절 칸의 첫말 — 인월부터. 같은 뜻의 다른 낱말도 있어 확인 권장으로만 낸다
 SEASON_CELL = ["초봄", "봄 극성", "늦봄", "초여름", "한여름", "늦여름", "초가을", "가을 극성", "늦가을", "초겨울", "한겨울", "늦겨울"]
+JOHU_FILES = ["01_gungbok_gapmok.md", "02_gungbok_eulmok.md", "03_gungbok_byunghwa.md", "04_gungbok_junghwa.md",
+              "05_gungbok_muto.md", "06_gungbok_gito.md", "07_gungbok_gyunggeum.md", "08_gungbok_singeum.md",
+              "09_gungbok_imsu.md", "10_gungbok_gyesu.md"]      # 일간 차례 — 다른 이름의 사본이 끼어도 일간이 밀리지 않는다
 # errata로 고친 요약·비교 문장 가운데 검사기가 뜻으로 읽지 못하는 것 — 되돌리면 실패한다. 고칠 때는 errata와 함께 이 목록도 고친다
 ERRATA_PINNED = [
     ("09_gungbok_imsu.md", "묘·사월은 신금이 경금보다 앞서고 미월은 신금만 쓴다", "#36 ⑦"),
@@ -256,7 +261,8 @@ ERRATA_PINNED = [
     ("02_gungbok_eulmok.md", "사·술월엔 신금, 신월엔 기토, 유월엔 정화가 더해진다", "#37 ·#38 ④"),
     ("02_gungbok_eulmok.md", "단 사·술월은 병화 없이 계수·신금이고(사월은 경금까지)", "#37"),
     ("10_gungbok_gyesu.md", "계수는 병화 해동(해월은 병화 없이 경신)", "#38 ④"),
-    ("03_gungbok_byunghwa.md", "무토는 임수가 많을 때 제방으로만 쓰고(1·2·7·10·11월)", "#34 ⑧"),
+    ("03_gungbok_byunghwa.md", "무토는 11월엔 임수의 보좌(「壬水为最，戊土佐之」), 10월엔 갑·경과 함께 투간하면 귀하고", "#34 ⑧·#43"),
+    ("03_gungbok_byunghwa.md", "1·2·7월엔 임수가 많을 때만 제방으로 쓴다", "#34 ⑧·#43"),
     ("04_gungbok_junghwa.md", "8월 甲丙庚(취용 순서는 甲庚丙)", "#34 ⑧"),
     ("06_gungbok_gito.md", "계수가 기토의 단비** — 사·오·미·신·유월은 1순위, 묘·진·술월은 2순위, 겨울엔 쓰지 않음", "#34 ⑧"),
     ("06_gungbok_gito.md", "여름과 칠·팔월(사·오·미·신·유월)엔 계수가 생명을 주는 단비(1순위 용신 — 술월은 갑목 다음 2순위)", "#40"),
@@ -286,14 +292,18 @@ ERRATA_PINNED = [
     ("10_gungbok_gyesu.md", "갑·을·무·기 일간과 임수 오월의 1순위 용신", "#42"),
     ("10_gungbok_gyesu.md", "기둥에 戌·未가 둘씩 있고", "#42"),
     ("03_gungbok_byunghwa.md", "북방 수운이 오히려 흉하다", "#42"),
-]
+    ("09_gungbok_imsu.md", "해월은 **무토 → 병화 → 경금(갑목 제어)**", "#34 ③"),
+    ("10_gungbok_gyesu.md", "- 화일간: 병화는 임수 → 경금, 정화는 오월만 임수가 먼저이고 사·미월은 갑목이 먼저", "#36 ⑦"),
+    ("10_gungbok_gyesu.md", "- 토일간: 무토는 사월 갑목·오월 임수·미월 계수가 먼저, 기토는 계수 → 병화", "#36 ⑦"),
+    ("10_gungbok_gyesu.md", "- 금일간: 경금은 사·오월 임수(미월은 정화·갑목), 신금은 임수(오월은 기토가 먼저)", "#36 ⑦"),
+    ("10_gungbok_gyesu.md", "- 화일간: 정화는 갑목으로 연료(경금이 쪼갠다), 병화는 임수가 주(해월만 갑목이 먼저)", "#34 ⑧"),
+    ("10_gungbok_gyesu.md", "- 토일간: 병화로 온기, 갑목이 다음(무토 해월은 갑목이 먼저, 기토 해월은 무토도 쓴다)", "#34 ⑧"),
+    ("10_gungbok_gyesu.md", "- 금일간: 경금은 정화로 제련(축월은 병화가 먼저), 신금은 임수로 씻고 병화로 온기(축월은 병화가 먼저)", "#34 ⑧"),
+] + [(f, "| 미월 | 늦여름,", "#32 ④") for f in JOHU_FILES]     # 미월 매트릭스 계절 칸 — 「한여름」으로 되돌리면 실패
 # errata로 바로잡은 그 달 '원문' 줄 인용 — 줄에서 빼면 실패한다. --johu로 다시 만들어도 풀리지 않는다
 WONMUN_PINNED = {("丁", "亥"): ("三冬丁火，甲木为尊，庚金佐之", "#32 ③·#34 ⑤"),
                  ("庚", "巳"): ("次取戊土，丙火佐之", "#34 ⑤"),
                  ("辛", "寅"): ("先己后壬。己为君，庚为佐", "#36 ①")}
-JOHU_FILES = ["01_gungbok_gapmok.md", "02_gungbok_eulmok.md", "03_gungbok_byunghwa.md", "04_gungbok_junghwa.md",
-              "05_gungbok_muto.md", "06_gungbok_gito.md", "07_gungbok_gyunggeum.md", "08_gungbok_singeum.md",
-              "09_gungbok_imsu.md", "10_gungbok_gyesu.md"]      # 일간 차례 — 다른 이름의 사본이 끼어도 일간이 밀리지 않는다
 # 취용 글자가 그 달 '원문' 줄 인용에 글자로 나오지 않는 달
 COVER_EXEMPT = {("癸", "未"): "壬", }         # 「宜比劫助身」의 比劫으로만 나온다 (10번 미월 상황 분석)
 # 그 달 단락이 원문에 없어 계절 단락 전체에서 인용을 찾는 달 — md에 공통 단락임을 밝혀 두었다
@@ -508,7 +518,7 @@ def _simile(seg, mm):
 def _in_order(q, text):
     """인용 q가 text에 있는가 — 「A…B」처럼 줄임표로 덜어 낸 인용은 조각들이 차례대로 있으면 된다."""
     k = 0
-    for part in (p for p in q.split("…") if p):
+    for part in (p for p in re.split(r"…|\.\.\.", q) if p):          # ASCII '...'도 줄임표로 본다
         k = text.find(part, k)
         if k < 0:
             return False
@@ -697,13 +707,17 @@ def _chains(txt, g):
 
 
 def check_johu():
+    with open(os.path.join(ROOT, SRC), "rb") as f:
+        if hashlib.sha256(f.read()).hexdigest() != SRC_SHA256:
+            problems.append(f"{SRC}: 원문 사본이 고정 해시(SRC_SHA256)와 다르다 — 원문을 다시 받았다면 해시와 함께 고치고 errata에 적을 것")
     table = json.loads(read("references/johu_wonmun.json"))["table"]
     src = source_blocks()
     for g, name in zip(S.GAN, JOHU_FILES):
         txt = read("references/" + name)
         secs = _month_sections(txt)
         if sorted(secs) != sorted(S.MONTH_ZHI):
-            problems.append(f"{name}: 월별 절(### X월생(…月生)) 12개를 찾지 못했다 ({len(secs)}개)")
+            miss = "·".join(MON_HEAD[z] for z in S.MONTH_ZHI if z not in secs)
+            problems.append(f"{name}: 월별 절(### X월생(…月生)) 12개를 찾지 못했다 ({len(secs)}개 — {miss} 없음. 그 달 본문 검사는 건너뛴다)")
         heads = [h.group(1) for h in MONTH_HEAD_RE.finditer(txt)]
         for z in dict.fromkeys(z for z in heads if heads.count(z) > 1):
             problems.append(f"{name}: 「({z}月生)」 머리가 {heads.count(z)}번 있다 — (…月生)은 월별 절 머리에만 쓴다(사례·비교 절은 다른 제목으로)")
@@ -727,7 +741,9 @@ def check_johu():
             seq = list(dict.fromkeys(s_ for s_ in _stems(yong + "," + hui, keep_paren=False) if s_ in order))
             if seq != [s_ for s_ in order if s_ in seq]:
                 problems.append(f"{name} {m}: 매트릭스 용신·희신 순서 {''.join(seq)} ≠ 원문 취용 순서 {''.join(order)}")
-            sec = secs.get(z, "")
+            if z not in secs:                              # 절을 못 찾은 달은 위의 한 줄로 알린다 — 뒤따르는 검사는 군소리다
+                continue
+            sec = secs[z]
             by, bh, bg = (_bullets(sec, t) for t in ("용신 (用神)", "희신 (喜神)", "기신 (忌神)"))
             if by is None or bh is None or bg is None:
                 problems.append(f"{name} {m}: 본문에 용신·희신·기신 목록이 없다")
@@ -765,7 +781,13 @@ def check_johu():
             for s_ in order:
                 if s_ != g and s_ not in EXAM.sub(" ", plain):
                     problems.append(f"{name} {MON_HEAD[z]}: 취용 {s_}이 원문 {season}{g} 단락에 한 번도 나오지 않는다")
-            sec = secs.get(z, "")
+            if z not in secs:
+                continue
+            sec = secs[z]
+            for label, pat in [("'원문 (…)' 줄", r"^\*\*원문\s*[(（]"), ("'원문 취용 순서' 줄", r"^\*\*원문 취용 순서\*\*")]:
+                n_ = len(re.findall(pat, sec, re.M))
+                if n_ > 1:                                 # 검사는 첫 줄만 읽으므로 둘째 줄은 받지 않는다
+                    problems.append(f"{name} {MON_HEAD[z]}: {label}이 {n_}개다 — 그 달에 한 줄만 쓴다(둘째 줄은 검사하지 않는다)")
             wl = re.search(r"^\*\*원문 \(窮通寶鑑\)\*\*: (.+)$", sec, re.M)
             if not wl or f"「{q}」" not in wl.group(1):
                 problems.append(f"{name} {MON_HEAD[z]}: johu_wonmun.json 원문 인용이 그 달 '원문' 줄에 그대로 없다")
@@ -811,7 +833,7 @@ def check_johu():
                 parts.append(cur)
                 got = []
                 for part in parts:
-                    m2 = re.match(r"\s*(?:\*\*)?[가-힣]{2}\s*[(（]([甲乙丙丁戊己庚辛壬癸])", part)     # **신금(辛)**·신금 (辛)·신금（辛）도 읽는다
+                    m2 = re.match(r"\s*(?:\*\*)?[가-힣]{2}(?:\*\*)?\s*[(（]([甲乙丙丁戊己庚辛壬癸])", part)     # **신금(辛)**·**신금**(辛)·신금 (辛)·신금（辛）도 읽는다
                     if not m2:
                         problems.append(f"{name} {MON_HEAD[z]}: '원문 취용 순서' 항목 '{part.strip()}'에 한자 표기(예: 병화(丙))가 없다")
                     got.append(m2.group(1) if m2 else "?")

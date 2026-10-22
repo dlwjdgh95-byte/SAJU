@@ -43,3 +43,16 @@ test("렌더 — 경고 목록은 '확인' 칸에 나온다", () => {
   boot({ name: "", date: "2026-02-04", timeKnown: false, gender: "F" });
   assert.ok(els.structKv.innerHTML.includes("<dt>확인</dt>") && els.structKv.innerHTML.includes("절입일 출생"));
 });
+
+test("아침 글 — 같은 날짜·시각이어도 시각을 모름으로 바꾸면 기본 명식 글을 붙이지 않는다", () => {
+  const block = src.slice(src.indexOf("const DAILY"));
+  const day = block.match(/for: "(\d{4}-\d{2}-\d{2})"/)[1], title = block.match(/title: "([^"]+)"/)[1];
+  const [date, time, gender] = block.match(/profile: "([^"]+)"/)[1].split("|");
+  const t0 = Date.parse(`${day}T03:00:00Z`);                         // 그날 KST 정오
+  class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [t0])); } static now() { return t0; } }
+  const { boot: b } = new Function("document", "window", "localStorage", "Date", src + "; return { boot };")(document, { scrollTo() {} }, localStorage, FixedDate);
+  b({ name: "", date, time, timeKnown: true, gender });
+  assert.ok(els.daily.innerHTML.includes(title), "기본 명식이면 아침 글");
+  b({ name: "", date, time, timeKnown: false, gender });
+  assert.ok(!els.daily.innerHTML.includes(title), "시각 모름이면 계산값");
+});
