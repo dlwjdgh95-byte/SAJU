@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python 의존성
+        run: pip install ephem korean-lunar-calendar pytest
+      - name: 계산 회귀 테스트
+        run: python -m pytest -q
+      - name: 문서·코드 일치 검사
+        run: python scripts/check_consistency.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 웹 엔진 교차검증
+        run: node --test tests/*.test.mjs

@@ -419,7 +419,7 @@
       <button type="submit">적용</button>
       <button type="button" class="ghost" id="resetBtn">되돌리기</button>
       <p class="note">
-        한국 표준시(KST) 기준으로 계산하고, 서울 경도에 맞춘 진태양시 보정(−32분)을 적용합니다.
+        태어난 날 그때 시계가 가리킨 시각을 넣으면 됩니다. 1908~1911·1954~1961년의 UTC+8:30 표준시와 서머타임 연도는 자동으로 반영하고, 서울 경도 보정(지방평균시, 지금 표준시 기준 −32분)은 시주에만 적용합니다.
         입력한 정보는 이 브라우저에만 저장되며 어디로도 전송되지 않습니다.
       </p>
     </form>
@@ -434,34 +434,46 @@
    근거: dlwjdgh95-byte/SAJU · references 22 / 26 / 29 / 30 / 31
    ══════════════════════════════════════════════════════════════ */
 
-const GAN = "甲乙丙丁戊己庚辛壬癸";
-const ZHI = "子丑寅卯辰巳午未申酉戌亥";
+/* ══ GENERATED:TABLES — scripts/build_web_tables.py가 saju_calc.py에서 생성. 손으로 고치지 말 것 ══ */
+const T = {"GAN":"甲乙丙丁戊己庚辛壬癸","ZHI":"子丑寅卯辰巳午未申酉戌亥","OG":["木","木","火","火","土","土","金","金","水","水"],"OZ":["水","土","木","木","土","火","火","土","金","金","土","水"],"JANGGAN":{"子":"癸","丑":"癸辛己","寅":"戊丙甲","卯":"乙","辰":"乙癸戊","巳":"戊庚丙","午":"己丁","未":"丁乙己","申":"戊壬庚","酉":"辛","戌":"辛丁戊","亥":"甲壬"},"SHENG":{"木":"火","火":"土","土":"金","金":"水","水":"木"},"KE":{"木":"土","土":"水","水":"火","火":"金","金":"木"},"MONTH_ZHI":"寅卯辰巳午未申酉戌亥子丑","JIE":["입춘","경칩","청명","입하","망종","소서","입추","백로","한로","입동","대설","소한"],"ROK":{"甲":"寅","乙":"卯","丙":"巳","丁":"午","戊":"巳","己":"午","庚":"申","辛":"酉","壬":"亥","癸":"子"},"YANGIN":{"甲":"卯","丙":"午","戊":"午","庚":"酉","壬":"子"},"SAMHAP":["申子辰","亥卯未","寅午戌","巳酉丑"],"MYO":{"申子辰":"辰","亥卯未":"未","寅午戌":"戌","巳酉丑":"丑"},"SINSAL12":["겁살","재살","천살","지살","년살","월살","망신살","장성살","반안살","역마살","육해살","화개살"],"UNSEONG":["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"],"JANGSAENG":{"甲":"亥","乙":"午","丙":"寅","丁":"酉","戊":"寅","己":"酉","庚":"巳","辛":"子","壬":"申","癸":"卯"},"CHEONGAN_HAP":{"甲己":"土","乙庚":"金","丙辛":"水","丁壬":"木","戊癸":"火"},"CHEONGAN_CHUNG":["丁癸","丙壬","乙辛","甲庚"],"YUKHAP":["午未","卯戌","子丑","寅亥","巳申","辰酉"],"CHUNG":["丑未","卯酉","子午","寅申","巳亥","辰戌"],"PA":["丑辰","卯午","子酉","寅亥","巳申","未戌"],"HAE":["丑午","卯辰","子未","寅巳","申亥","酉戌"],"WONJIN":["丑午","卯申","子未","寅酉","巳戌","辰亥"],"GWIMUN":["丑午","卯申","子酉","寅未","巳戌","辰亥"],"HYEONG":["丑戌","丑未","子卯","寅巳","寅申","巳申","未戌"],"JAHYEONG":"辰午酉亥","BANGHAP":["寅卯辰","巳午未","申酉戌","亥子丑"],"SAMHYEONG":["寅巳申","丑戌未"],"MUNCHANG":{"甲":"巳","乙":"午","丙":"申","丁":"酉","戊":"申","己":"酉","庚":"亥","辛":"子","壬":"寅","癸":"卯"},"GEUMYEO":{"甲":"辰","乙":"巳","丙":"未","丁":"申","戊":"未","己":"申","庚":"戌","辛":"亥","壬":"丑","癸":"寅"},"HONGYEOM":{"甲":"午","乙":"午","丙":"寅","丁":"未","戊":"辰","己":"辰","庚":"戌","辛":"酉","壬":"子","癸":"申"},"CHEONEUL":{"甲":"丑未","戊":"丑未","庚":"丑未","乙":"子申","己":"子申","丙":"亥酉","丁":"亥酉","壬":"巳卯","癸":"巳卯","辛":"午寅"},"BAEKHO":["甲辰","乙未","丙戌","丁丑","戊辰","壬戌","癸丑"],"GWAEGANG":["庚辰","庚戌","壬辰","壬戌"],"SAMJAE":{"申子辰":"寅卯辰","亥卯未":"巳午未","寅午戌":"申酉戌","巳酉丑":"亥子丑"}};
+const SEOUL_LON = 126.978;
+const TZ_SEOUL0 = [507.8666666666667, 0.0];      // 1900년 이전~첫 전환: [UTC 오프셋(분), 서머타임(분)]
+const TZ_SEOUL = [[4337282.133333,510.0,0.0],[6310110.0,540.0,0.0],[25463580.0,600.0,60.0],[25613280.0,540.0,0.0],[25904220.0,600.0,60.0],[26136000.0,540.0,0.0],[26426940.0,600.0,60.0],[26660160.0,540.0,0.0],[27002940.0,600.0,60.0],[27184320.0,540.0,0.0],[28514880.0,510.0,0.0],[29105340.0,570.0,60.0],[29288160.0,510.0,0.0],[29653980.0,570.0,60.0],[29845440.0,510.0,0.0],[30157980.0,570.0,60.0],[30359520.0,510.0,0.0],[30682140.0,570.0,60.0],[30883680.0,510.0,0.0],[31206300.0,570.0,60.0],[31407840.0,510.0,0.0],[31730460.0,570.0,60.0],[31932000.0,510.0,0.0],[32401470.0,540.0,0.0],[45943380.0,600.0,60.0],[46165140.0,540.0,0.0],[46467540.0,600.0,60.0],[46689300.0,540.0,0.0]];
+const TERM_Y0 = 1900;
+const TERMS_HEX = "2da3f4,273fbe,27da8e,288abc,292103,297272,296688,2900b7,285f18,27af58,272045,26d59c,26e116,273fe8,27db2d,288b8e,29218f,29726d,296615,290046,285f07,27afae,2720bc,26d5ef,26e11e,273f86,27da59,288a75,29205f,297159,29657a,290045,285fa0,27b0c0,2721f1,26d6d0,26e156,273f1c,27d9ab,288a05,29208c,297209,29663f,2900d4,285fc7,27b088,27219f,26d697,26e13b,273f16,27d9b4,288a14,2920b4,297255,296677,2900bb,285f5c,27b000,272144,26d69a,26e19c,273f9d,27da19,288a0b,292006,297151,2965b8,29006f,285f68,27b02e,27216b,26d6d0,26e203,274030,27daa5,288a6c,29203c,29714e,296591,290063,285f9c,27b09e,2721c3,26d6a6,26e14e,273f44,27d9d2,2889de,291ffb,297146,2965af,2900b9,286011,27b0fb,2721eb,26d695,26e100,273ed1,27d978,2889cd,29204e,2971ea,296622,29009b,285f95,27b06c,27218c,26d68e,26e148,273f44,27da0a,288a77,2920df,29722a,296615,290044,285f1d,27b020,272195,26d6ea,26e1c8,273f79,27d986,28894b,291f70,2970e9,296586,29007b,285fab,27b0ae,2721fd,26d71f,26e1c6,273f55,27d959,288926,291f92,297178,296650,29015f,28604e,27b0a2,27214e,26d62b,26e0fb,273f13,27d9b9,2889dd,29203f,2971f9,29668c,290148,286029,27b098,27213c,26d5f4,26e0ad,273ece,27d9a4,2889dc,291fd9,297118,2965b5,2900d7,286038,27b117,2721f5,26d69d,26e112,273edb,27d96f,2889b9,29201e,297185,2965f6,2900fe,286077,27b19c,272298,26d6ee,26e0c6,273dfd,27d840,28889f,291f86,29719a,29666a,290181,2860cf,27b1ba,2722a4,26d719,26e105,273e1e,27d821,288841,291f2e,2971a9,2966c1,2901a7,286097,27b12d,272218,26d6f5,26e176,273f07,27d935,288929,291f8d,297177,296667,290177,286093,27b141,272221,26d6fd,26e19c,273f29,27d906,28887f,291e72,297017,296553,29012d,28610e,27b228,2722f6,26d75a,26e16c,273ec1,27d8c7,288892,291ee1,2970bc,2965d7,29018d,286140,27b20f,2722a6,26d6e3,26e0e3,273e67,27d8ee,28894b,291fee,2971bf,296658,29013e,286088,27b17e,27226f,26d6f9,26e118,273e7b,27d8dc,28891d,291f78,297105,2965b1,2900c0,286024,27b14b,272292,26d778,26e1ca,273f10,27d901,2888f0,291f89,297180,29665b,290172,2860a5,27b180,272271,26d6f9,26e10a,273e4c,27d856,288862,291f38,2971a9,2966f7,290243,286161,27b1c6,27222b,26d66b,26e081,273df3,27d83d,288864,291f2c,2971a8,296718,29026a,28617a,27b1c9,27220f,26d63f,26e065,273e0b,27d8a3,288910,291fcd,2971d0,2966f1,290255,2861a3,27b237,272299,26d6a9,26e07f,273da7,27d7b1,2887cf,291e91,2970c0,29661c,290206,286205,27b327,2723c0,26d795,26e0d6,273d62,27d70a,288715,291e30,297109,2966c7,290297,28622f,27b2e9,27235f,26d754,26e0c8,273d89,27d762,28878d,291ea7,29717c,296732,2902a3,2861d2,27b267,2722ff,26d74b,26e122,273e16,27d7da,288796,291de9,297003,2965bd,2901d7,2861ab,27b296,272346,26d79f,26e194,273e9a,27d836,2887b5,291e0b,297035,2965cc,2901f8,28620c,27b320,27239c,26d75a,26e0c1,273dab,27d79e,28879a,291e4f,2970b7,296646,290234,286228,27b32f,27239d,26d751,26e092,273d52,27d750,288786,291e68,2970e0,296653,2901e3,286181,27b27f,272337,26d75a,26e0f4,273dd3,27d7cd,288817,291f1c,297173,2966b9,290218,28616d,27b245,272314,26d774,26e13d,273df5,27d764,28871d,291df1,297089,29663f,29023a,2861ff,27b2e2,27237b,26d78b,26e10f,273dac,27d71f,2886c9,291db2,2970bf,2966f7,29031c,2862a3,27b2ec,2722e2,26d69a,26e030,273d4a,27d775,2887be,291ec6,29719a,296794,290362,2862b3,27b300,2722f3,26d68a,26dffe,273d0e,27d74f,28879d,291e52,29708c,29664b,290297,28629f,27b381,2723c3,26d752,26e075,273d0a,27d6d2,2886fc,291e24,2970ee,2966be,2902eb,286307,27b41c,27245e,26d792,26e02d,273c53,27d5f5,28864f,291dee,297162,2967a3,2903a8,286356,27b41a,272456,26d7bf,26e078,273c7d,27d5d2,2885db,291d46,2970be,296740,290373,286301,27b385,2723c7,26d79a,26e0ee,273d66,27d6d0,28869b,291da7,2970b9,296715,290381,28634c,27b3dc,2723f7,26d7ab,26e107,273d81,27d6bc,288628,291cca,296fa4,296615,290301,286393,27b4b2,2724d8,26d812,26e0cc,273cf6,27d64c,2885f6,291cc3,296fc9,29665c,290335,286385,27b46a,272479,26d7b1,26e06c,273cbe,27d680,2886cf,291e12,297104,296717,290337,286303,27b3e1,272438,26d7c6,26e0b9,273d00,27d691,288695,291d83,297022,296609,29025d,28627f,27b3aa,272456,26d838,26e156,273d7f,27d697,288624,291d26,297050,29669d,290302,28630e,27b3fb,27243a,26d7a1,26e081,273cc2,27d631,28861e,291d61,2970e5,29679e,290408,2863b9,27b427,2723f2,26d720,26dffb,273c5c,27d604,288621,291d5b,29708e,296717,2903ab,286381,27b3f6,2723c7,26d702,26dff6,273c7d,27d64d,28868a,291ddc,2970ef,296737,2903cc,2863e0,27b489,27245f,26d76f,26e00b,273c13,27d570,288582,291cf0,29705b,2966e1,2903a0,286423,27b54f,272562,26d83b,26e049,273bbd,27d4ba,2884a9,291c3a,29701f,296745,290429,286430,27b4e0,2724dc,26d7ed,26e04e,273c03,27d524,288538,291cef,2970d5,2967ea,2904a0,28644d,27b4a1,272475,26d7b5,26e077,273c85,27d5b9,288561,291c56,296f89,29665c,29038b,286411,27b4f4,2724f0,26d821,26e0d6,273cd1,27d5d3,288537,291c14,296f71,296668,2903b2,286478,27b599,272561,26d7eb,26dff9,273bc4,27d526,288547,291cbb,297063,296769,290463,2864b2,27b58b,27254e,26d7f0,26dff3,273b94,27d4e7,28852d,291cd3,297054,2966f2,2903ae,2863e8,27b4d5,2724f9,26d821,26e08d,273c44,27d55d,28855b,291cf3,29709e,296758,290405,286415,27b4d6,2724e9,26d829,26e0b4,273c4f,27d514,2884b5,291c29,29701c,296750,29045f,2864ae,27b579,272554,26d83a,26e079,273c04,27d4d8,288470,291bc5,296fc4,29676c,2904e1,28650d,27b55c,2724be,26d766,26dfba,273bae,27d512,288539,291cdb,2970c7,296819,29054e,286561,27b59d,2724db,26d754,26df86,273b80,27d515,288541,291c91,296ff5,2966d6,29042e,286503,27b611,2725cb,26d84e,26e021,273b7d,27d471,288456,291bdf,296fc7,29670b,290461,286535,27b679,272643,26d87c,26dfdf,273ad9,27d3ad,2883e3,291c06,29708f,296842,29057f,2865a4,27b642,2725ee,26d877,26e02c,273b3d,27d3e1,2883bd,291b9c,296fe8,296760,2904c3,286519,27b5ac,272561,26d846,26e089,273c0a,27d4c1,28843d,291b96,296fa4,296730,2904c1,286561,27b619,2725a1,26d842,26e060,273bcf,27d487,28840a,291b41,296f34,2966e6,2904b4,2865b4,27b6d5,272673,26d8aa,26e026,273b3b,27d3fc,2883bf,291b31,296f1e,2966cc,2904a8,28656b,27b648,2725e1,26d83a,26dfda,273b12,27d411,288440,291c39,29706b,2967bd,2904f9,28654e,27b5fb,27259f,26d830,26e00d,273b61,27d455,288443,291bdb,296fd3,296709,29044a,2864e7,27b5ed,2725db,26d89e,26e084,273b9f,27d419,288397,291b17,296f6b,296744,2904df,286578,27b647,2725c4,26d803,26dfa4,273ad2,27d3a0,28839d,291b9e,297057,296890,290655,28668f,27b6b7,2725a8,26d7a0,26df2f,273a7c,27d385,2883a7,291ba3,297006,2967be,29058a,28662c,27b69e,2725b5,26d7bb,26df4c,273a9a,27d3a2,2883b4,291b8f,296fef,2967b5,290587,286673,27b745,272684,26d86c,26df98,273a48,27d2d6,2882d9,291aef,296faf,2967db,2905d6,2866db,27b7f3,27276c,26d934,26dff6,273a2f,27d253,288218,291a3e,296f34,2967b8,2905f4,2866ac,27b74c,2726b2,26d8d0,26e00f,273aaa,27d2f0,2882a2,291ab6,296fb9,296830,29064c,2866ea,27b74b,27266b,26d88f,26e01e,273b27,27d3b4,28832c,291a87,296ed7,2966fa,290543,28668c,27b79d,272709,26d917,26e072,273b45,27d399,2882ed,291a2d,296e60,29669a,290516,28669a,27b7e8,272746,26d8e3,26dfbe,273a5b,27d2ef,2882ef,291afb,296fae,2967e8,290610,286704,27b7d1,27270a,26d8c8,26dfb3,273a4a,27d2ea,28830f,291b46,296fdc,296782,290523,2865f8,27b6f1,272693,26d8d9,26e036,273aeb,27d34f,28830e,291af3,296fa1,2967ac,290568,286617,27b6ed,272683,26d8d9,26e03d,273ac6,27d2e2,28827c,291a7d,296f82,29681d,290650,28670e,27b7a2,2726cb,26d8ae,26dfce,273a65,27d2a9,288248,291a40,296f3b,2967f0,29066e,286731,27b76d,272636,26d7e0,26df12,273a06,27d2c8,2882cb,291ae8,296fed,29687d,2906ca,286799,27b7dd,272674,26d7d5,26decb,2739b4,27d2ae,2882df,291ad8,296f80,2967c3,290608,28674f,27b855,27277a,26d8ee,26df7c,2739ad,27d1ea,2881d0,2919fe,296ef9,296794,290617,286773,27b897,2727c4,26d906,26df41,273919,27d11a,28811b,2919e6,296fbf,2968e9,290778,286840,27b895,272766,26d8d5,26df68,273984,27d194,288163,2919d9,296f5a,296826,29069f,2867a8,27b835,27272b,26d8df,26dfdb,273a46,27d256,2881b6,29196a,296e74,29677a,290654,2867c1,27b8a0,27279b,26d912,26dfbf,2739e1,27d1d4,28815b,29194f,296e75,29679e,2906c8,28686e,27b971,27285e,26d976,26dfa3,27398a,27d18f,288148,291970,296e91,29676e,29065b,2867d7,27b8be,2727c8,26d91c,26df82,27398b,27d1b1,288199,2919f7,296f53,29681a,29068d,2867b0,27b87a,27278d,26d913,26dfb6,2739e6,27d213,2881d5,2919ed,296f12,2967d2,290648,28677a,27b877,2727ce,26d98a,26e03a,273a39,27d1f2,28814e,29194a,296e86,29679b,290680,2867e2,27b8b4,272792,26d8cf,26df48,273966,27d176,288138,2919ac,296f78,2968f4,2907ee,2868f9,27b922,27276d,26d856,26debd,27390d,27d18b,2881b4,291a3a,296fa1,29687d,29072d,28686f,27b903,27279d,26d8a2,26defa,273926,27d17c,288184,2919d4,296f14,29680e,2906ea,286870,27b965,272844,26d94e,26df43,2738ba,27d073,28805a,291926,296f1f,2968a4,2907c0,286942,27ba22,2728f5,26d9d5,26df8c,2738cb,27d044,287fec,2918ab,296ed6,296893,2907b5,2868eb,27b965,27281e,26d946,26df7e,27392d,27d0d5,288059,2918bb,296eb9,29688d,2907c7,286913,27b97b,2727f8,26d90d,26df76,273981,27d16e,2880e1,2918d1,296e33,2967c0,290738,286907,27b9f4,2728ac,26d99d,26dfb4,273973,27d128,288089,291885,296dce,29672a,2906bb,2868e5,27ba18,2728c7,26d95a,26df03,273888,27d06d,28804d,2918ec,296edb,296876,2907b9,28695f,27ba22,2728a9,26d953,26df05,273882,27d071,288092,291969,296f3b,296863,29071a,286873,27b957,27284e,26d97a,26df94,273922,27d0c6,28806e,2918e2,296e93,296807,290719,286881,27b950,272845,26d988,26dfa1,2738f7,27d03f,287fa4,29183f,296e87,29689f,290840,2869d8,27ba54,2728ab,26d94f,26df1c,273898,27d033,287fc6,291855,296e8e,2968ab,290842,2869c5,27ba1a,272839,26d8b3,26de87,273844,27d04c,288034,2918b6,296eab,29689e,290831,2869e1,27ba71,27289d,26d8f5,26de8c,27381d,27d01a,288016,2918b2,296e83,296838,2907d7,2869de,27baf7,27299d,26da11,26df59,273849,27cf9c,287f41,291807,296e2d,296802,2907a0,2869b9,27baeb,272997,26d9ff,26df2b,2737f1,27cf1d,287eb8,2917bc,296e90,29691c,2908da,286a6f,27bae3,27292a,26d9ae,26df34,273853,27cfb6,287f62,291839,296e9b,2968bc,290850,2869ee,27ba81,2728e9,26d9a2,26df83,2738f8,27d06e,287fc4,2917f9,296dc5,2967c8,2907b4,2869d2,27bac8,27294e,26d9da,26df57,273867,27cfad,287f13,29179c,296de2,29683e,29086d,286ab7,27bbaa,2729f2,26da0a,26df14,2737fd,27cf72,287f3c,291813,296e6e,296893,29083f,286a0f,27bae0,272950,26d9b4,26df05,27380e,27cf92,287f73,291852,296e9c,2968b2,290838,2869d5,27ba86,272903,26d99d,26df2b,273854,27cfb8,287f4c,291812,296e6e,29689c,290859,286a1e,27bad8,272958,26d9f5,26df83,273890,27cfb8,287f08,2917a5,296e1d,29687f,290871,286a78,27bb29,272931,26d93e,26de7b,273791,27cf0a,287ebc,29179d,296e70,29695f,290990,286b59,27bb90,27292c,26d8ea,26ddfa,273721,27cef1,287f2e,29186a,296ee3,29692c,29091b,286aff,27bb8c,272984,26d972,26de7b,273770,27cefa,287ee9,2917ea,296e43,29686d,29086e,286aba,27bbcb,272a27,26da2b,26decd,2736fe,27cdd1,287d6b,2916b9,296dfe,29690d,290969,286bae,27bc90,272abb,26da8b,26df08,273729,27cde4,287d6a,2916ac,296e05,29694b,290992,286b5f,27bbdb,2729ef,26da09,26df0b,27379e,27ce87,287de7,2916b8,296d83,296898,29092a,286b50,27bbe2,2729d6,26d9e0,26df06,2737e5,27cef1,287e1b,29169b,296d1e,2967f9,2908c1,286b76,27bc87,272aaf,26da89,26df54,2737e6,27cee1,287e21,2916ad,296d24,2967ca,290854,286b2d,27bc82,272aa9,26da44,26deb5,27370f,27ce2a,287de2,2916e8,296dc5,2968b4,290910,286b52,27bc37,272a57,26da28,26dec4,273723,27ce3e,287e36,2917a8,296e7c,2968f8,2908e8,286aca,27bb91,2729f2,26da39,26df4c,2737e5,27ced3,287e48,291748,296e0a,29689f,2908b6,286ac2,27bb8a,2729db,26da1e,26df12,27376d,27ce1b,287d53,291657,296db4,296936,2909f6,286c35,27bcab,272a4c,26d9d3,26de6f,2736ee,27ce04,287dae,2916e2,296e35,2969be,290a5f,286c4b,27bc7c,2729e7,26d947,26dde4,273698,27ce08,287e05,291742,296e28,296933,2909e3,286c3a,27bcc4,272a55,26d9a6,26de08,273679,27cda7,287d69,2916af,296dd5,2968f6,2909c1,286c79,27bd88,272b75,26dac6,26dec7,273695,27cd33,287cc3,291630,296db3,29691e,2909d1,286c61,27bd65,272b4a,26da9b,26de98,273650,27ccd2,287c56,2915cd,296d8d,296984,290a96,286cdc,27bd4d,272af1,26da65,26deba,2736bf,27cd56,287cd1,291634,296d9a,296917,290a19,286c94,27bd30,272ae0,26da69,26deff,27375c,27ce23,287d5b,291626,296d14,296849,290943,286c2a,27bd53,272b51,26dac0,26dedb,2736b1,27cd3b,287c7e,291575,296cbf,29687e,2909d7,286ce0,27be09,272bda,26daef,26deaf,273654,27ccf0,287ca3,291623,296da1,29693c,290a12,286c65,27bd2d,272b12,26da85,26deb1,27369c,27cd4d,287cfb,291674,296dc2,2968f7,2909a0,286bf8,27bcbe,272abb,26da6c,26dede,2736ed,27cd69,287c88,2915a7,296d2e,2968d1,2909d2,286c70,27bd4b,272b2e,26dab8,26df09,2736fc,27cd6e,287c98,2915ae,296d41,296923,290a3b,286cd6,27bd83,272aed,26d9f7,26de07,273610,27cce1,287c81,2915d8,296d66,296976,290ae3,286d69,27bdc1,272ae9,26d9bb,26dda3,2735a9,27cca6,287ca5,29166b,296ded,296967,290a87,286d3a,27bde6,272b4f,26da40,26de1b,2735fe,27ccd2,287c9b,29162e,296dba,296926,290a07,286cda,27be03,272be8,26daf8,26de6a,273584,27cba3,287b14,2914c9,296d05,29697d,290b00,286dc7,27be9e,272c3a,26db20";
+/* ══ END GENERATED:TABLES ══ */
+
+const GAN = T.GAN;
+const ZHI = T.ZHI;
 const GAN_KO = ["갑","을","병","정","무","기","경","신","임","계"];
 const ZHI_KO = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
 const ANIMAL = ["쥐","소","호랑이","토끼","용","뱀","말","양","원숭이","닭","개","돼지"];
-const OG = ["木","木","火","火","土","土","金","金","水","水"];
-const OZ = ["水","土","木","木","土","火","火","土","金","金","土","水"];
+const OG = T.OG;
+const OZ = T.OZ;
 const YIN = i => i % 2 === 1;
-const JANGGAN = {子:"壬癸",丑:"辛癸己",寅:"戊丙甲",卯:"乙",辰:"癸乙戊",巳:"戊庚丙",
-                 午:"己丁",未:"乙丁己",申:"戊壬庚",酉:"辛",戌:"丁辛戊",亥:"甲壬"};
-const SHENG = {木:"火",火:"土",土:"金",金:"水",水:"木"};
-const KE    = {木:"土",土:"水",水:"火",火:"金",金:"木"};
-const MONTH_ZHI = "寅卯辰巳午未申酉戌亥子丑";
-const JIE = ["입춘","경칩","청명","입하","망종","소서","입추","백로","한로","입동","대설","소한"];
+const JANGGAN = T.JANGGAN;          // 지장간가(地支藏干歌) — 문자열 순서 여기→중기→본기
+const SHENG = T.SHENG;
+const KE    = T.KE;
+const MONTH_ZHI = T.MONTH_ZHI;
+const JIE = T.JIE;
 
-/* 절기표 — 태양 겉보기 황경 315°+30°k 통과 시각(KST).
-   1900 입춘 ~ 2046 소한. delta·base16 인코딩. pyephem 실계산값.  */
-const TERMS_HEX = "c2bb,a776,aa0b,acfb,af7c,b0d7,b0a4,aef2,ac41,a952,a6f0,a5b2,a5e2,a777,aa0e,acfe,af7e,b0d7,b0a3,aef0,ac40,a954,a6f2,a5b3,a5e3,a775,aa0a,acf9,af7a,b0d2,b0a0,aef0,ac43,a958,a6f7,a5b7,a5e4,a773,aa08,acf7,af7a,b0d5,b0a4,aef2,ac43,a958,a6f6,a5b5,a5e4,a773,aa07,acf8,af7b,b0d6,b0a5,aef2,ac41,a955,a6f5,a5b6,a5e4,a776,aa09,acf8,af77,b0d3,b0a1,aef0,ac42,a956,a6f5,a5b7,a5e6,a779,aa0b,acf9,af79,b0d2,b0a0,aef1,ac42,a958,a6f7,a5b6,a5e3,a775,aa07,acf7,af78,b0d2,b0a1,aef2,ac44,a95a,a6f7,a5b6,a5e2,a772,aa06,acf7,af79,b0d5,b0a2,aef2,ac42,a958,a6f5,a5b6,a5e3,a774,aa09,acf9,af7c,b0d6,b0a2,aef0,ac41,a956,a6f5,a5b7,a5e6,a775,aa07,acf4,af75,b0d1,b0a0,aef1,ac43,a958,a6f7,a5b8,a5e6,a774,aa06,acf4,af76,b0d3,b0a3,aef5,ac45,a959,a6f4,a5b4,a5e2,a774,aa07,acf7,af78,b0d5,b0a5,aef4,ac45,a958,a6f4,a5b3,a5e1,a772,aa07,acf7,af77,b0d2,b0a1,aef2,ac45,a95a,a6f7,a5b6,a5e3,a772,aa06,acf7,af78,b0d3,b0a2,aef3,ac46,a95d,a6fa,a5b7,a5e1,a76f,aa01,acf1,af76,b0d3,b0a4,aef6,ac47,a95d,a6fa,a5b8,a5e2,a770,aa00,acf0,af74,b0d4,b0a6,aef6,ac46,a95b,a6f8,a5b7,a5e4,a773,aa05,acf4,af76,b0d3,b0a4,aef5,ac47,a95a,a6f8,a5b8,a5e5,a773,aa05,acf1,af71,b0cd,b09f,aef4,ac49,a95e,a6fc,a5b9,a5e4,a772,aa03,acf2,af72,b0d0,b0a2,aef5,ac4a,a95e,a6fa,a5b7,a5e2,a771,aa04,acf4,af77,b0d4,b0a4,aef4,ac47,a95b,a6fa,a5b7,a5e3,a771,aa03,acf4,af75,b0d1,b0a1,aef2,ac45,a95b,a6fa,a5b9,a5e6,a773,aa05,acf3,af75,b0d3,b0a4,aef5,ac47,a95c,a6f9,a5b7,a5e3,a770,aa01,acf1,af74,b0d4,b0a6,aef9,ac4a,a95d,a6f8,a5b5,a5e0,a76f,aa01,acf0,af74,b0d4,b0a7,aef9,ac4b,a95d,a6f7,a5b5,a5df,a76f,aa03,acf4,af76,b0d5,b0a6,aef9,ac4b,a95f,a6fa,a5b6,a5e0,a76d,a9ff,acee,af71,b0d0,b0a3,aef8,ac4c,a963,a6ff,a5ba,a5e1,a76d,a9fc,aceb,af6f,b0d2,b0a5,aefa,ac4e,a961,a6fe,a5b9,a5e1,a76d,a9fd,aced,af72,b0d3,b0a7,aefa,ac4c,a960,a6fc,a5b8,a5e3,a76f,aa00,aced,af6f,b0cc,b0a1,aef7,ac4c,a960,a6fd,a5ba,a5e5,a771,aa01,acee,af6f,b0cd,b0a2,aef7,ac4d,a963,a6fe,a5b9,a5e1,a76e,a9fe,aced,af70,b0d0,b0a4,aef8,ac4d,a963,a6ff,a5b8,a5e1,a76c,a9fd,aced,af70,b0d1,b0a4,aef6,ac4b,a960,a6fd,a5b9,a5e2,a76e,a9ff,acef,af74,b0d3,b0a5,aef8,ac4a,a95f,a6fd,a5b9,a5e3,a76f,a9fd,aceb,af6f,b0cf,b0a3,aef9,ac4d,a961,a6fe,a5ba,a5e2,a76e,a9fc,acea,af6d,b0d0,b0a7,aefc,ac4f,a962,a6fb,a5b6,a5df,a76c,a9fd,acee,af72,b0d4,b0a9,aefd,ac50,a962,a6fc,a5b5,a5de,a76b,a9fd,aced,af71,b0cf,b0a3,aefa,ac4f,a965,a6ff,a5b9,a5df,a76b,a9fb,aceb,af6f,b0d1,b0a5,aefc,ac51,a967,a701,a5ba,a5df,a768,a9f7,ace8,af6e,b0d3,b0a9,aeff,ac52,a967,a701,a5bb,a5e0,a768,a9f7,ace6,af6c,b0d0,b0a7,aefe,ac51,a964,a6ff,a5ba,a5e2,a76d,a9fa,ace9,af6e,b0d0,b0a7,aefd,ac53,a966,a6ff,a5bb,a5e2,a76d,a9fa,ace7,af6a,b0cc,b0a2,aefc,ac53,a96a,a703,a5bc,a5e2,a76a,a9f9,ace6,af6a,b0cc,b0a3,aefd,ac53,a968,a702,a5bb,a5df,a76a,a9fa,ace9,af70,b0d1,b0a7,aefc,ac51,a966,a701,a5bb,a5e1,a76a,a9fa,ace9,af6d,b0cd,b0a3,aef9,ac4f,a965,a701,a5bd,a5e3,a76d,a9fa,ace7,af6b,b0cf,b0a4,aefc,ac51,a967,a701,a5ba,a5e0,a769,a9f9,ace7,af6c,b0d1,b0a9,af00,ac54,a967,a700,a5b8,a5dd,a768,a9f8,ace7,af6c,b0cf,b0a7,aeff,ac53,a966,a6ff,a5b8,a5dd,a769,a9f8,ace9,af6f,b0d0,b0a8,aeff,ac55,a968,a702,a5b9,a5de,a767,a9f5,ace4,af6b,b0ce,b0a6,aefe,ac56,a96c,a706,a5bd,a5df,a765,a9f2,ace1,af67,b0ce,b0a7,af01,ac56,a96a,a704,a5bb,a5df,a767,a9f4,ace3,af6a,b0d0,b0ab,af02,ac57,a969,a702,a5ba,a5e0,a769,a9f6,ace4,af68,b0cb,b0a3,aefe,ac56,a96a,a704,a5bd,a5e1,a76a,a9f7,ace3,af67,b0ca,b0a4,aefe,ac58,a96d,a706,a5bb,a5de,a765,a9f4,ace4,af69,b0cf,b0a8,af01,ac59,a96d,a705,a5bc,a5dd,a765,a9f3,ace3,af6a,b0ce,b0a6,aeff,ac54,a96a,a705,a5bc,a5e0,a768,a9f4,ace4,af6a,b0d0,b0a8,af00,ac56,a969,a704,a5bd,a5e1,a767,a9f4,ace1,af67,b0cd,b0a8,af01,ac59,a96c,a706,a5bd,a5e0,a766,a9f3,acdf,af66,b0cc,b0a8,af04,ac59,a96d,a703,a5b9,a5dd,a765,a9f3,ace3,af6a,b0d0,b0ab,af06,ac5b,a96d,a704,a5b9,a5dc,a764,a9f4,ace3,af69,b0cc,b0a6,af01,ac59,a970,a707,a5bd,a5df,a764,a9f1,acdf,af66,b0cc,b0a6,af02,ac5a,a971,a70a,a5be,a5dd,a762,a9ed,acde,af66,b0cf,b0ac,af06,ac5d,a970,a708,a5be,a5de,a763,a9ef,acdd,af64,b0cd,b0a8,af03,ac5a,a96e,a705,a5bd,a5e1,a766,a9f2,acdf,af65,b0cb,b0a7,af03,ac5c,a96f,a707,a5bd,a5df,a766,a9f1,acde,af63,b0ca,b0a6,af03,ac5c,a973,a70a,a5bf,a5de,a763,a9ef,acdd,af63,b0c9,b0a6,af02,ac5c,a970,a708,a5bd,a5dd,a762,a9ef,acdf,af68,b0ce,b0aa,af04,ac5b,a96f,a707,a5bc,a5de,a764,a9f0,acdf,af66,b0cc,b0a7,af01,ac59,a96f,a708,a5be,a5e0,a765,a9ef,acdc,af63,b0ca,b0a8,af03,ac5c,a970,a708,a5bc,a5dc,a761,a9ee,acdc,af65,b0ce,b0ad,af0a,ac60,a972,a707,a5ba,a5db,a760,a9ec,acdd,af65,b0cd,b0a9,af07,ac5e,a972,a707,a5bb,a5db,a760,a9ed,acdd,af65,b0cc,b0a9,af07,ac60,a974,a70b,a5bd,a5dc,a760,a9ea,acd8,af62,b0cc,b0aa,af08,ac61,a977,a70f,a5c1,a5de,a75e,a9e8,acd6,af5f,b0c9,b0aa,af08,ac61,a974,a70c,a5bf,a5de,a761,a9ea,acd8,af61,b0cc,b0ab,af0a,ac62,a974,a70a,a5be,a5df,a763,a9ed,acdb,af60,b0c8,b0a6,af05,ac60,a976,a70d,a5c1,a5df,a764,a9ed,acd9,af5f,b0c6,b0a4,af05,ac60,a977,a70e,a5c0,a5dd,a75f,a9ea,acda,af62,b0cb,b0ab,af08,ac63,a976,a70d,a5bf,a5dd,a75f,a9ea,acda,af63,b0cd,b0a8,af05,ac5e,a973,a70b,a5bf,a5df,a762,a9ec,acd9,af62,b0cc,b0a9,af06,ac5e,a973,a70b,a5bf,a5df,a761,a9ea,acd8,af60,b0ca,b0ab,af0a,ac63,a976,a70b,a5bf,a5dd,a760,a9e9,acd6,af5f,b0ca,b0aa,af0b,ac63,a975,a709,a5bb,a5da,a75e,a9ea,acd9,af61,b0cd,b0ad,af0b,ac65,a977,a70a,a5bb,a5d9,a75d,a9e9,acd9,af62,b0ca,b0aa,af09,ac63,a979,a70f,a5bf,a5dc,a75d,a9e6,acd4,af5e,b0c8,b0a9,af09,ac64,a97a,a710,a5c0,a5db,a75a,a9e3,acd1,af5e,b0cb,b0af,af0f,ac67,a97a,a70f,a5bf,a5db,a75c,a9e5,acd2,af5e,b0ca,b0ab,af0b,ac65,a978,a70e,a5bf,a5de,a75f,a9e7,acd5,af5b,b0c6,b0a9,af09,ac66,a97a,a70f,a5c1,a5dc,a75e,a9e5,acd3,af5b,b0c6,b0a9,af0c,ac68,a97e,a713,a5c2,a5dc,a75c,a9e4,acd3,af5b,b0c7,b0a8,af0a,ac66,a97a,a710,a5c1,a5dc,a75c,a9e5,acd3,af5e,b0ca,b0ab,af0b,ac65,a979,a710,a5c0,a5dd,a75d,a9e7,acd4,af5e,b0c9,b0aa,af09,ac65,a979,a710,a5c2,a5df,a75f,a9e6,acd3,af5b,b0c6,b0a9,af0b,ac66,a97a,a70f,a5bf,a5db,a75c,a9e4,acd2,af5c,b0cb,b0ae,af11,ac6b,a97c,a70f,a5bd,a5d8,a75a,a9e5,acd4,af5e,b0cc,b0ac,af0e,ac68,a97c,a70f,a5bf,a5d9,a75b,a9e4,acd3,af5d,b0c9,b0ab,af0c,ac69,a97d,a712,a5c2,a5da,a759,a9df,accf,af5a,b0c9,b0ad,af10,ac6c,a981,a715,a5c3,a5dc,a759,a9df,accd,af58,b0c8,b0ad,af10,ac6a,a97d,a712,a5c1,a5dc,a75a,a9e1,accf,af58,b0c8,b0ad,af10,ac6b,a97d,a711,a5c1,a5db,a75c,a9e4,acd0,af59,b0c5,b0aa,af0e,ac6b,a97f,a714,a5c3,a5dc,a75c,a9e3,accf,af57,b0c4,b0a7,af0c,ac6a,a980,a715,a5c1,a5da,a757,a9e0,acce,af59,b0c8,b0ad,af10,ac6c,a981,a714,a5c1,a5da,a757,a9e0,accf,af5b,b0ca,b0ac,af0d,ac69,a97d,a712,a5c2,a5dc,a75b,a9e1,acce,af5a,b0c6,b0ab,af0d,ac69,a97d,a712,a5c2,a5dd,a759,a9df,accb,af57,b0c6,b0ad,af13,ac6e,a981,a714,a5c1,a5db,a757,a9df,accc,af57,b0c6,b0ae,af12,ac6e,a980,a712,a5bf,a5d8,a756,a9df,acce,af58,b0c7,b0ae,af12,ac6e,a982,a714,a5bf,a5d8,a756,a9de,accd,af59,b0c6,b0ac,af10,ac6f,a984,a718,a5c4,a5db,a757,a9dc,acca,af55,b0c5,b0ab,af0f,ac6e,a984,a718,a5c4,a5da,a755,a9da,acc8,af54,b0c7,b0af,af15,ac71,a983,a716,a5c3,a5db,a756,a9dd,acca,af57,b0c6,b0ae,af13,ac6e,a982,a715,a5c3,a5dc,a759,a9e0,accc,af55,b0c3,b0aa,af10,ac6e,a983,a717,a5c4,a5db,a757,a9dc,acc9,af54,b0c3,b0ac,af13,ac72,a987,a719,a5c5,a5da,a755,a9dc,acc9,af56,b0c6,b0ad,af12,ac6f,a984,a717,a5c3,a5d9,a756,a9dc,acca,af57,b0c7,b0ae,af12,ac6e,a982,a715,a5c3,a5da,a757,a9dd,acca,af55,b0c6,b0ae,af12,ac70,a983,a717,a5c4,a5dc,a758,a9dc,acc9,af54,b0c5,b0ac,af13,ac71,a985,a716,a5c1,a5d8,a753,a9da,acc7,af54,b0c6,b0b1,af17,ac75,a987,a716,a5bf,a5d6,a751,a9da,acc9,af57,b0c8,b0b0,af16,ac73,a986,a718,a5c2,a5d7,a753,a9da,acc8,af55,b0c5,b0ad,af12,ac72,a988,a71a,a5c5,a5d9,a751,a9d5,acc1,af50,b0c5,b0af,af17,ac76,a98b,a71d,a5c6,a5da,a752,a9d4,acc2,af50,b0c4,b0b0,af18,ac75,a988,a719,a5c5,a5d9,a754,a9d8,acc4,af4f,b0c3,b0ad,af16,ac74,a988,a719,a5c4,a5da,a755,a9d9,acc5,af4f,b0c1,b0aa,af14,ac76,a98a,a71d,a5c6,a5db,a755,a9d9,acc5,af50,b0c0,b0aa,af13,ac74,a98a,a71d,a5c5,a5d9,a751,a9d6,acc4,af50,b0c4,b0ad,af16,ac74,a98a,a71b,a5c5,a5d8,a752,a9d6,acc6,af53,b0c7,b0af,af15,ac72,a987,a719,a5c5,a5db,a755,a9d9,acc5,af52,b0c5,b0ad,af14,ac72,a987,a719,a5c5,a5da,a753,a9d5,acc2,af4e,b0c3,b0b0,af19,ac79,a98b,a71b,a5c3,a5d8,a750,a9d6,acc3,af50,b0c5,b0b2,af1c,ac78,a98b,a719,a5c1,a5d5,a74f,a9d6,acc4,af52,b0c5,b0b0,af19,ac79,a98b,a71c,a5c2,a5d6,a74f,a9d3,acc2,af50,b0c3,b0af,af19,ac79,a98f,a720,a5c8,a5d8,a750,a9d1,acbf,af4e,b0c3,b0af,af19,ac79,a98f,a71f,a5c7,a5d8,a74e,a9d0,acbd,af4c,b0c3,b0b1,af1c,ac7b,a98e,a71e,a5c6,a5d8,a750,a9d2,acc0,af4d,b0c3,b0af,af1a,ac7a,a98e,a71d,a5c6,a5da,a752,a9d6,acc2,af4d,b0c0,b0ac,af17,ac78,a98e,a71f,a5c8,a5d9,a750,a9d2,acbd,af4b,b0bf,b0ad,af19,ac7b,a991,a721,a5c9,a5d8,a74e,a9d1,acbe,af4e,b0c2,b0b0,af1a,ac79,a98e,a71e,a5c7,a5d8,a74f,a9d3,acc0,af4e,b0c4,b0ae,af18,ac78,a98b,a71d,a5c6,a5d9,a751,a9d3,acbe,af4b,b0c1,b0ae,af19,ac79,a98e,a71f,a5c7,a5da,a751,a9d3,acbe,af4b,b0c2,b0af,af1b,ac7b,a98f,a71d,a5c4,a5d6,a74d,a9d0,acbe,af4c,b0c2,b0b1,af1d,ac7e,a990,a71d,a5c3,a5d4,a74c,a9cf,acbf,af4e,b0c4,b0b1,af1c,ac7c,a991,a71f,a5c5,a5d6,a74d,a9d0,acbf,af4d,b0c3,b0b0,af1a,ac7b,a991,a721,a5c9";
+/* 절기표 — 태양 겉보기 황경 315°+30°k 통과 시각(KST 눈금).
+   1900 입춘 ~ 2046 소한. 초 단위 delta·base16 → 분(소수) 배열. pyephem 실계산값.  */
 const TERM_MIN = (() => {
   const parts = TERMS_HEX.split(","); const out = new Array(parts.length); let c = 0;
-  for (let i = 0; i < parts.length; i++) { c += parseInt(parts[i], 16); out[i] = c; }
+  for (let i = 0; i < parts.length; i++) { c += parseInt(parts[i], 16); out[i] = c / 60; }
   return out;
 })();
-const TERM_Y0 = 1900;
 const K_EPOCH = Date.UTC(1900, 0, 1);            // KST 벽시계를 UTC 필드로 담는 기준
 const kd  = min => new Date(K_EPOCH + min * 60000);       // 분 → 가상 Date (UTC 필드 = KST)
 const kmin = d => Math.floor((d.getTime() - K_EPOCH) / 60000);
 const nowKd = () => new Date(Date.now() + 9 * 3600e3);
+/** 벽시계(분) → [UTC 오프셋(분), 서머타임(분)] — Asia/Seoul 이력. Python zoneinfo(fold=0)와 같은 선택. */
+function seoulOffset(wallMin) {
+  let cur = TZ_SEOUL0;
+  for (const t of TZ_SEOUL) { if (t[0] <= wallMin) cur = [t[1], t[2]]; else break; }
+  return cur;
+}
 
 function termAt(y, k) { return TERM_MIN[(y - TERM_Y0) * 12 + k]; }
 /** 주어진 시각(분)이 속한 절 구간 → {k, jieYear, start, end} */
@@ -490,10 +502,12 @@ function dayPillar(min, zasiNext = true) {
   const days = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - K_EPOCH) / 864e5);
   return gz((10 + days) % 60);
 }
-function hourPillar(dayGan, min) {
+/** 시주 — 정각은 이전 시지. nextDayGan: 야자시설(일주 당일 유지)에서 23:01~24:00이면 익일 일간으로 시두법. */
+function hourPillar(dayGan, min, nextDayGan) {
   const d = kd(min), mm = d.getUTCHours() * 60 + d.getUTCMinutes();
   const zi = Math.floor((((mm - 1 + 1440) % 1440) + 60) / 120) % 12;
-  const start = { 甲:"甲",己:"甲",乙:"丙",庚:"丙",丙:"戊",辛:"戊",丁:"庚",壬:"庚",戊:"壬",癸:"壬" }[dayGan];
+  const base = nextDayGan && mm > 23 * 60 ? nextDayGan : dayGan;
+  const start = { 甲:"甲",己:"甲",乙:"丙",庚:"丙",丙:"戊",辛:"戊",丁:"庚",壬:"庚",戊:"壬",癸:"壬" }[base];
   return GAN[(GAN.indexOf(start) + zi) % 10] + ZHI[zi];
 }
 function sipsin(dayGan, other) {
@@ -507,11 +521,11 @@ function sipsin(dayGan, other) {
 }
 
 /* ── 12신살 (references/29) ───────────────────── */
-const SAMHAP = ["申子辰", "亥卯未", "寅午戌", "巳酉丑"];
+const SAMHAP = T.SAMHAP;
 const GUK_NAME = { "申子辰":"수국", "亥卯未":"목국", "寅午戌":"화국", "巳酉丑":"금국" };
 const GUK_TTI = { "申子辰":"원숭이·쥐·용", "亥卯未":"돼지·토끼·양", "寅午戌":"호랑이·말·개", "巳酉丑":"뱀·닭·소" };
-const MYO = { "申子辰":"辰", "亥卯未":"未", "寅午戌":"戌", "巳酉丑":"丑" };
-const SINSAL12 = ["겁살","재살","천살","지살","년살","월살","망신살","장성살","반안살","역마살","육해살","화개살"];
+const MYO = T.MYO;
+const SINSAL12 = T.SINSAL12;
 const gukOf = z => SAMHAP.find(s => s.includes(z));
 function sinsal12(baseZhi, targetZhi) {
   const guk = gukOf(baseZhi), start = (ZHI.indexOf(MYO[guk]) + 1) % 12;
@@ -519,8 +533,8 @@ function sinsal12(baseZhi, targetZhi) {
 }
 
 /* ── 십이운성 (references/30, 음포태) ─────────── */
-const UNSEONG = ["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"];
-const JANGSAENG = { 甲:"亥",乙:"午",丙:"寅",丁:"酉",戊:"寅",己:"酉",庚:"巳",辛:"子",壬:"申",癸:"卯" };
+const UNSEONG = T.UNSEONG;
+const JANGSAENG = T.JANGSAENG;
 function unseong(gan, zhi, mode) {
   let g = gan, step = 1;
   if (mode === "yang") g = ({ 乙:"甲",丁:"丙",己:"戊",辛:"庚",癸:"壬" })[gan] || gan;
@@ -532,15 +546,15 @@ const UN_POWER = { 장생:2, 목욕:1, 관대:2, 건록:3, 제왕:3, 쇠:1, 병:
 
 /* ── 지지 관계 (references/22) ────────────────── */
 const P = a => a.map(s => s.split("").sort().join(""));
-const YUKHAP = P(["子丑","寅亥","卯戌","辰酉","巳申","午未"]);
-const CHUNG  = P(["子午","丑未","寅申","卯酉","辰戌","巳亥"]);
-const PA     = P(["子酉","丑辰","寅亥","卯午","巳申","未戌"]);
-const HAE    = P(["子未","丑午","寅巳","卯辰","申亥","酉戌"]);
-const WONJIN = P(["子未","丑午","寅酉","卯申","辰亥","巳戌"]);
-const GWIMUN = P(["子酉","丑午","寅未","卯申","辰亥","巳戌"]);
-const HYEONG = P(["寅巳","巳申","寅申","丑戌","戌未","丑未","子卯"]);
-const JAHYEONG = "辰午酉亥";
-const BANGHAP = ["寅卯辰","巳午未","申酉戌","亥子丑"];
+const YUKHAP = P(T.YUKHAP);
+const CHUNG  = P(T.CHUNG);
+const PA     = P(T.PA);
+const HAE    = P(T.HAE);
+const WONJIN = P(T.WONJIN);
+const GWIMUN = P(T.GWIMUN);
+const HYEONG = P(T.HYEONG);
+const JAHYEONG = T.JAHYEONG;
+const BANGHAP = T.BANGHAP;
 function zhiRel(a, b) {
   const out = [], key = [a, b].sort().join("");
   if (a === b) return [JAHYEONG.includes(a) ? "자형" : "복음"];
@@ -579,15 +593,15 @@ const GUNG = {
 };
 
 /* ── 개별 신살 (references/30) ────────────────── */
-const YANGIN = { 甲:"卯",丙:"午",戊:"午",庚:"酉",壬:"子" };
-const MUNCHANG = { 甲:"巳",乙:"午",丙:"申",丁:"酉",戊:"申",己:"酉",庚:"亥",辛:"子",壬:"寅",癸:"卯" };
+const YANGIN = T.YANGIN;
+const MUNCHANG = T.MUNCHANG;
 const HAKDANG = JANGSAENG;
-const GEUMYEO = { 甲:"辰",乙:"巳",丙:"未",丁:"申",戊:"未",己:"申",庚:"戌",辛:"亥",壬:"丑",癸:"寅" };
-const HONGYEOM = { 甲:"午",乙:"午",丙:"寅",丁:"未",戊:"辰",己:"辰",庚:"戌",辛:"酉",壬:"子",癸:"申" };
-const CHEONEUL = { 甲:"丑未",戊:"丑未",庚:"丑未",乙:"子申",己:"子申",丙:"亥酉",丁:"亥酉",壬:"巳卯",癸:"巳卯",辛:"午寅" };
-const BAEKHO = ["甲辰","乙未","丙戌","丁丑","戊辰","壬戌","癸丑"];
-const GWAEGANG = ["庚辰","庚戌","壬辰","壬戌"];
-const SAMJAE = { "申子辰":"寅卯辰", "亥卯未":"巳午未", "寅午戌":"申酉戌", "巳酉丑":"亥子丑" };
+const GEUMYEO = T.GEUMYEO;
+const HONGYEOM = T.HONGYEOM;
+const CHEONEUL = T.CHEONEUL;
+const BAEKHO = T.BAEKHO;
+const GWAEGANG = T.GWAEGANG;
+const SAMJAE = T.SAMJAE;
 function gongmang(dayGz) {
   const i = gzIndex(dayGz), head = i - (i % 10);
   const z = ZHI.indexOf(gz(head)[1]);
@@ -678,9 +692,14 @@ function buildNatal(profile) {
   const [Y, M, D] = profile.date.split("-").map(Number);
   const known = profile.timeKnown;
   const [hh, mi] = (known ? profile.time : "12:00").split(":").map(Number);
-  const stdMin = kmin(new Date(Date.UTC(Y, M - 1, D, hh, mi)));
-  const corrected = stdMin + (profile.solar === false ? 0 : -32);   // 진태양시 보정
-  const slot = jieSlot(corrected);
+  const wallMin = kmin(new Date(Date.UTC(Y, M - 1, D, hh, mi)));   // 입력 = 그때 시계가 가리킨 시각
+  const [off, dst] = seoulOffset(wallMin);                          // 1908~11·1954~61 UTC+8:30, 서머타임 연도 자동
+  const instMin = wallMin - (off - 540);                            // 출생 순간(KST 눈금) — 절입 비교·대운수용
+  const stdMin = wallMin - dst;                                     // 표준시 (서머타임분 제거)
+  // 경도 보정(지방평균시) — 시주·자시 판정에만 쓴다. 절입 비교에 섞지 않는다 (errata #18)
+  const corr = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (off - dst) + 0.5);
+  const corrected = stdMin + corr;
+  const slot = jieSlot(instMin);
   const yp = yearPillar(slot.jieYear);
   const mz = MONTH_ZHI[slot.k];
   const mp = monthGan(yp[0], mz) + mz;
@@ -701,11 +720,12 @@ function buildNatal(profile) {
     if (JANGGAN[zhis[i]].split("").some(g => OG[GAN.indexOf(g)] === OG[GAN.indexOf(dayGan)])) roots.push(lab + "지 " + zhis[i]);
   });
 
-  // 월지 투출 → 격 1차 후보
-  const tuchul = JANGGAN[mz].split("").filter(g => [yp[0], mp[0], hp ? hp[0] : ""].includes(g));
-  const gyeok = tuchul.length
-    ? tuchul.map(g => `${g}(${sipsin(dayGan, g)})`).join("·") + " 투출"
-    : `미투출 → 본기 ${JANGGAN[mz].slice(-1)}(${sipsin(dayGan, JANGGAN[mz].slice(-1))})`;
+  // 격 1차 후보 — saju_calc.gyeok_candidates()와 같은 순서 (errata #20)
+  const tuchul = JANGGAN[mz].split("").reverse().filter(g => [yp[0], mp[0], hp ? hp[0] : ""].includes(g));
+  const gyeokList = gyeokCandidates(pillars);
+  const gyeok = gyeokList.join(" / ") + " — 월지 " + mz + (tuchul.length
+    ? ` 투출 ${tuchul.map(g => `${g}(${sipsin(dayGan, g)})`).join("·")}`
+    : ` 본기 ${JANGGAN[mz].slice(-1)}(${sipsin(dayGan, JANGGAN[mz].slice(-1))})`);
 
   // 원국 신살
   const sinsal = [];
@@ -738,11 +758,43 @@ function buildNatal(profile) {
   }
 
   // 대운
-  const dw = daewoon(profile, yp[0], mp, corrected, slot);
+  const dw = daewoon(profile, yp[0], mp, instMin, slot);
 
   return { profile, pillars, zhis, dayGan, yearZhi: yp[1], dayZhi: dp[1],
-           slot, cnt, roots, gyeok, sinsal, inner, dw, gongmangZhi: gm,
-           guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: corrected };
+           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm,
+           guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: instMin, solarMin: corrected,
+           tz: { off, dst, corr } };
+}
+
+const ROK = T.ROK;
+const GYEOK_NAME = { 정관: "정관격", 편관: "칠살격", 정인: "정인격", 편인: "편인격", 정재: "정재격", 편재: "편재격", 식신: "식신격", 상관: "상관격" };
+
+/** 격 1차 후보 이름 — ① 辰戌丑未 잡기 ② 건록 ③ 양인 ④ 월겁 ⑤ 본기 우선 + 변화 후보 (references/34·35, errata #20) */
+function gyeokCandidates(pillars) {
+  const day = pillars[2][0], mz = pillars[1][1];
+  const others = [pillars[0][0], pillars[1][0]].concat(pillars[3] ? [pillars[3][0]] : []);
+  const jang = JANGGAN[mz].split(""), bongi = jang[jang.length - 1];
+  const tou = jang.slice().reverse().filter(g => others.includes(g));      // 본기→중기→여기
+  const nm = g => GYEOK_NAME[sipsin(day, g)];
+  const ok = g => !!nm(g);                                                // 비겁은 격이 되지 않는다
+  const og = g => OG[GAN.indexOf(g)];
+  const out = [];
+  if ("辰戌丑未".includes(mz)) {
+    const useful = tou.filter(ok);
+    useful.forEach(g => out.push(`잡기 ${nm(g)}`));
+    const same = [...new Set(others.filter(o => !useful.includes(o) && ok(o) && jang.some(j => ok(j) && og(j) === og(o))))];
+    same.forEach(o => out.push(`잡기 ${nm(o)}(같은 오행 투간)`));
+    if (ok(bongi) && !useful.includes(bongi)) out.push(`잡기 ${nm(bongi)}(본기·미투출)`);
+    if (!out.length) out.push("잡기 — 본기 비겁");
+    else if (tou.some(g => !ok(g))) out.push("잡기 월겁(비겁 투출)");
+  } else if (ROK[day] === mz) out.push("건록격");
+  else if (YANGIN[day] === mz) out.push("양인격");
+  else if (sipsin(day, bongi) === "겁재") out.push("월겁격");
+  else {
+    out.push(nm(bongi));
+    tou.forEach(g => { if (g !== bongi && ok(g)) out.push(nm(g) + "(변화 후보)"); });
+  }
+  return out;
 }
 
 function daewoon(profile, yearGan, monthGz, birthMin, slot) {
@@ -800,9 +852,10 @@ function readPeriod(natal, ganzhi, startMin, endMin, meta) {
 }
 
 /* ══ 렌더 ═══════════════════════════════════════ */
-const fmtD  = m => { const d = kd(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
-const fmtDT = m => { const d = kd(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
-const fmtMD = m => { const d = kd(m); return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}`; };
+const kdr = m => kd(Math.floor(m + 0.5));                 // 절입 시각(초 단위)을 분으로 반올림해 표시
+const fmtD  = m => { const d = kdr(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
+const fmtDT = m => { const d = kdr(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
+const fmtMD = m => { const d = kdr(m); return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}`; };
 const gzKo  = s => GAN_KO[GAN.indexOf(s[0])] + ZHI_KO[ZHI.indexOf(s[1])];
 const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
 
@@ -1015,7 +1068,7 @@ function render() {
     bars.append(b);
   });
   const sk = document.getElementById("structKv");
-  sk.innerHTML = `<dt>격 후보</dt><dd>${n.gyeok}<br><span style="font-size:11px">월지 투출 기준 1차 후보입니다. 용신·격의 성패 판정은 별도 감명이 필요합니다.</span></dd>` +
+  sk.innerHTML = `<dt>격 후보</dt><dd>${n.gyeok}<br><span style="font-size:11px">월령 본기 우선(건록·양인·잡기 별도)으로 뽑은 1차 후보입니다. 용신·격의 성패 판정은 별도 감명이 필요합니다.</span></dd>` +
                  `<dt>일간 뿌리</dt><dd>${n.roots.length ? "<b>" + n.roots.join(" · ") + "</b>" : "<b>무근(無根)</b>"}</dd>`;
 
   const ns = document.getElementById("natalSinsal");
@@ -1040,7 +1093,7 @@ function render() {
 
   /* 콜로폰 */
   document.getElementById("colophon").innerHTML =
-    `<b>계산 기준</b> · 절기는 태양 겉보기 황경 315°+30°k 통과 시각(KST, 분 단위 실계산). 연주는 입춘, 월주는 절입 기준. 일주는 1900-01-01=甲戌 기준이며 23시 초과 출생은 익일로 넘깁니다. 진태양시 −32분(서울 경도) 적용.<br>` +
+    `<b>계산 기준</b> · 절기는 태양 겉보기 황경 315°+30°k 통과 시각(KST, 초 단위 실계산·분 단위 반올림 표시). 연주는 입춘, 월주는 절입 기준이며 출생 순간과 절입 순간을 그대로 비교합니다. 일주는 1900-01-01=甲戌 기준이며 보정 후 23:01 이후 출생은 익일로 넘깁니다. 시주는 서울 경도 보정(지방평균시) 후 시각으로 뽑습니다.<br>` +
     `<b>이론 근거</b> · 십이신살은 년지 삼합국 기준(일지 기준 병기), 십이운성은 음포태(양포태 병기), 지지 관계는 합·충·형·파·해에 원진·귀문·격각을 더해 봅니다. 신살에는 신뢰도 등급(A~D)을 붙였고 C·D는 단독 판정에 쓰지 않습니다.<br>` +
     `<b>읽는 법</b> · 이 페이지는 <b>신살·십이운성·지지 관계</b> 층위를 그린 것입니다. 격국과 용신의 성패 판정은 담고 있지 않으므로, 여기 나온 길흉의 결은 참고이지 결론이 아닙니다. 운은 원국이라는 그릇 안의 변동이고, 층위 비중은 원국 55 · 대운 25 · 세운 12 · 월운 5 · 일운 3입니다.<br>` +
     `<b>마지막 갱신</b> · <span class="mono">${fmtDT(kmin(nowKd()))}</span>`;

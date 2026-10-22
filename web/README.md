@@ -9,31 +9,32 @@ Claude의 Artifact로 게시해 쓰며, 매일 아침 Routine이 `DAILY` 블록�
 
 ### 페이지가 담고 있는 것
 
-- 절기표(1900 입춘 ~ 2046 소한, KST 분 단위) 내장 — `scripts/saju_calc.py`의 `sun_lon()`(겉보기 황경 of-date, errata #14 교정본)으로 산출한 값을 delta·base16으로 인코딩
-- 사주 산출: 입춘 기준 연주 / 절입 기준 월주 / 1900-01-01=甲戌 기준 일주(23시 초과 익일) / 시두법 시주 / 진태양시 −32분
+- 표 구획(`GENERATED:TABLES`) — 장간·관계·신살 표, 절기표, Asia/Seoul 시간대 이력을 `scripts/build_web_tables.py`가 `saju_calc.py`에서 생성한다. **손으로 고치지 않는다.**
+  - 절기표: 1900 입춘 ~ 2046 소한, KST 눈금 **초** 단위 delta·base16 (`sun_lon()` 겉보기 황경 of-date + ΔT 보정, errata #14·#22)
+  - 시간대: 1908년 이전 지방시, 1908~1911·1954~1961 UTC+8:30, 서머타임 연도를 벽시계 입력에서 자동 적용 (Python zoneinfo fold=0과 같은 선택, errata #23)
+- 사주 산출: 입춘 기준 연주 / 절입 기준 월주(출생 **순간**으로 비교) / 1900-01-01=甲戌 기준 일주(23시 초과 익일) / 시두법 시주 / 서울 경도 보정(지방평균시)은 시주·자시에만 (errata #18)
+- 격 1차 후보: 월령 본기 우선, 건록·양인·월겁·잡기 별도 (`saju_calc.gyeok_candidates()`와 같은 규칙, errata #20)
 - `references/29_sibisinsal.md` 12신살(년지·일지 기준 병기)
 - `references/30_shinsal_extended.md` 십이운성(음포태·양포태 병기), 개별 신살 조견표
 - `references/22_hapchung_shinsal.md` 합·충·형·파·해 + 원진·귀문·격각
 - `references/31_unse_narrative.md` 3층 서술 구조와 서술 규범
 
-격국·용신의 성패 판정은 담지 않는다. 월지 투출 기준 **격 1차 후보**까지만 표시하고, 그 사실을 페이지 하단에 밝힌다.
+격국·용신의 성패 판정은 담지 않는다. **격 1차 후보**까지만 표시하고, 그 사실을 페이지에 밝힌다.
 
-### 검증
-
-JS 엔진은 `scripts/saju_calc.py`와 30개 명조(1920~2044년생, 절입 경계·자시 경계 포함)에서
-**사주 4기둥 · 대운수 · 대운 첫 간지 · 12신살 · 공망**이 전부 일치함을 교차확인했다.
+### 표 갱신과 검증
 
 ```bash
-node - <<'EOF'
-const fs=require('fs');
-const html=fs.readFileSync('web/unui-sigantable.html','utf8');
-const src=html.slice(html.indexOf('<script>')+8, html.indexOf('/* ══ 렌더'));
-const E=new Function(src+'; return {buildNatal,sinsal12,unseong,relationsTo,dayPillar,kmin,nowKd};')();
-console.log(E.buildNatal({date:'1995-10-29',time:'06:30',timeKnown:true,gender:'M'}).pillars.join(' '));
-EOF
+python3 scripts/build_web_tables.py          # saju_calc.py 표가 바뀌면 HTML 표 구획을 다시 생성
+python3 scripts/build_web_tables.py --check  # 구획이 최신인지 (CI)
+python3 tests/build_fixtures.py              # 계산 규칙을 일부러 바꿨을 때만 픽스처 재생성
+node --test tests/*.test.mjs                 # 웹 엔진 ↔ Python 픽스처 교차검증
 ```
 
-> 페이지의 `const` 선언은 그냥 `eval`로는 밖으로 새지 않는다. 위처럼 `new Function`으로 감싸 필요한 것만 돌려받는다.
+`tests/web_parity.test.mjs`는 `tests/fixtures/natal_cases.json`의 33개 명조(1900~2044년생 — LMT·UTC+8:30·서머타임 공백/중복 시각·절입 직후·자시 경계 포함)에서
+**4기둥 · UTC 오프셋 · 서머타임 · 경도 보정 · 대운 방향·대운수·간지 · 12신살 · 공망 · 십이운성 · 격 후보**가 Python과 같은지,
+24번 원전 명조 전부에서 격 후보가 같은지 본다.
+
+> 페이지의 `const` 선언은 그냥 `eval`로는 밖으로 새지 않는다. 테스트는 `new Function`으로 감싸 필요한 것만 돌려받는다.
 
 ### 갱신 구조
 

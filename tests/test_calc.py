@@ -1,0 +1,322 @@
+"""saju_calc.py 회귀 테스트 — references/00_errata.md의 교정 항목마다 하나 이상.
+
+  python3 -m pytest -q
+"""
+
+import io, json, os, re, sys
+from contextlib import redirect_stdout
+from datetime import date, datetime, timedelta
+
+import pytest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(HERE, "..")
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, HERE)
+import saju_calc as S  # noqa: E402
+import build_fixtures as F  # noqa: E402
+
+
+def natal(wall, **kw):
+    zasi = kw.pop("zasi", "next")
+    t = S.resolve_time(datetime.strptime(wall, "%Y-%m-%d %H:%M"), **kw)
+    pillars, minfo = S.four_pillars(t["utc"], t["local"], zasi)
+    return pillars, minfo, t
+
+
+def load(name):
+    with open(os.path.join(HERE, "fixtures", name), encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ── 일주·시주 경계 ─────────────────────────────────────────────
+
+def test_day_anchor():
+    assert S.day_pillar(datetime(1900, 1, 1, 12)) == "甲戌"
+    assert S.day_pillar(datetime(2000, 1, 1, 12)) == "戊午"
+
+
+def test_on_the_hour_belongs_to_previous_branch():     # errata #6
+    assert S.hour_pillar("甲", datetime(2000, 1, 1, 23, 0))[0][1] == "亥"
+    assert S.hour_pillar("甲", datetime(2000, 1, 1, 23, 1))[0][1] == "子"
+    assert S.hour_pillar("甲", datetime(2000, 1, 1, 7, 0))[0][1] == "卯"
+    assert S.hour_pillar("甲", datetime(2000, 1, 1, 7, 1))[0][1] == "辰"
+    assert S.day_pillar(datetime(2000, 1, 1, 23, 0)) == "戊午"      # 23:00 정각은 일주를 넘기지 않는다
+    assert S.day_pillar(datetime(2000, 1, 1, 23, 1)) == "己未"
+
+
+def test_yajasi_hour_stem_uses_next_day():              # errata #17
+    p, _, _ = natal("2000-01-07 23:50", solar="none", zasi="same")
+    assert p[2] == "甲子" and p[3] == "丙子"
+    p, _, _ = natal("2000-01-07 23:50", solar="none", zasi="next")
+    assert p[2] == "乙丑" and p[3] == "丙子"
+
+
+# ── 절입 비교는 출생 순간으로 ──────────────────────────────────
+
+def test_jie_compare_uses_birth_instant():              # errata #18
+    assert natal("2026-02-04 05:30")[0][0] == "丙午"    # 입춘 05:02 — 보정 시각(04:58)으로 비교하면 乙巳
+    assert natal("2026-02-04 04:50")[0][0] == "乙巳"
+    assert natal("2026-09-07 23:50")[0][1][1] == "酉"   # 백로 23:41
+    assert natal("2026-09-07 23:40")[0][1][1] == "申"
+
+
+def test_daewoon_counts_from_birth_instant():
+    p, minfo, t = natal("2026-02-04 05:30")
+    dw = S.daewoon(p, "F", t["utc"], minfo)
+    assert dw["direction"] == "역행"
+    assert dw["days_to_jie"] == pytest.approx((t["utc"] - minfo["prev_jie_utc"]).total_seconds() / 86400, abs=0.01)
+    assert dw["days_to_jie"] < 0.03                      # 입춘 28분 후
+
+
+# ── 대운 ──────────────────────────────────────────────────────
+
+def test_daewoon_direction_uses_year_stem():            # errata #1
+    base = datetime(2024, 2, 20)
+    minfo = {"next_jie_utc": base + timedelta(days=30), "next_jie_name": "경칩",
+             "prev_jie_utc": base - timedelta(days=10), "prev_jie_name": "입춘"}
+    p = ["甲辰", "丙寅", "乙丑", "丙子"]                  # 연간 양 · 일간 음
+    m, f = S.daewoon(p, "M", base, minfo), S.daewoon(p, "F", base, minfo)
+    assert m["direction"] == "순행" and m["start_age"] == 10
+    assert f["direction"] == "역행" and f["start_age"] == 3
+    assert m["list"][0]["ganzhi"] == "丁卯" and f["list"][0]["ganzhi"] == "乙丑"
+
+
+def test_round_half_up():                               # errata #7
+    assert S._round_half_up(4.5) == 5
+    assert S._round_half_up(3.49) == 3
+    assert S._round_half_up(-2.09) == -2
+
+
+# ── 시간대·보정 ───────────────────────────────────────────────
+
+@pytest.mark.parametrize("wall,off,dst", [
+    ("1905-03-01 12:00", 507 + 52 / 60, 0),     # 지방평균시
+    ("1910-06-01 08:00", 510, 0),               # UTC+8:30
+    ("1950-07-20 09:10", 600, 60),              # 서머타임
+    ("1958-01-15 12:00", 510, 0),               # UTC+8:30
+    ("1960-06-15 12:00", 570, 60),              # UTC+8:30 + 서머타임
+    ("1988-07-01 10:00", 600, 60),
+    ("2026-01-01 12:00", 540, 0),
+])
+def test_seoul_history(wall, off, dst):                 # errata #23
+    t = S.resolve_time(datetime.strptime(wall, "%Y-%m-%d %H:%M"))
+    assert t["offset_min"] == pytest.approx(off)
+    assert t["dst_min"] == dst
+
+
+def test_ambiguous_wall_time_flagged():
+    t = S.resolve_time(datetime(1987, 10, 11, 2, 30))
+    assert t["ambiguous"] and t["dst_min"] == 60        # fold=0 → 서머타임 쪽
+
+
+def test_longitude_and_eot():
+    t = S.resolve_time(datetime(2026, 1, 1, 12, 0))
+    assert t["corr_min"] == -32 and t["local"] == datetime(2026, 1, 1, 11, 28)
+    assert S.resolve_time(datetime(1958, 1, 15, 12, 0))["corr_min"] == -2
+    assert S.resolve_time(datetime(2026, 1, 1, 12, 0), solar="none")["corr_min"] == 0
+    assert S.resolve_time(datetime(2026, 1, 1, 12, 0), longitude=S.PLACES["부산"][0])["corr_min"] == -24
+    assert S.equation_of_time(datetime(2026, 11, 3, 3)) == pytest.approx(16.4, abs=0.3)
+    assert S.equation_of_time(datetime(2026, 2, 11, 3)) == pytest.approx(-14.2, abs=0.3)
+    lat = S.resolve_time(datetime(2026, 11, 3, 12, 0), solar="lat")
+    assert lat["corr_min"] == S._round_half_up(lat["lon_corr_min"] + lat["eot_min"])
+
+
+def test_fixed_offset_skips_history():
+    t = S.resolve_time(datetime(1958, 1, 15, 12, 0), tz=9)
+    assert t["offset_min"] == 540
+
+
+# ── 절기 ──────────────────────────────────────────────────────
+
+def test_apparent_longitude_of_date():                  # errata #14
+    import ephem
+    for y in (1950, 2000, 2026, 2045):
+        e = ephem.next_solstice(f"{y}/6/1").datetime()
+        assert abs((S.find_term_crossing(90, datetime(y, 6, 21)) - e).total_seconds()) < 2
+        e = ephem.next_equinox(f"{y}/3/1").datetime()
+        assert abs((S.find_term_crossing(0, datetime(y, 3, 20)) - e).total_seconds()) < 10
+
+
+def test_jie_matches_kasi():                            # errata #22
+    exact = 0
+    terms = load("jie_golden.json")["terms"]
+    for r in terms:
+        got = S.jie_datetime_utc(r["year"], r["k"]) + timedelta(hours=9)
+        want = datetime.strptime(r["kst"], "%Y-%m-%d %H:%M")
+        assert abs((got - want - timedelta(seconds=30)).total_seconds()) <= 90, r
+        exact += S.jie_display(got).replace(second=0, microsecond=0) == want
+    assert len(terms) >= 51 and exact >= 47
+
+
+# ── 음력 ──────────────────────────────────────────────────────
+
+def test_lunar_input():
+    pytest.importorskip("korean_lunar_calendar")
+    assert S.lunar_to_solar(1995, 9, 6) == date(1995, 10, 29)
+    assert S.lunar_to_solar(2023, 2, 1, leap=True) == date(2023, 3, 22)
+    with pytest.raises(ValueError):
+        S.lunar_to_solar(2024, 2, 1, leap=True)
+
+
+# ── 장간·격 ───────────────────────────────────────────────────
+
+def test_janggan_school_switch():                       # errata #19
+    assert S.JANGGAN["子"] == "癸" and S.JANGGAN["辰"] == "乙癸戊"
+    try:
+        S.set_janggan_school("wolryul")
+        assert S.JANGGAN["子"] == "壬癸" and S.JANGGAN["亥"] == "戊甲壬"
+        assert all(S.BONGI[z] == S.JANGGAN[z][-1] for z in S.ZHI)
+    finally:
+        S.set_janggan_school("jangan_ga")
+    assert S.JANGGAN == S.JANGGAN_SCHOOLS["jangan_ga"]
+
+
+def test_gyeok_bongi_first():                           # errata #20
+    c = S.gyeok_candidates(["甲子", "丙子", "戊午", "丙辰"])["후보"]
+    assert c[0]["격"] == "정재격"                          # 子 본기 癸 — 천간 丙(편인)이 아니다
+    c = S.gyeok_candidates(["甲寅", "丙寅", "甲子", "丙寅"])["후보"]
+    assert c[0]["격"] == "건록격"
+    c = S.gyeok_candidates(["己酉", "丙子", "壬寅", "丙午"])["후보"]
+    assert c[0]["격"] == "양인격"
+    c = S.gyeok_candidates(["甲子", "辛未", "辛酉", "壬辰"])["후보"]
+    assert c[0]["격"] == "잡기 정재격(같은 오행 투간)"      # 「甲透未库」
+    c = S.gyeok_candidates(["壬寅", "丁未", "丙寅", "壬辰"])["후보"]
+    assert [x["격"] for x in c] == ["잡기 상관격(본기·미투출)", "잡기 월겁(비겁 투출)"]
+
+
+CHAPTER = {"论正官": "정관", "论财": "재", "论印绶": "인수", "论食神": "식신", "论偏官": "칠살",
+           "论伤官": "상관", "论阳刃": "양인", "论建禄月劫": "건록월겁"}
+
+
+def _chapter_of(name):
+    if name.startswith(("건록", "월겁")): return "건록월겁"
+    if name.startswith("양인"): return "양인"
+    for k, v in [("정관", "정관"), ("칠살", "칠살"), ("정재", "재"), ("편재", "재"), ("정인", "인수"),
+                 ("편인", "인수"), ("식신", "식신"), ("상관", "상관")]:
+        if k in name: return v
+    return "?"
+
+
+@pytest.mark.parametrize("school", ["jangan_ga", "wolryul"])
+def test_corpus_top1_matches_chapter(school):          # errata #20 — 24번 원전 명조
+    chap, total, hit, miss = None, 0, 0, []
+    try:
+        S.set_janggan_school(school)
+        for l in open(os.path.join(ROOT, "references", "24_japyeong_cases.md"), encoding="utf-8"):
+            m = re.match(r"^## .*〔(.+?)〕", l)
+            if m:
+                chap = CHAPTER.get(m.group(1)); continue
+            m = re.match(r"^### (\S+)\. .*?〔(.+?)〕", l)
+            if m and chap:
+                top = S.gyeok_candidates(m.group(2).split())["후보"][0]["격"]
+                total += 1
+                if _chapter_of(top) == chap: hit += 1
+                else: miss.append((m.group(1), top))
+    finally:
+        S.set_janggan_school("jangan_ga")
+    assert total == 71 and hit == 71, miss
+
+
+# ── 관계 ──────────────────────────────────────────────────────
+
+def test_stem_relations():
+    assert S.cheongan_relations("甲", "己") == ["천간합(土)"]
+    assert S.cheongan_relations("甲", "庚") == ["천간충"]
+    assert S.cheongan_relations("戊", "己") == []
+    assert S.cheongan_relations("戊", "甲") == []
+
+
+def test_samhyeong_names():                             # errata #12
+    assert S.SAMHYEONG["寅巳申"].startswith("무은지형")
+    assert S.SAMHYEONG["丑戌未"].startswith("지세지형")
+    assert frozenset("子卯") in S.HYEONG_PAIRS
+
+
+def test_combo_up_to_14_chars():
+    r = S.combo_report(["乙亥", "丙戌", "癸巳", "乙卯"], "대운:癸未,세운:丙午,월운:庚寅")
+    done = {d["조합"]: d["성립"] for d in r["지지 3자 조합"]["완성"]}
+    assert done == {"삼합 亥卯未(木국)": "운에서 완성", "삼합 寅午戌(火국)": "운에서 완성", "방합 巳午未(火)": "운에서 완성"}
+    assert "년간乙—월운 천간庚" in r["천간 합충(운 개입분)"]
+
+
+def test_combo_origin_only():
+    r = S.combo_relations([("년지", "寅"), ("월지", "午"), ("일지", "戌"), ("시지", "子")])
+    assert r["완성"][0]["성립"] == "원국 자체"
+    r = S.combo_relations([("년지", "亥"), ("시지", "卯"), ("월운", "子")])
+    assert r["대기(원국 2자)"] == ["삼합 亥卯未(木국): 원국 亥卯 — 未가 오면 완성"]
+
+
+# ── 인연 층위 土 역할 ─────────────────────────────────────────
+
+def test_inyeon_earth_role():                           # errata #24
+    p = ["乙亥", "丙戌", "癸巳", "乙卯"]
+    g = S.inyeon_fit(p, ["水", "土"], "생금")
+    assert g["辰"]["용신 방향"] == "◎" and g["戌"]["용신 방향"].startswith("△")
+    j = S.inyeon_fit(p, ["水", "土"], "제수")
+    assert j["戌"]["용신 방향"] == "◎" and j["丑"]["용신 방향"].startswith("△")
+    n = S.inyeon_fit(p, ["水", "土"])
+    assert n["未"]["용신 방향"].startswith("판정 보류")
+    assert n["子"]["용신 방향"] == "◎" and n["午"]["용신 방향"] == "—"
+
+
+# ── 픽스처 회귀 ───────────────────────────────────────────────
+
+def test_fixtures_unchanged():
+    fx = load("natal_cases.json")
+    for c in fx["cases"]:
+        assert F.compute(c["date"], c["time"], c["gender"]) == c["expect"], (c["date"], c["time"], c["memo"])
+    assert F.corpus() == fx["corpus"]
+
+
+# ── 출력·CLI ──────────────────────────────────────────────────
+
+def run_cli(*argv):
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        S.main(list(argv))
+    return buf.getvalue()
+
+
+def test_cli_birth_json():
+    d = json.loads(run_cli("--birth", "1995-10-29 06:30", "--gender", "M", "--json"))
+    assert d["pillars"] == ["乙亥", "丙戌", "癸巳", "乙卯"]
+    assert d["대운"]["direction"] == "역행"
+    assert "격 후보" in d and "천간 관계" in d and "지지 3자 조합" in d
+
+
+def test_cli_lunar_and_place():
+    pytest.importorskip("korean_lunar_calendar")
+    d = json.loads(run_cli("--birth", "1995-09-06 06:30", "--lunar", "--gender", "M", "--place", "부산", "--json"))
+    assert d["pillars"] == ["乙亥", "丙戌", "癸巳", "乙卯"]
+    assert d["입력"]["시각 보정(분)"] == -24
+
+
+def test_cli_warnings():
+    d = json.loads(run_cli("--birth", "1960-06-15 12:00", "--gender", "M", "--json"))
+    w = " ".join(d["경고"])
+    assert "서머타임" in w and "UTC+8:30" in w
+    d = json.loads(run_cli("--birth", "2026-02-04 05:03", "--gender", "M", "--json"))
+    assert any("2분 이내" in x for x in d["경고"])
+
+
+def test_cli_rejects_invalid_ganzhi():
+    with pytest.raises(SystemExit):
+        run_cli("--pillars", "戊未 丙戌 癸巳 乙卯")
+    with pytest.raises(SystemExit):
+        run_cli("--pillars", "乙亥 丙戌 癸巳 乙卯", "--relate", "甲丑")
+
+
+def test_brief_drops_norms():
+    assert S.brief({"⚠️ 규범": 1, "a": {"⚠️ x": 2, "b": [{"⚠️ y": 3, "c": 4}]}}) == {"a": {"b": [{"c": 4}]}}
+    full = json.loads(run_cli("--pillars", "乙亥 丙戌 癸巳 乙卯", "--injong", "酉", "--json"))
+    short = json.loads(run_cli("--pillars", "乙亥 丙戌 癸巳 乙卯", "--injong", "酉", "--brief", "--json"))
+    assert len(json.dumps(short, ensure_ascii=False)) < len(json.dumps(full, ensure_ascii=False))
+    assert "※" in short
+
+
+def test_export_tables():
+    t = json.loads(run_cli("--export-tables"))
+    assert t["JANGGAN"] == S.JANGGAN_SCHOOLS["jangan_ga"]
+    assert set(t["CHEONGAN_CHUNG"]) == {"甲庚", "乙辛", "丙壬", "丁癸"}
+    assert t["YANGIN"] == S.YANGIN and t["ROK"]["戊"] == "巳"
