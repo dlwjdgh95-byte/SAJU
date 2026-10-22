@@ -412,7 +412,11 @@ def test_cli_numeric_ranges():
                        (b + ["--longitude", "200"], "--longitude"),
                        (["--birth", "2060-01-01 12:00", "--gender", "M", "--lunar"], "변환표 범위"),
                        (b + ["--eot", "--no-solar-correction"], "함께 쓸 수 없다"),
-                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--combo", ""], "--combo")]:
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--combo", ""], "--combo"),
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--relate", ""], "--relate"),
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--injong", " "], "--injong"),
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--inyeon", "--yongsin", ""], "--yongsin"),
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--inyeon-scan", ""], "--inyeon-scan")]:
         with pytest.raises(SystemExit) as e:
             run_cli(*argv)
         assert word in str(e.value.code), argv

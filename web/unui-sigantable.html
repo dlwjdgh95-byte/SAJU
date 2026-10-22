@@ -716,7 +716,7 @@ function buildNatal(profile) {
   const hp = known ? hourPillar(dp[0], corrected) : null;
   const pillars = [yp, mp, dp, hp];
 
-  // 확인할 점 — saju_calc.py 경고의 웹판
+  // 확인할 점 — saju_calc.py 경고의 웹판(--longitude·--tz 같은 CLI 옵션 경고는 없다)
   const warn = [];
   const pm = i => { const s = jieSlot(i), y = yearPillar(s.jieYear), z = MONTH_ZHI[s.k]; return y + "년 " + monthGan(y[0], z) + z + "월"; };
   if (!known) {
@@ -724,11 +724,18 @@ function buildNatal(profile) {
     const i0 = d0 - (seoulOffset(d0)[0] - 540), i1 = d1 - (seoulOffset(d1)[0] - 540);
     if (jieSlot(i0).i !== jieSlot(i1).i)
       warn.push(`절입일 출생 — 시각을 모르면 ${yearPillar(jieSlot(i0).jieYear) === yearPillar(jieSlot(i1).jieYear) ? "월주가" : "연주·월주가"} 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
-    const [o1, s1] = seoulOffset(d1);
-    const c1 = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (o1 - s1) + 0.5);
-    const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;    // 23:01(보정 후)부터 익일 일주
-    if (late !== dp && cut < 1440)
-      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${String(cut / 60 | 0).padStart(2, "0")}:${String(cut % 60).padStart(2, "0")} 이후 출생이면 일주가 ${late}로 바뀝니다(자시 정설·경도 보정).`);
+    // 일주가 정오와 달라지는 새벽·밤 구간 — 보정 후 23:01부터 익일 일주(자시 정설). 서머타임 연도는 새벽 출생이 전날 亥시가 된다
+    const hm = m => `${String(m / 60 | 0).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const lmt = o => profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - o + 0.5);
+    const [o0, s0] = seoulOffset(d0), [o1, s1] = seoulOffset(d1);
+    const c0 = lmt(o0 - s0), c1 = lmt(o1 - s1);
+    const early = dayPillar(d0 - s0 + c0), last = s0 - c0 - 60;           // 벽시계 00:00~last가 전날 일주
+    const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;     // 벽시계 cut 이후가 익일 일주
+    const alt = [];
+    if (early !== dp && last >= 0) alt.push(`00:00~${hm(last)} 출생이면 일주가 ${early}`);
+    if (late !== dp && cut < 1440) alt.push(`${hm(cut)} 이후 출생이면 일주가 ${late}`);
+    if (alt.length)
+      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${alt.join(", ")}로 바뀝니다(자시 정설·경도 보정${s0 || s1 ? "·서머타임" : ""}).`);
     warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
@@ -740,7 +747,11 @@ function buildNatal(profile) {
         warn.push(`시각 보정 경계 출생 — 보정하면 ${dp}일 ${hp}시, 표준시 그대로면 ${dStd}일 ${hStd}시로 갈립니다.`);
     }
   }
-  if (dst) warn.push(`서머타임 기간 — 입력 시각에서 ${dst}분을 빼 표준시로 환산했습니다.`);
+  if (dst) warn.push(known ? `서머타임 기간 — 입력 시각에서 ${dst}분을 빼 표준시로 환산했습니다.`
+                            : `서머타임 기간 — 기준 시각(정오)에서 ${dst}분을 빼 표준시로 환산했습니다.`);
+  if (off - dst === 510) warn.push("당시 한국 표준시는 UTC+8:30입니다(1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했습니다.");
+  if (known && TZ_SEOUL.some((t, i) => { const d = Math.abs(t[1] - (i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0])); return wallMin >= t[0] - d && wallMin < t[0]; }))
+    warn.push("표준시·서머타임 전환 시각 부근이라 같은 시계 시각이 두 번 있거나 없습니다 — 앞쪽 오프셋으로 계산했습니다. 원 기록을 확인하세요.");
   const zhis = [yp[1], mp[1], dp[1], hp ? hp[1] : null];
   const dayGan = dp[0];
 

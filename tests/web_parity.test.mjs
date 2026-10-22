@@ -71,6 +71,21 @@ test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
   assert.ok(m.warn.some(w => w.includes("23:33 이후 출생이면 일주가 己丑")), m.warn.join(" / "));
   const s = E.buildNatal({ date: "1960-07-01", timeKnown: false, gender: "M" });   // 서머타임: 23:59도 보정 후 당일
   assert.ok(!s.warn.some(w => w.includes("이후 출생이면 일주가")), s.warn.join(" / "));
+  assert.ok(s.warn.some(w => w.includes("00:00~00:02 출생이면 일주가")), s.warn.join(" / "));     // UTC+8:30·서머타임: 새벽 2분은 전날 亥시
+  const e = E.buildNatal({ date: "1987-07-01", timeKnown: false, gender: "M" });
+  assert.ok(e.warn.some(w => w.includes("00:00~00:32 출생이면 일주가 庚戌")), e.warn.join(" / "));
+  assert.equal(E.buildNatal({ date: "1987-07-01", time: "00:32", timeKnown: true, gender: "M" }).pillars[2], "庚戌");
+  assert.equal(E.buildNatal({ date: "1987-07-01", time: "00:33", timeKnown: true, gender: "M" }).pillars[2], "辛亥");
+  const f = E.buildNatal({ date: "1958-07-01", timeKnown: false, gender: "M" });
+  assert.ok(f.warn.some(w => w.includes("00:00~00:02 출생이면 일주가 戊寅")), f.warn.join(" / "));
+  assert.ok(f.warn.some(w => w.includes("UTC+8:30")), f.warn.join(" / "));
+  assert.ok(!E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" }).warn.some(w => w.includes("UTC+8:30") || w.includes("두 번")));
+});
+
+test("서머타임 전환 시각 — 겹치거나 없는 벽시계 시각을 알린다", () => {
+  const amb = w => w.includes("같은 시계 시각이 두 번 있거나 없습니다");
+  assert.ok(E.buildNatal({ date: "1987-10-11", time: "02:30", timeKnown: true, gender: "M" }).warn.some(amb));
+  assert.ok(!E.buildNatal({ date: "1987-10-11", time: "04:30", timeKnown: true, gender: "M" }).warn.some(amb));
 });
 
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {

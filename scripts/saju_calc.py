@@ -491,7 +491,8 @@ def combo_relations(items, origin=ORIGIN_ZHI):
 
 def _guk_gyeok(day, oh, others):
     """회국(삼합)한 오행의 격 이름·참조. 그 오행의 천간이 한 가지만 투간했으면 그 십성(「藏庚透壬，会子会辰，则化为煞」),
-    아니면 무리 이름(관살·재·인수·식상) — 원문도 「化为印」「伤化为财」「劫化为食伤」처럼 국을 무리로 부른다 (논용신변화)"""
+    아니면 무리 이름(관살·재·인수·식상) — 원문 「化为印」, 徐注 「伤化为财」「劫化为食伤」처럼 국을 무리로 부른다 (논용신변화).
+    정·편이 둘 다 투간해도 하나로 정할 수 없어 무리 이름이다"""
     t = {sipsin(day, g) for g in others if OHENG[g] == oh}
     if len(t) == 1:
         s = t.pop()
@@ -1428,6 +1429,10 @@ def main(argv=None):
             sys.exit(f"{opt} 연도는 {YEAR_MIN}~{YEAR_MAX}년")
     if a.eot and a.no_solar_correction:
         sys.exit("--eot(진태양시 보정)와 --no-solar-correction(보정 없음)은 함께 쓸 수 없다")
+    for opt in ("birth", "place", "zone", "pillars", "relate", "combo", "injong", "yongsin", "inyeon_scan", "inyeon_daewoon"):
+        v = getattr(a, opt)
+        if v is not None and not v.strip():                 # 빈 값은 옵션을 안 준 것과 같아 보여 조용히 넘어가므로 막는다
+            sys.exit(f"--{opt.replace('_', '-')}에 빈 값을 줄 수 없다")
     if a.tz is not None and not (math.isfinite(a.tz) and abs(a.tz) <= 14):
         sys.exit(f"--tz는 -14~+14 사이의 시간 수다 (받은 값 {a.tz})")
     if a.longitude is not None and not (math.isfinite(a.longitude) and abs(a.longitude) <= 180):
@@ -1459,8 +1464,6 @@ def main(argv=None):
     zone = _check_zone(a.zone or PLACES[_check_place(a.place)][1])
     if a.relate: res["운 대입"] = relate_to_unse(ps, a.relate)
     if a.combo is not None:
-        if not a.combo.strip():
-            sys.exit("--combo에 운 간지를 하나 이상 줄 것 (예: --combo 대운:癸未,세운:丙午)")
         try:
             res["조합 판정"] = combo_report(ps, a.combo)
         except ValueError as e:
