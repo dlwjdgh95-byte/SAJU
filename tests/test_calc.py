@@ -144,8 +144,9 @@ def test_jie_matches_kasi():                            # errata #22
     for r in terms:
         got = S.jie_datetime_utc(r["year"], r["k"]) + timedelta(hours=9)
         want = datetime.strptime(r["kst"], "%Y-%m-%d %H:%M")
-        assert abs((got - want - timedelta(seconds=30)).total_seconds()) <= 90, r
-        exact += S.jie_display(got).replace(second=0, microsecond=0) == want
+        shown = S.jie_display(got).replace(second=0, microsecond=0)      # 분 단위 반올림 표시
+        assert abs((shown - want).total_seconds()) <= 60, r               # ±1분
+        exact += shown == want
     assert len(terms) >= 51 and exact >= 47
 
 
@@ -182,7 +183,12 @@ def test_gyeok_bongi_first():                           # errata #20
     c = S.gyeok_candidates(["甲子", "辛未", "辛酉", "壬辰"])["후보"]
     assert c[0]["격"] == "잡기 정재격(같은 오행 투간)"      # 「甲透未库」
     c = S.gyeok_candidates(["壬寅", "丁未", "丙寅", "壬辰"])["후보"]
-    assert [x["격"] for x in c] == ["잡기 상관격(본기·미투출)", "잡기 월겁(비겁 투출)"]
+    assert [x["격"] for x in c] == ["잡기 상관격(본기·미투출)", "잡기 비겁 투출(월겁 절차)"]
+    # 같은 오행 투간은 고의 오행·본기 土만 — 여기(丑 중 癸)와 같은 오행 壬은 넣지 않는다
+    c = S.gyeok_candidates(["壬申", "癸丑", "己丑", "甲戌"])["후보"]
+    assert [x["격"] for x in c] == ["잡기 편재격"]
+    c = S.gyeok_candidates(["己未", "甲戌", "辛未", "癸巳"])["후보"]
+    assert c[0]["격"] == "잡기 편인격(같은 오행 투간)"      # 본기 戊와 같은 土 己
 
 
 CHAPTER = {"论正官": "정관", "论财": "재", "论印绶": "인수", "论食神": "식신", "论偏官": "칠살",
@@ -245,6 +251,18 @@ def test_combo_origin_only():
     assert r["완성"][0]["성립"] == "원국 자체"
     r = S.combo_relations([("년지", "亥"), ("시지", "卯"), ("월운", "子")])
     assert r["대기(원국 2자)"] == ["삼합 亥卯未(木국): 원국 亥卯 — 未가 오면 완성"]
+    # 원국이 이미 완성한 조합에 운이 같은 글자를 얹어도 '운에서 완성'이 아니다
+    r = S.combo_relations([("년지", "寅"), ("월지", "午"), ("일지", "戌"), ("시지", "子"), ("대운", "甲午")])
+    assert r["완성"][0]["성립"] == "원국 자체" and r["완성"][0]["구성"]["午"] == "월지·대운"
+    assert S.relate_to_unse(["甲寅", "庚午", "丙戌", "戊子"], "甲午")["3자 조합 완성"] == ["없음"]
+
+
+def test_combo_labels():
+    p = ["甲寅", "庚午", "丙戌", "戊子"]
+    assert S.combo_report(p, "癸未,세운:丙午,庚寅")["대상"].endswith("운1 癸未 / 세운 丙午 / 운2 庚寅")
+    for spec in ["년지:丁未", "월주:丁未", "세운:丙午,세운:丁未"]:
+        with pytest.raises(ValueError):
+            S.combo_report(p, spec)
 
 
 # ── 인연 층위 土 역할 ─────────────────────────────────────────
@@ -290,6 +308,45 @@ def test_cli_lunar_and_place():
     d = json.loads(run_cli("--birth", "1995-09-06 06:30", "--lunar", "--gender", "M", "--place", "부산", "--json"))
     assert d["pillars"] == ["乙亥", "丙戌", "癸巳", "乙卯"]
     assert d["입력"]["시각 보정(분)"] == -24
+
+
+def test_cli_lunar_day_missing_in_solar():
+    pytest.importorskip("korean_lunar_calendar")
+    d = json.loads(run_cli("--birth", "2023-02-30 12:00", "--lunar", "--gender", "M", "--json"))
+    assert "양력 2023-03-21" in d["입력"]["입력 시각"]
+    with pytest.raises(SystemExit):
+        run_cli("--birth", "2023-02-30 12:00", "--gender", "M")
+
+
+def test_cli_foreign_zone_needs_longitude():
+    with pytest.raises(SystemExit):
+        run_cli("--birth", "1990-06-15 12:00", "--gender", "M", "--zone", "America/New_York")
+    with pytest.raises(SystemExit):
+        run_cli("--birth", "1990-06-15 12:00", "--gender", "M", "--tz", "-4")
+    with pytest.raises(SystemExit):                    # 보정량이 작아도 한국 밖 시간대면 경도를 요구한다
+        run_cli("--birth", "1990-06-15 12:00", "--gender", "M", "--zone", "Asia/Tokyo")
+    d = json.loads(run_cli("--birth", "1990-06-15 12:00", "--gender", "M", "--zone", "America/New_York",
+                           "--longitude", "-74.006", "--json"))
+    assert d["입력"]["시각 보정(분)"] == 4 and d["입력"]["출생지"].endswith("74.006°W")
+    d = json.loads(run_cli("--birth", "1995-10-29 06:30", "--gender", "M", "--tz", "9", "--json"))
+    assert d["pillars"] == ["乙亥", "丙戌", "癸巳", "乙卯"]
+
+
+@pytest.mark.parametrize("argv", [
+    ["--year-fortune", "2026", "--place", "뉴욕"],
+    ["--birth", "1990-06-15 12:00", "--gender", "M", "--zone", "Asia/Nowhere"],
+    ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--inyeon-scan", "2026-2030"],
+    ["--birth", "1995-10-29 24:30", "--gender", "M"],
+])
+def test_cli_clean_errors(argv, capsys):
+    with pytest.raises(SystemExit) as e:
+        run_cli(*argv)
+    assert isinstance(e.value.code, str)          # 메시지로 끝난다 (traceback 아님)
+
+
+def test_daewoon_age_display_matches_start_age():
+    d = json.loads(run_cli("--birth", "2023-08-12 15:23", "--gender", "M", "--json"))["대운"]
+    assert d["start_age"] == 1 and d["age_exact"] == 1.49 and "만 1년 5개월" in d["나이 기준"]
 
 
 def test_cli_warnings():

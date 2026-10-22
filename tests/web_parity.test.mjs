@@ -22,6 +22,7 @@ for (const c of fx.cases) {
     assert.equal(n.dw.forward ? "순행" : "역행", x.daewoon.direction, "대운 방향");
     assert.equal(n.dw.startAge, x.daewoon.start_age, "대운수");
     assert.deepEqual(n.dw.list.map(d => d.gz), x.daewoon.list, "대운 간지");
+    assert.deepEqual(n.dw.list.map(d => d.ym), x.daewoon.start, "대운 교체 연월");
     assert.deepEqual(n.pillars.map(p => E.sinsal12(n.yearZhi, p[1])), x.sinsal12_year, "12신살(년지)");
     assert.equal(n.gongmangZhi, x.gongmang, "공망");
     assert.deepEqual(n.pillars.map(p => E.unseong(n.dayGan, p[1])), x.unseong_eum, "십이운성(음포태)");

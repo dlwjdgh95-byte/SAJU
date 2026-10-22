@@ -52,6 +52,11 @@ CASES = [
     ("2026-12-07", "12:10", "F", "대설 직후"),
     ("2030-11-20", "18:45", "M", "미래"),
     ("2044-06-30", "03:15", "F", "표 끝 부근"),
+    ("2034-02-04", "03:41", "F", "입춘 03:41:00.8 — 같은 분 출생은 절입 전 (초 내림 회귀)"),
+    ("2005-06-05", "23:02", "M", "망종과 같은 분 출생"),
+    ("1991-05-06", "09:27", "F", "입하와 같은 분 출생"),
+    ("2023-08-12", "15:23", "M", "정밀 대운수 1.4999… → 1 (반올림 경계)"),
+    ("1985-11-30", "10:00", "F", "대운 교체 연도 — 출생 연도+대운수 근사와 1년 차"),
 ]
 
 
@@ -67,7 +72,8 @@ def compute(date, time, gender):
         "offset_min": t["offset_min"], "dst_min": t["dst_min"], "corr_min": t["corr_min"],
         "local": f"{t['local']:%Y-%m-%d %H:%M}",
         "daewoon": {"direction": dw["direction"], "start_age": dw["start_age"],
-                    "list": [x["ganzhi"] for x in dw["list"][:9]]},
+                    "list": [x["ganzhi"] for x in dw["list"][:9]],
+                    "start": [x["start"] for x in dw["list"][:9]]},
         "sinsal12_year": [S.sibisinsal(yz, p[1]) for p in pillars],
         "gongmang": S.gongmang(pillars[2]),
         "unseong_eum": [S.unseong(pillars[2][0], p[1]) for p in pillars],

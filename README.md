@@ -63,13 +63,14 @@ github-linked/
 - `SKILL.md` — 방법 A용 전체 스킬 본문 (절차·라우팅·회귀 방지 규칙)
 - `github-linked/SKILL.md` — 방법 B용 로더
 - `references/00_errata.md` — 교정 이력 (회귀 방지 규칙의 근거)
-- `references/01~10` — 궁통보감 조후 (일간별). 월별 1순위 취용·원문 인용은 `references/johu_wonmun.json`에 고정
+- `references/01~10` — 궁통보감 조후 (일간별). 월별 취용 순서·원문 인용은 `references/johu_wonmun.json`에 고정
 - `references/11~18` — 격국 (십신별 格), `34` 건록·월겁·양인, `35` 잡기(辰戌丑未월)·묘고
 - `references/19~28` — 성패·강약·합충·학파이견·원전사례·병약론·수동계산·출력·점수화
 - `references/29~33` — 십이신살·십이운성/신살 조견표·기간 운세 서술·십성 인종·인연 층위
 - `scripts/saju_calc.py` — 간지·절기·시간대·대운·세운 결정론적 계산 (ephem, korean-lunar-calendar)
 - `scripts/build_web_tables.py` — 웹 엔진 표 구획 생성 / `scripts/check_consistency.py` — 문서·코드 일치 검사
 - `tests/` — pytest·node 테스트와 픽스처 (천문연 절입 시각, 교차검증 명조)
+- `requirements.txt` — 개발·CI 의존성 (ephem 버전 고정)
 - `research/` — 외부 자료 조사 및 이론 반영 검토 기록
 - `web/` — 아티팩트 소스 (`운의 시간표`). 스킬 본문이 아니므로 스킬 업로드 시 제외해도 된다
 
@@ -78,7 +79,7 @@ github-linked/
 ## 개발
 
 ```bash
-pip install ephem korean-lunar-calendar pytest
+pip install -r requirements.txt            # ephem·음력 변환·tzdata·pytest (ephem은 버전 고정)
 python3 -m pytest -q                       # 계산 회귀 테스트
 python3 scripts/check_consistency.py       # 문서 표 ↔ 코드 표, 링크, 표 깨짐, 웹 표 구획
 node --test tests/*.test.mjs               # 웹 엔진 ↔ Python 교차검증

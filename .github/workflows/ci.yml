@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Python 의존성
-        run: pip install ephem korean-lunar-calendar pytest
+        run: pip install -r requirements.txt
       - name: 계산 회귀 테스트
         run: python -m pytest -q
       - name: 문서·코드 일치 검사

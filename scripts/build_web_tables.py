@@ -8,12 +8,14 @@ JS 엔진이 쓰는 표(장간·관계·신살·운성), 절기표, Asia/Seoul �
   python3 scripts/build_web_tables.py          # HTML 구획 갱신
   python3 scripts/build_web_tables.py --check  # 구획이 최신인지 검사 (CI)
 
-절기표: 1900 입춘 ~ 2046 소한. 값 = 1900-01-01 00:00(KST 눈금)부터의 초(내림), 앞 값과의 차를 16진수로 잇는다.
+절기표: 1900 입춘 ~ 2046 소한. 값 = 1900-01-01 00:00(KST 눈금)부터의 밀리초(올림), 앞 값과의 차를 16진수로 잇는다.
+올림인 까닭: 출생 시각은 분 단위라, 절입이 hh:mm:00.6이면 hh:mm 출생은 절입 '전'이다. 내림하면 JS만 '후'로 본다.
+밀리초인 까닭: 절입 1초 차이는 대운 교체 시각에서 약 2분(×121.75)이 되어, 월 경계에서 교체 연월이 갈린다.
 시간대: [벽시계 전환점(분), UTC 오프셋(분), 서머타임(분)]. 전환점은 zoneinfo fold=0 규칙
 (전환 UTC 시각 + 전후 오프셋 중 큰 쪽)으로 계산해, 같은 벽시계 입력에서 Python과 같은 오프셋을 고른다.
 """
 
-import json, os, sys
+import json, math, os, sys
 from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,9 +35,9 @@ def terms_hex():
     for y in range(TERM_Y0, TERM_Y1 + 1):
         for k in range(12):
             kst = S.jie_datetime_utc(y, k) + timedelta(hours=9)
-            sec = int((kst - K_EPOCH).total_seconds() // 1)
-            out.append(format(sec - prev, "x"))
-            prev = sec
+            ms = math.ceil((kst - K_EPOCH) / timedelta(milliseconds=1))
+            out.append(format(ms - prev, "x"))
+            prev = ms
     return ",".join(out)
 
 

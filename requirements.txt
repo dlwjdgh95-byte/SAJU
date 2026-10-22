@@ -1,0 +1,6 @@
+# 계산 스크립트와 테스트 의존성. ephem 버전이 바뀌면 절입 시각이 초 단위로 달라질 수 있어
+# 웹 표 구획 검사(build_web_tables --check)를 위해 고정한다. tzdata는 Windows 등 시스템 시간대 DB가 없는 환경용.
+ephem==4.2.1
+korean-lunar-calendar==0.4.0
+tzdata
+pytest>=8
