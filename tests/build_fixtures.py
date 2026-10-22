@@ -7,10 +7,12 @@ Python 테스트(test_calc.py)는 현재 계산이 이 파일과 같은지, Node
 웹 엔진이 이 파일과 같은지 본다. 계산 규칙을 일부러 바꿨을 때만 다시 만들고, 바뀐 줄을 리뷰한다.
 
   python3 tests/build_fixtures.py
-  python3 tests/build_fixtures.py --quotes   # 조후 원문 인용 고정 파일(tests/fixtures/johu_quotes.json)만
+  python3 tests/build_fixtures.py --johu     # 궁통보감 고정 파일(johu_quotes.json·johu_docs.json)만 (--quotes도 같다)
 
---quotes는 johu_wonmun.json 인용과 01~10번 그 달 '원문' 줄의 「」 인용을 고정한다. 원문 인용을 일부러 바꿨을 때만
-다시 만들고(errata에 근거를 적는다), 바뀐 줄을 리뷰한다 — 옛 인용으로 되돌린 것을 잡는 장치다(errata #39).
+--johu는 johu_wonmun.json 인용과 01~10번 그 달 '원문' 줄의 「」 인용(johu_quotes.json, errata #39), 01~10번 본문을
+절(##·###) 단위로(johu_docs.json, errata #40) 고정한다. 01~10번을 일부러 고쳤을 때만 다시 만들고(원문 근거를 errata에 적는다),
+git diff로 바뀐 줄을 리뷰한다. 본문 산문의 순서 표기는 검사기가 다 읽지 못하므로(확인 권장으로만 낸다) 되돌림은 이 고정이 잡는다.
+다시 만든 뒤 check_consistency의 궁통보감 검사 결과(실패·확인 권장)를 함께 보여 준다.
 """
 
 import json, os, sys
@@ -21,6 +23,7 @@ import saju_calc as S  # noqa: E402
 
 OUT = os.path.join(HERE, "fixtures", "natal_cases.json")
 QUOTES = os.path.join(HERE, "fixtures", "johu_quotes.json")
+DOCS = os.path.join(HERE, "fixtures", "johu_docs.json")
 
 # (날짜, 시각, 성별, 메모) — 입력은 그때 그 지역(서울) 벽시계 시각
 CASES = [
@@ -90,6 +93,7 @@ def compute_unknown(date, gender):
     sc = S.unknown_time_scan(day0)
     return {"pillars": p3, "gyeok": gyeok_names(p3), "oheng": S.analyze_pillars(p3)["oheng_count"],
             "day_alt": [list(x) for x in sc["alt"]], "amb": list(sc["amb"]) if sc["amb"] else None, "amb_gap": sc["gap"],
+            "amb_alt": [list(x) for x in sc["amb_alt"]],
             "daewoon": {"start_age": dw["start_age"], "list": [x["ganzhi"] for x in dw["list"]]}}
 
 
@@ -152,7 +156,7 @@ def johu_quotes():
     for g, path in zip(S.GAN, files):
         with open(path, encoding="utf-8") as f:
             txt = f.read()
-        heads = list(re.finditer(r"^### .*?\((.)月生\)", txt, re.M))
+        heads = list(re.finditer(r"^### .*?\(([子丑寅卯辰巳午未申酉戌亥])月生\)", txt, re.M))
         secs = {h.group(1): txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)] for i, h in enumerate(heads)}
         out[g] = {}
         for z in S.MONTH_ZHI:
@@ -161,13 +165,50 @@ def johu_quotes():
     return out
 
 
+def johu_files():
+    import glob
+    ref = os.path.join(HERE, "..", "references")
+    return sorted(glob.glob(os.path.join(ref, "0[1-9]_gungbok_*.md"))) + sorted(glob.glob(os.path.join(ref, "10_gungbok_*.md")))
+
+
+def johu_docs():
+    """{파일: {"절 제목": 해시}} — 01~10번 본문을 ##·### 절마다 고정한다(줄 끝 공백은 무시, 같은 제목은 ' #2'를 붙인다)."""
+    import hashlib, re
+    out = {}
+    for path in johu_files():
+        with open(path, encoding="utf-8") as f:
+            lines = [l.rstrip() for l in f.read().splitlines()]
+        secs, title, buf = {}, "(머리)", []
+        for l in lines + ["## (끝)"]:
+            if re.match(r"^#{2,3} ", l):
+                secs[title] = hashlib.sha256("\n".join(buf).encode("utf-8")).hexdigest()[:16]
+                title, buf = l.lstrip("#").strip(), []
+                k = 2
+                while title in secs:
+                    title = f"{l.lstrip('#').strip()} #{k}"
+                    k += 1
+            buf.append(l)
+        out[os.path.basename(path)] = secs
+    return out
+
+
 if __name__ == "__main__":
-    if "--quotes" in sys.argv:
-        with open(QUOTES, "w", encoding="utf-8") as f:
-            json.dump(johu_quotes(), f, ensure_ascii=False, indent=1)
-            f.write("\n")
-        print(f"{QUOTES} — 120개월 인용 고정")
-        sys.exit(0)
+    if "--johu" in sys.argv or "--quotes" in sys.argv:
+        for path, data in [(QUOTES, johu_quotes()), (DOCS, johu_docs())]:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=1)
+                f.write("\n")
+        print(f"{QUOTES} — 120개월 인용 고정\n{DOCS} — 01~10번 본문 절 고정")
+        sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
+        import check_consistency as C
+        C.check_johu()
+        C.check_errata_pins()
+        for n_ in C.notes:
+            print(" · 확인 권장:", n_)
+        for p_ in C.problems:
+            print(" - 실패:", p_)
+        print("git diff references/0*_gungbok_*.md references/10_gungbok_*.md 로 바뀐 줄을 원문과 대조할 것")
+        sys.exit(1 if C.problems else 0)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(build(), f, ensure_ascii=False, indent=1)

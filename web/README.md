@@ -15,6 +15,7 @@ Claude의 Artifact로 게시해 쓰며, 매일 아침 Routine이 `DAILY` 블록�
 - 사주 산출: 입춘 기준 연주 / 절입 기준 월주(출생 **순간**으로 비교) / 1900-01-01=甲戌 기준 일주(23시 초과 익일) / 시두법 시주 / 서울 경도 보정(지방평균시)은 시주와 23시 일주 경계에만 (errata #18)
 - 격 1차 후보: 월령 본기 우선, 건록·양인·월겁·잡기 별도 (`saju_calc.gyeok_candidates()`와 같은 규칙, errata #20)
 - `references/29_sibisinsal.md` 12신살(년지·일지 기준 병기)
+- 원국 신살은 양인·문창·학당·천을·공망·백호·괴강(庚辰·庚戌·壬辰·壬戌)·금여·홍염·천라·지망만 싣는다. 괴강 포함 견해(戊辰·戊戌)와 고신·과숙 같은 C등급 병기 항목은 CLI(`saju_calc.py`의 `신살`)에서 본다
 - `references/30_shinsal_extended.md` 십이운성(음포태·양포태 병기), 개별 신살 조견표
 - `references/22_hapchung_shinsal.md` 합·충·형·파·해 + 원진·귀문·격각
 - `references/31_unse_narrative.md` 3층 서술 구조와 서술 규범

@@ -2399,6 +2399,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2446,6 +2447,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 1,
      "list": [
@@ -2492,6 +2494,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 8,
      "list": [
@@ -2538,6 +2541,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 8,
      "list": [
@@ -2587,6 +2591,13 @@
      1439
     ],
     "amb_gap": false,
+    "amb_alt": [
+     [
+      1383,
+      1439,
+      "癸酉"
+     ]
+    ],
     "daewoon": {
      "start_age": 10,
      "list": [
@@ -2633,6 +2644,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2680,6 +2692,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2727,6 +2740,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 1,
      "list": [
@@ -2773,6 +2787,7 @@
     ],
     "amb": null,
     "amb_gap": false,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 7,
      "list": [
@@ -2816,6 +2831,13 @@
      59
     ],
     "amb_gap": true,
+    "amb_alt": [
+     [
+      0,
+      32,
+      "丙辰"
+     ]
+    ],
     "daewoon": {
      "start_age": 9,
      "list": [
@@ -2865,6 +2887,7 @@
      29
     ],
     "amb_gap": true,
+    "amb_alt": [],
     "daewoon": {
      "start_age": 1,
      "list": [

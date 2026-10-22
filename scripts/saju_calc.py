@@ -305,13 +305,14 @@ def utc_to_wall(utc, zone="Asia/Seoul", tz=None):
         return utc + timedelta(hours=tz)
     return utc.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(zone)).replace(tzinfo=None)
 
-def resolve_time(wall, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt"):
+def resolve_time(wall, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt", fold=0):
     """출생 벽시계 → 출생 순간(UTC)과 시주용 보정 시각.
 
     wall     : 그 시각 그 지역 시계가 가리킨 시각 (서머타임 기간이면 서머타임 시각 그대로)
     zone     : IANA 시간대. 표준시 변경·서머타임 이력을 자동으로 적용한다
     tz       : 고정 UTC 오프셋(시간). 주면 zone 이력을 쓰지 않는다
     solar    : 'lmt' 경도 보정(지방평균시) / 'lat' 경도+균시차(진태양시) / 'none' 보정 없음(표준시)
+    fold     : 같은 벽시계 시각이 두 번 있거나 없을 때 0이면 전환 전 오프셋(기본), 1이면 전환 뒤 오프셋
 
     ⚠️ 절입 비교·대운수는 반환값의 utc로, 시주·자시 판정은 local로 한다 (errata #18).
     보정량은 분 단위로 반올림한다 — JS 엔진과 같은 규칙."""
@@ -322,7 +323,8 @@ def resolve_time(wall, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt
             sys.exit("zoneinfo 미지원(Python 3.9 미만) — --tz로 오프셋을 직접 지정할 것")
         zi = ZoneInfo(zone)
         a0, a1 = wall.replace(tzinfo=zi, fold=0), wall.replace(tzinfo=zi, fold=1)
-        off, dst, tzname = a0.utcoffset(), (a0.dst() or timedelta(0)), a0.tzname()
+        aa = a1 if fold else a0
+        off, dst, tzname = aa.utcoffset(), (aa.dst() or timedelta(0)), aa.tzname()
         ambiguous = a0.utcoffset() != a1.utcoffset()
     utc = wall - off
     civil_std = wall - dst
@@ -917,8 +919,10 @@ def injong_report(day_gan, zhi, pillars=None, context=None, label="운"):
                             "'약한 달'이 아니라 '여닫는 달'로 읽는다")
     if pillars:
         hold = wongug_hold(pillars, day_gan)
+        unk = len(pillars) == 3                        # 시주 미상 — 시간·시지에 있으면 보유도가 올라갈 수 있다
         out["원국 교차(4분면)"] = {
-            s: f"{row[s]}({UNSEONG_STATE[row[s]]}) · 원국 {hold[s]} → {QUADRANT[(hold[s], UNSEONG_STATE[row[s]])]}"
+            s: f"{row[s]}({UNSEONG_STATE[row[s]]}) · 원국 {hold[s]}" + ("(연·월·일주 기준, 시주 미상)" if unk and hold[s] != "투간" else "")
+               + f" → {QUADRANT[(hold[s], UNSEONG_STATE[row[s]])]}" + (" (시주에 있으면 달라진다)" if unk and hold[s] != "투간" else "")
             for s in SIPSEONG_ORDER}
     out["⚠️ 출력 규범"] = ("십성 10개를 나열하지 않는다. 오행 5조로 묶어 최고조 1조·최저 1조·갈림 조를 말하고, "
                         "4분면에서 '무효'로 떨어진 십성은 서술에서 제외한다. (32_injong.md §6)")
@@ -1015,7 +1019,8 @@ def baeuja_gung(pillars):
         "배우자궁": f"일지 {dz} — 본기 {BONGI[dz]}({sipsin(day, BONGI[dz])})",
         "지장간": {c: sipsin(day, c) for c in JANGGAN[dz]},
         "원국 내 간섭": inner or {"—": ["없음"]},
-        "간섭 강도": f"부정 관계 {sum(1 for v in inner.values() for r in v if r in _NEG_REL)}건",
+        "간섭 강도": f"부정 관계 {sum(1 for v in inner.values() for r in v if r in _NEG_REL)}건"
+                    + (" (시지 미상 — 일지 옆 시지와의 관계는 빠졌다)" if len(zhis) == 3 else ""),
         "⚠️": "배우자궁은 등급 B(궁위론)다. 재성=배우자 매핑은 고전의 전제이며 궁위·용신 축과 함께 읽는다",
     }
 
@@ -1249,6 +1254,7 @@ def _pillars_warnings(ps):
     if month_gan(ps[0][0], ps[1][1]) != ps[1][0]:
         w.append(f"⚠️ 월주 {ps[1]} — {ps[0][0]}년의 월두법과 맞지 않는다({ps[0][0]}년 {ps[1][1]}월 = {month_gan(ps[0][0], ps[1][1])}{ps[1][1]}). 입력을 확인할 것 (원전 명조에도 전사 오류가 있다)")
     if len(ps) == 3:
+        w.append("ℹ️ 시주 없이 3기둥으로 분석했다 — 시간 투출·시지 회국·시지 관계·원국 보유도·궁 간섭은 시주에 따라 달라질 수 있다")
         return w
     nxt = GAN[(GAN.index(ps[2][0]) + 1) % 10]
     ok = {hour_pillar(ps[2][0], datetime(2000, 1, 1, h, 30))[0] for h in range(24)}
@@ -1275,8 +1281,11 @@ def _hm(x):
 
 def unknown_time_scan(day0, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt", zasi="next"):
     """시각 모름 — 그날 벽시계 00:00~23:59를 1분씩 돌려 본다. 웹 buildNatal의 dayAlt·전환 구간과 같은 값이다.
-    alt: 일주가 정오와 다른 구간 [(시작분, 끝분, 일주)], amb: 같은 시각이 두 번 있거나 없는 구간(시작분, 끝분) 또는 None,
-    gap: 그 구간이 시계를 앞으로 돌려 없는 시각인가(아니면 뒤로 돌려 두 번 있는 시각), dst: 00:00이나 23:59가 서머타임인가."""
+    alt: 일주가 정오와 다른 구간 [(시작분, 끝분, 일주)] — amb 구간은 전환 전 오프셋(fold=0)으로 본다,
+    amb: 같은 시각이 두 번 있거나 없는 구간(시작분, 끝분) 또는 None,
+    gap: 그 구간이 시계를 앞으로 돌려 없는 시각인가(아니면 뒤로 돌려 두 번 있는 시각),
+    amb_alt: amb 구간을 전환 뒤 오프셋(fold=1)으로 읽으면 일주가 달라지는 구간 [(시작분, 끝분, 일주)],
+    dst: 00:00이나 23:59가 서머타임인가."""
     rows = []
     for x in range(1440):
         t = resolve_time(day0 + timedelta(minutes=x), zone=zone, tz=tz, longitude=longitude, solar=solar)
@@ -1290,10 +1299,20 @@ def unknown_time_scan(day0, zone="Asia/Seoul", tz=None, longitude=126.978, solar
         else:
             alt.append([x, x, dp])
     amb = [x for x, r in enumerate(rows) if r[1]]
-    off = [resolve_time(day0 + timedelta(minutes=x), zone=zone, tz=tz, longitude=longitude, solar=solar)["offset_min"]
-           for x in ((amb[0] - 1, amb[-1] + 1) if amb else ())]            # 구간 바로 앞·뒤 오프셋 — 커지면 시계를 앞으로 돌린 것
+    off = [resolve_time(day0 + timedelta(minutes=amb[0]), zone=zone, tz=tz, longitude=longitude, solar=solar, fold=f)["offset_min"]
+           for f in ((0, 1) if amb else ())]                     # 전환 전·뒤 오프셋 — 뒤가 크면 시계를 앞으로 돌린 것(자정을 넘는 전환도)
+    amb_alt = []
+    for x in amb:
+        t1 = resolve_time(day0 + timedelta(minutes=x), zone=zone, tz=tz, longitude=longitude, solar=solar, fold=1)
+        dp = day_pillar(t1["local"], zasi)
+        if dp == rows[x][0]:
+            continue
+        if amb_alt and amb_alt[-1][1] == x - 1 and amb_alt[-1][2] == dp:
+            amb_alt[-1][1] = x
+        else:
+            amb_alt.append([x, x, dp])
     return {"alt": [tuple(r) for r in alt], "amb": (amb[0], amb[-1]) if amb else None, "gap": bool(amb) and off[1] > off[0],
-            "dst": rows[0][2] or rows[1439][2]}
+            "amb_alt": [tuple(r) for r in amb_alt], "dst": rows[0][2] or rows[1439][2]}
 
 def _birth_block(a):
     """--birth 처리 → (pillars, res 일부, 경고 목록)."""
@@ -1372,12 +1391,21 @@ def _birth_block(a):
             warn.append("⚠️ 시각을 몰라 일주는 정오 기준이다. " + ", ".join(f"{sp} 출생이면 {gz}일" for sp, (_, _, gz) in zip(spans, sc["alt"]))
                         + f"이다({rule})")
         if sc["amb"]:
+            alt2 = ", ".join(f"{_hm(x0) if x0 == x1 else f'{_hm(x0)}~{_hm(x1)}'} 출생은 {gz}일" for x0, x1, gz in sc["amb_alt"])
             warn.append(f"⚠️ 이날은 표준시·서머타임 전환이 있어 {_hm(sc['amb'][0])}~{_hm(sc['amb'][1])}의 벽시계 시각이 "
                         + ("없다(시계를 앞으로 돌림)" if sc["gap"] else "두 번 있다(시계를 뒤로 돌림)")
-                        + (" — 위 일주 경계는 앞쪽 오프셋 기준이라, 그 사이 출생 기록이면 원 기록을 확인할 것" if sc["alt"] else " — 그 사이 출생 기록이면 원 기록을 확인할 것"))
+                        + " — 그 사이 시각은 전환 전 시계로 계산했다. "
+                        + (f"전환 뒤 시계로 읽으면 {alt2}이다. " if alt2 else "전환 뒤 시계로 읽어도 일주는 같다. ")
+                        + "그 사이 출생 기록이면 원 기록을 확인할 것")
         warn.append("ℹ️ 시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값이다")
     if known and t["ambiguous"]:
-        warn.append("⚠️ 표준시·서머타임 전환 시각 부근이라 같은 벽시계 시각이 두 번 있거나 없다 — 앞쪽 오프셋으로 계산했다. 원 기록 확인 권장")
+        t1 = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar, fold=1)
+        p1 = four_pillars(t1["utc"], t1["local"], a.zasi)[0]
+        warn.append("⚠️ 표준시·서머타임 전환 시각이라 이 벽시계 시각이 "
+                    + ("없다(시계를 앞으로 돌림)" if t1["offset_min"] > t["offset_min"] else "두 번 있다(시계를 뒤로 돌림)")
+                    + " — 전환 전 시계로 계산했다. "
+                    + (f"전환 뒤 시계로 읽으면 {' '.join(p1)}이다. " if p1 != pillars else "전환 뒤 시계로 읽어도 사주는 같다. ")
+                    + "원 기록을 확인할 것")
     for edge, nm in [(minfo["prev_jie_utc"], minfo["prev_jie_name"]),
                      (minfo["next_jie_utc"], minfo["next_jie_name"])]:
         gap = abs((t["utc"] - edge).total_seconds()) if known else math.inf     # 시각 모름은 위의 절입일 경고로 본다
@@ -1477,10 +1505,17 @@ def main(argv=None):
                              ("--yongsin", a.yongsin), ("--yongsin-role", a.yongsin_role), ("--inyeon-scan", a.inyeon_scan),
                              ("--inyeon-daewoon", a.inyeon_daewoon), ("--inyeon-activity", a.inyeon_activity)] if on]
     place_opts = [o for o, on in [("--place", a.place), ("--zone", a.zone), ("--tz", a.tz is not None)] if on]
+    jang = ["--janggan"] if a.janggan != JANGGAN_DEFAULT else []          # 세운표·표 내보내기는 장간표를 쓰지 않는다
+    for opt in ("birth", "place", "zone", "pillars", "relate", "combo", "injong", "yongsin", "inyeon_scan", "inyeon_daewoon"):
+        v = getattr(a, opt)
+        if v is not None and not v.strip():                 # 빈 값은 옵션을 안 준 것과 같아 보여 조용히 넘어가므로 막는다
+            sys.exit(f"--{opt.replace('_', '-')}에 빈 값을 줄 수 없다")
     if a.export_tables:
-        others = natal + birth_only + place_opts + (["--year-fortune"] if a.year_fortune is not None else [])
+        others = (natal + birth_only + place_opts + jang + (["--year-fortune"] if a.year_fortune is not None else [])
+                  + [o for o, on in [("--json", a.json), ("--brief", a.brief)] if on])
         if others:
-            sys.exit(f"--export-tables는 표만 내보낸다 — {'·'.join(others)}와 함께 쓸 수 없다 (--janggan만 받는다)")
+            sys.exit(f"--export-tables는 기본 장간표와 학파별 장간표(JANGGAN_SCHOOLS)를 함께 담은 표 묶음을 그대로 내보낸다 — "
+                     f"{'·'.join(others)}와 함께 쓸 수 없다")
         print(json.dumps(export_tables(), ensure_ascii=False, indent=1)); return
 
     for opt, v in [("--year-fortune", a.year_fortune), ("--injong-year", a.injong_year)]:
@@ -1488,18 +1523,14 @@ def main(argv=None):
             sys.exit(f"{opt} 연도는 {YEAR_MIN}~{YEAR_MAX}년")
     if a.eot and a.no_solar_correction:
         sys.exit("--eot(진태양시 보정)와 --no-solar-correction(보정 없음)은 함께 쓸 수 없다")
-    for opt in ("birth", "place", "zone", "pillars", "relate", "combo", "injong", "yongsin", "inyeon_scan", "inyeon_daewoon"):
-        v = getattr(a, opt)
-        if v is not None and not v.strip():                 # 빈 값은 옵션을 안 준 것과 같아 보여 조용히 넘어가므로 막는다
-            sys.exit(f"--{opt.replace('_', '-')}에 빈 값을 줄 수 없다")
     if a.tz is not None and not (math.isfinite(a.tz) and abs(a.tz) <= 14):
         sys.exit(f"--tz는 -14~+14 사이의 시간 수다 (받은 값 {a.tz})")
     if a.longitude is not None and not (math.isfinite(a.longitude) and abs(a.longitude) <= 180):
         sys.exit(f"--longitude는 -180~+180 사이의 도 수다 (동경 +, 서경 −. 받은 값 {a.longitude})")
     if a.pillars and a.birth:
         sys.exit("--pillars와 --birth는 함께 쓸 수 없다 — 사주를 직접 주거나 생년월일시를 주거나 하나만")
-    if a.year_fortune is not None and natal + birth_only:
-        sys.exit(f"--year-fortune은 세운·월운 표만 낸다 — 원국·출생 옵션({'·'.join(natal + birth_only)})과 함께 쓸 수 없다")
+    if a.year_fortune is not None and natal + birth_only + jang:
+        sys.exit(f"--year-fortune은 세운·월운 표만 낸다 — 원국·출생·장간 옵션({'·'.join(natal + birth_only + jang)})과 함께 쓸 수 없다")
     if a.pillars and birth_only:
         sys.exit(f"--pillars는 주어진 사주만 분석한다(대운 없음) — {'·'.join(birth_only)}는 --birth와 함께 쓴다")
     if a.pillars and place_opts and a.injong_year is None:

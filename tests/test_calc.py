@@ -387,8 +387,16 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     d = json.loads(run_cli("--birth", "1955-09-08", "--gender", "M", "--json"))
     w = " ".join(d["경고"])
     assert "절입일 출생" in w and "00:00~00:02 출생이면 辛未일" in w and "23:00~23:59의 벽시계 시각이 두 번 있다" in w
+    assert "전환 뒤 시계로 읽으면 23:03~23:59 출생은 癸酉일" in w          # 두 번째 23시대(UTC+8:30)는 익일 일주 — errata #40
     w = " ".join(json.loads(run_cli("--birth", "1948-06-01", "--gender", "M", "--json"))["경고"])
-    assert "00:00~00:59의 벽시계 시각이 없다" in w and "위 일주 경계" not in w           # 경계 줄이 없으면 '위 경계'를 말하지 않는다
+    assert "00:00~00:59의 벽시계 시각이 없다" in w and "전환 뒤 시계로 읽으면 00:00~00:32 출생은" in w
+    w = " ".join(json.loads(run_cli("--birth", "1961-08-10", "--gender", "M", "--json"))["경고"])
+    assert "00:00~00:29의 벽시계 시각이 없다" in w and "전환 뒤 시계로 읽어도 일주는 같다" in w
+    # 자정을 넘는 시계 앞당김(1919-03-30 토론토 23:30 → 00:30)도 '없다'로 가린다
+    w = " ".join(json.loads(run_cli("--birth", "1919-03-30", "--gender", "M", "--zone", "America/Toronto", "--longitude", "-79.38", "--json"))["경고"])
+    assert "23:30~23:59의 벽시계 시각이 없다" in w
+    w = " ".join(json.loads(run_cli("--birth", "1955-09-08 23:30", "--gender", "M", "--json"))["경고"])
+    assert "이 벽시계 시각이 두 번 있다" in w and "전환 뒤 시계로 읽으면 乙未 乙酉 癸酉 壬子" in w
     w = " ".join(json.loads(run_cli("--birth", "1905-03-03", "--gender", "M", "--zasi", "same", "--json"))["경고"])
     assert "00:00 출생이면" in w and "00:00~00:00" not in w
     d = json.loads(run_cli("--birth", "1990-01-09", "--gender", "M", "--json"))
@@ -408,6 +416,10 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     ["--year-fortune", "2026", "--yongsin", "水"],
     ["--year-fortune", "2026", "--gender", "F", "--lunar"],
     ["--export-tables", "--birth", "1990-01-01 10:00"],
+    ["--export-tables", "--janggan", "wolryul"],                       # 표 묶음은 학파와 상관없이 같다
+    ["--export-tables", "--json"],
+    ["--export-tables", "--birth", ""],
+    ["--year-fortune", "2026", "--janggan", "wolryul"],
 ])
 def test_cli_conflicting_modes(argv):                     # 한쪽 옵션을 말없이 버리지 않는다
     with pytest.raises(SystemExit) as e:
@@ -545,9 +557,21 @@ def test_johu_orders_pinned():
     assert got == JOHU_PINNED
 
 
+def test_johu_docs_pinned():
+    """01~10번 본문을 절마다 고정한다 — 산문의 순서·순위·달 수 표기는 검사기가 다 읽지 못해 되돌림을 이 고정이 잡는다(errata #40).
+    일부러 고쳤으면 python3 tests/build_fixtures.py --johu 로 다시 고정하고, 원문 근거를 errata에 적고, 바뀐 줄을 리뷰한다."""
+    with open(F.DOCS, encoding="utf-8") as f:
+        pinned = json.load(f)
+    got = F.johu_docs()
+    diff = [f"{name} {t}" for name in sorted(set(got) | set(pinned))
+            for t in sorted(set(got.get(name, {})) | set(pinned.get(name, {})))
+            if got.get(name, {}).get(t) != pinned.get(name, {}).get(t)]
+    assert not diff, "고정 값과 다른 절(일부러 고쳤으면 --johu로 다시 고정): " + " / ".join(diff[:12])
+
+
 def test_johu_quotes_pinned():
     """json 인용과 01~10번 '원문' 줄 인용을 고정한다 — 원문 문장을 빼거나 옛 인용으로 되돌리면 검사기가 못 잡는 경우가 있다(errata #39).
-    인용을 일부러 바꿨으면 python3 tests/build_fixtures.py --quotes 로 다시 고정하고 바뀐 줄을 리뷰한다."""
+    인용을 일부러 바꿨으면 python3 tests/build_fixtures.py --johu 로 다시 고정하고 바뀐 줄을 리뷰한다."""
     with open(F.QUOTES, encoding="utf-8") as f:
         pinned = json.load(f)
     got = F.johu_quotes()

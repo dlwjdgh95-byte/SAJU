@@ -32,6 +32,7 @@ import saju_calc as S  # noqa: E402
 
 REF = os.path.join(ROOT, "references")
 problems = []
+notes = []        # 확인 권장 — 실패로 치지 않는다(본문 산문의 순서 표기·계절 칸 낱말). 01~10 본문 자체는 tests/fixtures/johu_docs.json이 고정한다
 
 
 def read(rel):
@@ -180,7 +181,7 @@ MON_HEAD = {z: m for m, z in MON.items()}
 NAME = re.compile("|".join(KO))
 GLOSS = re.compile(r"(?<![가-힣])[갑을병정무기경신임계]\(([甲乙丙丁戊己庚辛壬癸])[^)]*\)")    # 병(丙) → 丙
 COMPOUND = re.compile(r"(?<![가-힣])(?!(?:경계|기신|정신)(?![가-힣(]))([갑을병정무기경신임계]{2,3})[목화토금수]?(?![가-힣])")   # 무기토·병정·임계수·경신 (경계·기신·정신은 낱말)
-QUAL = re.compile(r"과다|과잉|과왕|과중|태과|태다|범람|다수|중중|중첩|일파|추가|혼잡|(?<![종적])합|인접")   # 원문 용신을 조건부로 꺼릴 때 쓰는 말(무계 합화, 병신 인접). 괄호 밖에 있어야 한다 — 종합·부적합의 '합'은 아니다
+QUAL = re.compile(r"과다|과잉|과왕|과중|과강|과도|태과|태다|태왕|범람|넘|다수|다량|다견|많|왕성|중중|중첩|중복|일파|추가|혼잡|多|(?<![종적])합|인접")   # 원문 용신을 조건부로 꺼릴 때 쓰는 말(무계 합화, 병신 인접). 괄호 밖에 있어야 한다 — 종합·부적합의 '합'은 아니다
 NO_STEM = re.compile(r"(?<![가-힣])무[갑을병정경신임계](?=\s*시|\)|\s*$)")   # '무갑'·'(무정 시)'는 無甲·無丁 — 戊甲이 아니다 (무계 합화의 무계는 戊癸)
 SIPSIN_WORD = {"비견": ["비견"], "겁재": ["겁재"], "비겁": ["비견", "겁재"], "식신": ["식신"], "상관": ["상관"], "식상": ["식신", "상관"],
                "정재": ["정재"], "편재": ["편재"], "재성": ["정재", "편재"], "정관": ["정관"], "편관": ["편관"], "칠살": ["편관"],
@@ -240,7 +241,7 @@ RANK_EXEMPT_NOTE = {("乙", "午"): "원문이 스스로 갈리는 곳",
                     ("壬", "未"): "두 문장이 甲·癸 순서에서 엇갈린다",
                     ("癸", "寅"): "경금은 신금이 없을 때의 대용(3순위)",
                     ("己", "戌"): "「九月土盛，宜甲木疏之，余皆酌用」을 더한다"}
-# 매트릭스 계절 칸의 첫말 — 인월부터
+# 매트릭스 계절 칸의 첫말 — 인월부터. 같은 뜻의 다른 낱말도 있어 확인 권장으로만 낸다
 SEASON_CELL = ["초봄", "봄 극성", "늦봄", "초여름", "한여름", "늦여름", "초가을", "가을 극성", "늦가을", "초겨울", "한겨울", "늦겨울"]
 # errata로 고친 요약·비교 문장 가운데 검사기가 뜻으로 읽지 못하는 것 — 되돌리면 실패한다. 고칠 때는 errata와 함께 이 목록도 고친다
 ERRATA_PINNED = [
@@ -252,7 +253,13 @@ ERRATA_PINNED = [
     ("10_gungbok_gyesu.md", "계수는 병화 해동(해월은 병화 없이 경신)", "#38 ④"),
     ("03_gungbok_byunghwa.md", "무토는 임수가 많을 때 제방으로만 쓰고(1·2·7·10·11월)", "#34 ⑧"),
     ("04_gungbok_junghwa.md", "8월 甲丙庚(취용 순서는 甲庚丙)", "#34 ⑧"),
-    ("06_gungbok_gito.md", "여름·가을엔 계수가 생명을 주는 단비(1순위 용신)", "#34 ⑧"),
+    ("06_gungbok_gito.md", "계수가 기토의 단비** — 사·오·미·신·유월은 1순위, 묘·진·술월은 2순위, 겨울엔 쓰지 않음", "#34 ⑧"),
+    ("06_gungbok_gito.md", "여름과 칠·팔월(사·오·미·신·유월)엔 계수가 생명을 주는 단비(1순위 용신 — 술월은 갑목 다음 2순위)", "#40"),
+    ("07_gungbok_gyunggeum.md", "인·묘·진·미·신·유·해·자·축 아홉 달의 취용 순서에 정화를 넣는다", "#32 ①"),
+    ("07_gungbok_gyunggeum.md", "원문 아홉 달의 취용에 들며", "#32 ①"),
+    ("07_gungbok_gyunggeum.md", "정화가 완성시킴(원문 아홉 달 취용)", "#32 ①"),
+    ("09_gungbok_imsu.md", "해월 임수는 무토가 먼저, 병화가 온기를 더하며, 갑목이 무토를 칠 때 경금이 무토를 지킨다", "#29 ②"),
+    ("09_gungbok_imsu.md", "병화가 임수를 보면 귀하다는 말은 후대의 풀이이고, 궁통보감 원문 문장은 아니다", "#39 ②"),
     ("07_gungbok_gyunggeum.md", "인월(暖庚性)·축월(解冻)은 1순위, 묘·사·유·해·자월은 보좌", "#34 ⑧"),
     ("10_gungbok_gyesu.md", "- 목일간: 갑목은 경금·정화(벽갑인정), 을목은 병화로 온기", "#34 ⑧"),
 ]
@@ -302,8 +309,11 @@ def _unqualified(item, day):
     return out
 
 
+MONTH_HEAD_RE = re.compile(r"^### .*?\(([子丑寅卯辰巳午未申酉戌亥])月生\)", re.M)    # (正月生)·(閏月生) 같은 머리는 월별 절이 아니다
+
+
 def _month_sections(txt):
-    heads = list(re.finditer(r"^### .*?\((.)月生\)", txt, re.M))
+    heads = list(MONTH_HEAD_RE.finditer(txt))
     return {h.group(1): txt[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(txt)]
             for i, h in enumerate(heads)}
 
@@ -458,6 +468,17 @@ def _simile(seg, mm):
     return pre in ("与", "同", "似", "犹") or post == "一理" or (pre == "如" and post == "之间")
 
 
+def _in_order(q, text):
+    """인용 q가 text에 있는가 — 「A…B」처럼 줄임표로 덜어 낸 인용은 조각들이 차례대로 있으면 된다."""
+    k = 0
+    for part in (p for p in q.split("…") if p):
+        k = text.find(part, k)
+        if k < 0:
+            return False
+        k += len(part)
+    return True
+
+
 def _anchor_problems(z, q, allowed):
     """인용이 그 달 자리에서 시작하는가 — 달 숫자 중간·다른 달 첫머리·다른 달 표시 뒤에서 자른 인용을 잡는다."""
     out, i, k = [], S.MONTH_ZHI.index(z), allowed.find(q)
@@ -550,7 +571,7 @@ def _chains(txt, g):
         if code or raw.startswith(("**원문 취용 순서**", "**원문 (窮通寶鑑)**")):
             continue
         if raw.startswith("#"):
-            mh = re.match(r"^### .*?\((.)月生\)", raw)
+            mh = MONTH_HEAD_RE.match(raw)
             sec, block = (mh.group(1) if mh else None), None
             continue
         if not raw.strip():
@@ -655,7 +676,7 @@ def check_johu():
             z = MON[m]
             order = table[g][z]["order"]
             if not season.strip().startswith(SEASON_CELL[S.MONTH_ZHI.index(z)]):
-                problems.append(f"{name} {m}: 매트릭스 계절 칸 '{season.strip()}'이 '{SEASON_CELL[S.MONTH_ZHI.index(z)]}'로 시작하지 않는다 (errata #32 ④)")
+                notes.append(f"{name} {m}: 매트릭스 계절 칸 '{season.strip()}'이 '{SEASON_CELL[S.MONTH_ZHI.index(z)]}'로 시작하지 않는다 (errata #32 ④)")
             ys, hs = _stems(yong, keep_paren=False), _stems(hui, keep_paren=False)    # 괄호 속 조건으로 내린 취용 글자는 빠진 것으로 본다
             if order[0] not in ys:
                 problems.append(f"{name} {m}: 원문 1순위 {order[0]}이 용신 칸에 없다")
@@ -687,7 +708,7 @@ def check_johu():
             if not set(_stems(hui, keep_paren=False)) <= set(_bullet_stems(bh)) | {g}:
                 problems.append(f"{name} {m}: 매트릭스 희신 {''.join(_stems(hui, keep_paren=False))}가 본문 희신 {''.join(_bullet_stems(bh))}에 없다")
             for l in by + bh:
-                b = re.match(r"- \*\*(.+?)\*\*(?: [^—\n]{1,12}?)? — ([1-4](?:·[1-4])*)순위", l)   # '**계수** 비견 — 4순위'도 읽는다
+                b = re.match(r"- \*\*(.+?)[:：]?\*\*(?: [^—–:：\n]{1,12}?)?\s*(?:—|–|-|:|：)\s*([1-4](?:·[1-4])*)순위", l)   # '**계수** 비견 — 4순위'·'**병화**: 3순위'·' - 3순위'도 읽는다
                 if b:
                     want = [order.index(s_) + 1 if s_ in order else None for s_ in _stems(b.group(1), keep_paren=False)]
                     if want != [int(x) for x in b.group(2).split("·")]:
@@ -712,7 +733,7 @@ def check_johu():
                 problems.append(f"{name} {MON_HEAD[z]}: johu_wonmun.json 원문 인용이 그 달 '원문' 줄에 그대로 없다")
             quotes = re.findall(r"「([^」]+)」", wl.group(1) if wl else "")
             for qq in quotes:
-                if qq not in allowed:
+                if not _in_order(qq, allowed):
                     problems.append(f"{name} {MON_HEAD[z]}: '원문' 줄 인용 「{qq[:20]}…」이 원문 그 달 단락에 없다")
             # 인용 자리·순위 말은 json 인용과 '원문' 줄 인용 모두, 그리고 그 달 N月로 시작하는 원문 문장에서 본다
             whys = [w for qq in dict.fromkeys([q] + quotes) for w in _anchor_problems(z, qq, allowed) + _rank_problems(g, z, qq, order, qq == q)]
@@ -744,23 +765,25 @@ def check_johu():
                     got.append(m2.group(1) if m2 else "?")
             if got != order:
                 problems.append(f"{name} {MON_HEAD[z]}: '원문 취용 순서' {''.join(got or [])} ≠ json order {''.join(order)}")
-        for ln, stem, zs, chain, stems, kind in _chains(txt, g):     # 본문·요약의 순서 말은 원문 취용 순서와 맞아야 한다
+        # 본문·요약의 순서 말은 원문 취용 순서와 맞아야 한다 — 산문은 규칙으로 다 읽을 수 없어 '확인 권장'으로만 낸다(errata #40).
+        # 되돌림은 01~10 본문 고정(tests/fixtures/johu_docs.json, test_johu_docs_pinned)이 잡는다
+        for ln, stem, zs, chain, stems, kind in _chains(txt, g):
             if kind == "back":
-                problems.append(f"{name} {ln}행: 「{chain}」 — 거꾸로 화살표(<·←)는 쓰지 않는다. 취용 순서는 → 로 적을 것")
+                notes.append(f"{name} {ln}행: 「{chain}」 — 거꾸로 화살표(<·←)는 쓰지 않는다. 취용 순서는 → 로 적을 것")
                 continue
             if not zs and kind != "rank":
-                problems.append(f"{name} {ln}행: 「{chain}」의 달을 정할 수 없다 — 앞에 달 이름을 적을 것")
+                notes.append(f"{name} {ln}행: 「{chain}」의 달을 정할 수 없다 — 앞에 달 이름을 적을 것")
             for z in zs:
                 order = table[stem][z]["order"]
                 if kind == "rank":
                     bad = [(n, x) for n, x in stems if x != stem and (x not in order or order.index(x) + 1 != n)]
                     if bad:
-                        problems.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 — {bad[0][1]}은 원문 취용 순서 {''.join(order)}에서 "
+                        notes.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 — {bad[0][1]}은 원문 취용 순서 {''.join(order)}에서 "
                                         f"{order.index(bad[0][1]) + 1 if bad[0][1] in order else '없음'}순위")
                     continue
                 idx = [order.index(s_) if s_ in order else None for s_ in stems]
                 if None in idx or idx != sorted(idx) or (kind == "chain" and stems[0] not in (order[0], stem)):
-                    problems.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 ≠ 원문 취용 순서 {''.join(order)}")
+                    notes.append(f"{name} {ln}행 {MON_HEAD[z]}({stem}): 「{chain}」 ≠ 원문 취용 순서 {''.join(order)}")
 
 
 def check_errata_pins():
@@ -831,17 +854,20 @@ def check_web():
 
 
 def main():
-    check_janggan_doc()
-    check_corpus_notes()
-    check_shinsal_doc()
-    check_samhyeong()
-    check_johu()
-    check_errata_pins()
-    check_tables([os.path.join(ROOT, "SKILL.md"), os.path.join(ROOT, "github-linked", "SKILL.md"),
-                  os.path.join(ROOT, "README.md")] + sorted(glob.glob(os.path.join(REF, "*.md"))))
-    check_paths()
-    if "--skip-web" not in sys.argv:
-        check_web()
+    def check_doc_tables():
+        check_tables([os.path.join(ROOT, "SKILL.md"), os.path.join(ROOT, "github-linked", "SKILL.md"),
+                      os.path.join(ROOT, "README.md")] + sorted(glob.glob(os.path.join(REF, "*.md"))))
+    checks = [check_janggan_doc, check_corpus_notes, check_shinsal_doc, check_samhyeong, check_johu, check_errata_pins,
+              check_doc_tables, check_paths] + ([] if "--skip-web" in sys.argv else [check_web])
+    for fn in checks:
+        try:
+            fn()
+        except Exception as e:                        # 문서를 고치다 검사기가 멈추면 다른 검사 결과까지 가려진다 — 문제로 적고 계속한다
+            problems.append(f"검사기 오류({getattr(fn, '__name__', '?')}): {type(e).__name__}: {e} — 이 검사의 나머지 결과는 빠졌다. 문서 형식을 확인할 것")
+    if notes:
+        print(f"확인 권장 {len(notes)}건 (실패로 치지 않는다 — 본문 산문의 순서 표기·계절 칸 낱말은 규칙으로 다 읽을 수 없다. 원문과 직접 대조할 것)")
+        for n_ in notes:
+            print(" ·", n_)
     if problems:
         print(f"일치 검사 실패 {len(problems)}건")
         for p in problems:

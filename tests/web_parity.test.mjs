@@ -44,6 +44,7 @@ for (const c of fx.unknown) {
     const m = w && w.match(/(\d\d):(\d\d)~(\d\d):(\d\d)/);
     assert.deepEqual(m ? [+m[1] * 60 + +m[2], +m[3] * 60 + +m[4]] : null, x.amb, "같은 시각이 두 번 있거나 없는 구간");
     if (w) assert.ok(w.includes(x.amb_gap ? "시각이 없습니다" : "시각이 두 번 있습니다"), "없는 시각인지 두 번 있는 시각인지");
+    assert.deepEqual(n.ambAlt, x.amb_alt, "전환 구간을 전환 뒤 시계로 읽으면 일주가 달라지는 구간");
     assert.equal(n.dw.startAge, x.daewoon.start_age, "대운수(정오 어림)");
     assert.deepEqual(n.dw.list.map(d => d.gz), x.daewoon.list, "대운 간지");
   });
@@ -101,9 +102,13 @@ test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
 });
 
 test("서머타임 전환 시각 — 겹치거나 없는 벽시계 시각을 알린다", () => {
-  const amb = w => w.includes("같은 시계 시각이 두 번 있거나 없습니다");
+  const amb = w => w.includes("전환 시각이라 이 시계 시각이");
   assert.ok(E.buildNatal({ date: "1987-10-11", time: "02:30", timeKnown: true, gender: "M" }).warn.some(amb));
   assert.ok(!E.buildNatal({ date: "1987-10-11", time: "04:30", timeKnown: true, gender: "M" }).warn.some(amb));
+  // 두 번 있는 23시대 — 두 번째(UTC+8:30)면 일주·시주가 갈린다 (test_calc.test_cli_time_unknown과 같은 값)
+  const w = E.buildNatal({ date: "1955-09-08", time: "23:30", timeKnown: true, gender: "M" }).warn.find(amb);
+  assert.ok(w.includes("두 번 있습니다") && w.includes("전환 뒤 시계로 읽으면 乙未 乙酉 癸酉 壬子"), w);
+  assert.ok(E.buildNatal({ date: "1948-06-01", time: "00:30", timeKnown: true, gender: "M" }).warn.find(amb).includes("없습니다"));
 });
 
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {

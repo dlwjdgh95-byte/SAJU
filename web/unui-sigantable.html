@@ -717,7 +717,7 @@ function buildNatal(profile) {
   const pillars = [yp, mp, dp, hp];
 
   // 확인할 점 — saju_calc.py 경고의 웹판(--longitude·--tz 같은 CLI 옵션 경고는 없다)
-  const warn = [], dayAlt = [];       // dayAlt: 시각 모름일 때 일주가 정오와 다른 [시작분, 끝분, 일주]
+  const warn = [], dayAlt = [], ambAlt = [];  // dayAlt: 시각 모름일 때 일주가 정오와 다른 [시작분, 끝분, 일주], ambAlt: 전환 구간을 전환 뒤 시계로 읽으면 일주가 달라지는 구간
   const pm = i => { const s = jieSlot(i), y = yearPillar(s.jieYear), z = MONTH_ZHI[s.k]; return y + "년 " + monthGan(y[0], z) + z + "월"; };
   if (!known) {
     const d0 = kmin(new Date(Date.UTC(Y, M - 1, D, 0, 0))), d1 = d0 + 1439;
@@ -735,12 +735,23 @@ function buildNatal(profile) {
     if (late !== dp && cut < 1440) dayAlt.push([cut, 1439, late]);
     if (dayAlt.length)
       warn.push(`시각을 몰라 일주는 정오 기준입니다. ${dayAlt.map(([a, b, gz]) => `${a === b ? hm(a) : b < 1439 ? `${hm(a)}~${hm(b)}` : `${hm(a)} 이후`} 출생이면 ${gz}일`).join(", ")}입니다(자시 정설·경도 보정${s0 || s1 ? "·서머타임" : ""}).`);
-    // 그날 안에 같은 시계 시각이 두 번 있거나(시계를 뒤로) 없는(앞으로) 구간 — 위 경계는 앞쪽 오프셋 기준이다 (saju_calc.unknown_time_scan의 amb·gap)
+    // 그날 안에 같은 시계 시각이 두 번 있거나(시계를 뒤로) 없는(앞으로) 구간 — 위 경계는 전환 전 오프셋 기준이고,
+    // 전환 뒤 오프셋으로 읽으면 일주가 달라지는 구간을 따로 알린다 (saju_calc.unknown_time_scan의 amb·gap·amb_alt)
     const amb = TZ_SEOUL.map((t, i) => { const prev = i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0];
-        return [Math.ceil(t[0] - Math.abs(t[1] - prev)), Math.ceil(t[0]) - 1, t[1] > prev]; })
+        return [Math.ceil(t[0] - Math.abs(t[1] - prev)), Math.ceil(t[0]) - 1, t[1] > prev, t[1], t[2]]; })
       .find(([a, b]) => b >= a && a <= d1 && b >= d0);
-    if (amb)
-      warn.push(`이날은 표준시·서머타임 전환이 있어 ${hm(Math.max(amb[0], d0) - d0)}~${hm(Math.min(amb[1], d1) - d0)}의 시계 시각이 ${amb[2] ? "없습니다(시계를 앞으로 돌림)" : "두 번 있습니다(시계를 뒤로 돌림)"} — ${dayAlt.length ? "위 일주 경계는 앞쪽 오프셋 기준이라, " : ""}그 사이 출생 기록이면 원 기록을 확인하세요.`);
+    if (amb) {
+      for (let w = Math.max(amb[0], d0); w <= Math.min(amb[1], d1); w++) {
+        const [oa, sa] = seoulOffset(w);
+        const p1 = dayPillar(w - amb[4] + lmt(amb[3] - amb[4]));
+        if (p1 === dayPillar(w - sa + lmt(oa - sa))) continue;
+        const x = w - d0, r = ambAlt[ambAlt.length - 1];
+        if (r && r[1] === x - 1 && r[2] === p1) r[1] = x; else ambAlt.push([x, x, p1]);
+      }
+      warn.push(`이날은 표준시·서머타임 전환이 있어 ${hm(Math.max(amb[0], d0) - d0)}~${hm(Math.min(amb[1], d1) - d0)}의 시계 시각이 ${amb[2] ? "없습니다(시계를 앞으로 돌림)" : "두 번 있습니다(시계를 뒤로 돌림)"} — 그 사이 시각은 전환 전 시계로 계산했습니다. ` +
+                (ambAlt.length ? `전환 뒤 시계로 읽으면 ${ambAlt.map(([a, b, gz]) => `${a === b ? hm(a) : `${hm(a)}~${hm(b)}`} 출생은 ${gz}일`).join(", ")}입니다. ` : "전환 뒤 시계로 읽어도 일주는 같습니다. ") +
+                "그 사이 출생 기록이면 원 기록을 확인하세요.");
+    }
     warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
@@ -755,8 +766,14 @@ function buildNatal(profile) {
   if (dst) warn.push(known ? `서머타임 기간 — 입력 시각에서 ${dst}분을 빼 표준시로 환산했습니다.`
                             : `서머타임 기간 — 기준 시각(정오)에서 ${dst}분을 빼 표준시로 환산했습니다.`);
   if (off - dst === 510) warn.push("당시 한국 표준시는 UTC+8:30입니다(1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했습니다.");
-  if (known && TZ_SEOUL.some((t, i) => { const d = Math.abs(t[1] - (i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0])); return wallMin >= t[0] - d && wallMin < t[0]; }))
-    warn.push("표준시·서머타임 전환 시각 부근이라 같은 시계 시각이 두 번 있거나 없습니다 — 앞쪽 오프셋으로 계산했습니다. 원 기록을 확인하세요.");
+  const tr = known && TZ_SEOUL.find((t, i) => { const d = Math.abs(t[1] - (i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0])); return wallMin >= t[0] - d && wallMin < t[0]; });
+  if (tr) {                                    // 전환 뒤 오프셋(Python fold=1)으로 다시 계산해 갈리면 알린다
+    const c2 = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (tr[1] - tr[2]) + 0.5), m2 = wallMin - tr[2] + c2;
+    const s2 = jieSlot(wallMin - (tr[1] - 540)), y2 = yearPillar(s2.jieYear), z2 = MONTH_ZHI[s2.k], d2 = dayPillar(m2);
+    const alt = [y2, monthGan(y2[0], z2) + z2, d2, hourPillar(d2[0], m2)].join(" ");
+    warn.push(`표준시·서머타임 전환 시각이라 이 시계 시각이 ${tr[1] > off ? "없습니다(시계를 앞으로 돌림)" : "두 번 있습니다(시계를 뒤로 돌림)"} — 전환 전 시계로 계산했습니다. ` +
+              (alt === pillars.join(" ") ? "전환 뒤 시계로 읽어도 사주는 같습니다. " : `전환 뒤 시계로 읽으면 ${alt}입니다. `) + "원 기록을 확인하세요.");
+  }
   const zhis = [yp[1], mp[1], dp[1], hp ? hp[1] : null];
   const dayGan = dp[0];
 
@@ -812,7 +829,7 @@ function buildNatal(profile) {
   const dw = daewoon(profile, yp[0], mp, instMin, slot);
 
   return { profile, pillars, zhis, dayGan, yearZhi: yp[1], dayZhi: dp[1],
-           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn, dayAlt,
+           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn, dayAlt, ambAlt,
            guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: instMin, solarMin: corrected,
            tz: { off, dst, corr } };
 }
