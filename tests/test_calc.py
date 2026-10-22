@@ -410,7 +410,11 @@ def test_cli_time_unknown():                              # errata #38 — 시�
     q3 = json.loads(run_cli("--pillars", "己巳 丁丑 甲戌", "--injong", "丑", "--json"))
     assert q3["신살"]["개별 신살"]["양인(A)"] == ["연·월·일지에 없음(시지 미상)"]
     assert q3["신살"]["개별 신살"]["공망(A~B)"] == ["공망지 申酉", "연·월·일지에 해당 없음(시지 미상)"]
-    assert "시지 미상" in q3["십성 인종"]["개폐 판정"]
+    assert q3["십성 인종"]["개폐 판정"]["시지 미상"] == "시지가 未(충)이면 충개고로 바뀐다"          # 합국 — 시지 충만 판정을 바꾼다
+    q = json.loads(run_cli("--pillars", "己巳 丁丑 甲戌", "--injong", "辰", "--json"))["십성 인종"]["개폐 판정"]
+    assert q["판정"].startswith("충개고") and "시지 미상" not in q                                   # 충개고는 시지와 상관없다 (errata #42)
+    q = json.loads(run_cli("--pillars", "庚午 戊寅 甲午", "--injong", "辰", "--json"))["십성 인종"]["개폐 판정"]
+    assert q["판정"].startswith("폐고") and q["시지 미상"] == "시지가 戌(충)이면 충개고, 申·子(삼합 짝)이면 합국으로 바뀐다"
     quad = q3["십성 인종"]["원국 교차(4분면)"]
     assert any("(연·월·일주 기준, 시주 미상)" in v and v.endswith(" (시주에 있으면 달라진다)") for v in quad.values())
     q4 = run_cli("--pillars", "己巳 丁丑 甲戌 丙寅", "--injong", "丑", "--inyeon", "--json")
@@ -442,7 +446,14 @@ def test_cli_conflicting_modes(argv):                     # 한쪽 옵션을 말
 
 def test_daewoon_age_display_matches_start_age():
     d = json.loads(run_cli("--birth", "2023-08-12 15:23", "--gender", "M", "--json"))["대운"]
-    assert d["start_age"] == 1 and d["age_exact"] == 1.49 and "만 1년 5개월" in d["나이 기준"]
+    assert d["start_age"] == 1 and d["age_exact"] == 1.49 and "만 1년 5개월" in d["나이 기준"] and "반올림한 관례 정수" in d["나이 기준"]
+    d = json.loads(run_cli("--birth", "2026-02-04 05:30", "--gender", "F", "--json"))["대운"]     # 0으로 반올림되면 최소 1세 관례
+    assert d["start_age"] == 1 and d["나이 기준"].startswith("대운수 1은 출생 후 경과 연수(만 0년 0개월)를 반올림하면 0이라 최소 1세 관례")
+
+
+def test_gongmang_same_branch_twice():                     # 같은 공망 지지가 두 자리에 있으면 둘 다 (웹과 같다)
+    d = json.loads(run_cli("--birth", "1971-06-15 23:10", "--gender", "F", "--json"))
+    assert d["pillars"] == ["辛亥", "甲午", "辛未", "己亥"] and d["신살"]["개별 신살"]["공망(A~B)"] == ["공망지 戌亥", "년지亥", "시지亥"]
 
 
 def test_cli_warnings():

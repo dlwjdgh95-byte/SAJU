@@ -753,7 +753,7 @@ function buildNatal(profile) {
                 "그 사이 출생 기록이면 원 기록을 확인하세요.");
     }
     warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
-    warn.push("시각을 몰라 시주 없이 3기둥으로 분석했습니다 — 격 후보(시간 투출·시지 회국)·일간 뿌리·원국 관계·신살(양인·공망 등)은 시주에 따라 달라질 수 있습니다.");
+    warn.push("시각을 몰라 시주 없이 3기둥으로 분석했습니다 — 격 후보(시간 투출·시지 회국)·오행 분포·일간 뿌리·원국 관계·신살(양인·공망 등)은 시주에 따라 달라질 수 있습니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
     if (gap < 2) warn.push("절입 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 1분 다를 수 있습니다. 천문연 역서로 월주를 확인하세요.");
@@ -806,8 +806,8 @@ function buildNatal(profile) {
   const ce = zhis.filter(z => z && CHEONEUL[dayGan].includes(z));
   if (ce.length) push("천을귀인", "B", ce.join("·") + " — 결과가 아니라 통로");
   const gm = gongmang(dp);
-  const gmHit = zhis.filter(z => z && gm.includes(z));
-  push("공망", "A~B", `공망지 ${gm}` + (gmHit.length ? ` — ${gmHit.map(z => posOf(z)[0] + " " + z).join("·")}` : pillars[3] ? " — 원국에 없음" : " — 연·월·일지에 없음(시지 미상)"));
+  const gmHit = zhis.map((z, i) => z && gm.includes(z) ? ["년", "월", "일", "시"][i] + "지 " + z : null).filter(Boolean);   // 같은 지지가 두 자리에 있으면 둘 다
+  push("공망", "A~B", `공망지 ${gm}` + (gmHit.length ? ` — ${gmHit.join("·")}` : pillars[3] ? " — 원국에 없음" : " — 연·월·일지에 없음(시지 미상)"));
   const bh = pillars.filter(p => p && BAEKHO.includes(p));
   if (bh.length) push("백호대살", "B", bh.join("·"));
   const kg = pillars.filter(p => p && GWAEGANG.includes(p));

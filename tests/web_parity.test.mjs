@@ -118,6 +118,14 @@ test("서머타임 전환 시각 — 겹치거나 없는 벽시계 시각을 알
   assert.ok(E.buildNatal({ date: "1948-06-01", time: "00:30", timeKnown: true, gender: "M" }).warn.find(amb).includes("없습니다"));
 });
 
+test("공망 — 같은 지지가 두 자리에 있으면 둘 다 적는다 (test_calc.test_gongmang_same_branch_twice와 같다)", () => {
+  const n = E.buildNatal({ date: "1971-06-15", time: "23:10", timeKnown: true, gender: "F" });
+  assert.deepEqual(n.pillars, ["辛亥", "甲午", "辛未", "己亥"]);
+  assert.equal(n.sinsal.find(x => x.n === "공망").v, "공망지 戌亥 — 년지 亥·시지 亥");
+  const u = E.buildNatal({ date: "1922-10-29", timeKnown: false, gender: "M" });
+  assert.ok(u.sinsal.find(x => x.n === "공망").v.endsWith("년지 戌·월지 戌"), u.sinsal.find(x => x.n === "공망").v);
+});
+
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {
   const n = E.buildNatal({ date: "2000-01-07", time: "23:20", timeKnown: true, gender: "M" });
   assert.ok(n.warn.some(w => w.includes("甲子일 乙亥시") && w.includes("乙丑일 丙子시")), n.warn.join(" / "));
