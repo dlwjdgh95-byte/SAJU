@@ -27,7 +27,7 @@ saju_calc.py — 사주팔자 결정론적 계산 스크립트 (saju-expert skil
 정확도 근거 (references/00_errata.md 참조):
   - 일주: 1900-01-01=甲戌 기준, 2000-01-01=戊午로 교차검증됨.
   - 대운 방향: 연간(年干) 기준 양남음녀 순행 (errata #1).
-  - 절기: ephem 태양 겉보기 황경(of-date)의 15°k 통과 시각을 이분탐색 (errata #14).
+  - 절기: ephem 태양 겉보기 황경(of-date)이 315°+30°k(12절)를 지나는 시각을 이분탐색 (errata #14).
   - 절입 비교·대운수는 출생 순간(UTC)으로 계산한다. 경도 보정은 시주·일주(자시)에만 쓴다 (errata #18).
   - 시각 보정: 기본은 경도 보정만 하는 지방평균시(LMT, 서울 −32분). --eot를 주면 균시차까지 더한 진태양시(LAT).
 """
@@ -186,6 +186,7 @@ PLACES = {
     "함흥": (127.536, "Asia/Pyongyang"), "청진": (129.776, "Asia/Pyongyang"), "신의주": (124.398, "Asia/Pyongyang"),
 }
 DEFAULT_PLACE = "서울"
+YEAR_MIN, YEAR_MAX = 1583, 2100      # 그레고리력 이후 — ephem(율리우스력 입력)과 일주 계산의 달력이 같아지는 구간
 
 
 def set_janggan_school(name):
@@ -377,16 +378,18 @@ def day_pillar(local_dt, zasi_rule="next"):
     d = local_dt
     if zasi_rule == "next" and (d.hour * 60 + d.minute) > 23 * 60:
         d = d + timedelta(days=1)
+    elif zasi_rule == "same" and d.hour == 0 and d.minute == 0:
+        d = d - timedelta(days=1)          # 야자시설: 24:00(=00:00 정각)까지가 당일 — 정각은 이전 구간 (errata #6)
     days = (datetime(d.year, d.month, d.day) - DAY_ANCHOR).days
     return ganzhi((DAY_ANCHOR_IDX + days) % 60)
 
 def hour_pillar(day_gan, local_dt, next_day_gan=None):
     """시주. 경계 원칙: 정각(xx:00)은 이전 시지 (errata #6). 子 = 23:01~01:00.
-    next_day_gan: 야자시설에서 23:01~24:00 출생이면 익일 일간 — 시두법은 익일 기준으로 건다 (errata #17)."""
+    next_day_gan: 야자시설에서 23:01~24:00(00:00 정각 포함) 출생이면 익일 일간 — 시두법은 익일 기준으로 건다 (errata #17)."""
     minutes = local_dt.hour * 60 + local_dt.minute
     adj = (minutes - 1) % 1440            # 정각을 이전 구간 끝으로
     zhi_idx = ((adj + 60) // 120) % 12    # 23:01부터 子(0)
-    base = next_day_gan if (next_day_gan and minutes > 23 * 60) else day_gan
+    base = next_day_gan if (next_day_gan and (minutes > 23 * 60 or minutes == 0)) else day_gan
     start = {"甲":"甲","己":"甲","乙":"丙","庚":"丙","丙":"戊","辛":"戊",
              "丁":"庚","壬":"庚","戊":"壬","癸":"壬"}[base]
     return GAN[(GAN.index(start) + zhi_idx) % 10] + ZHI[zhi_idx], zhi_idx
@@ -449,7 +452,8 @@ def stem_relations(items, only_with=None):
             r = cheongan_relations(a, b)
             if not r: continue
             if la in pos and lb in pos and abs(pos[la] - pos[lb]) > 1:
-                r.append("격위(사이에 다른 천간 — 합력 약화, 22 §1-3)")
+                r.append("격위(사이에 다른 천간 — 합력 약화, 22 §1-3)" if any("합" in x for x in r)
+                         else "격위(사이에 다른 천간이 있다)")
             out[f"{la}{a}—{lb}{b}"] = r
     return out
 
@@ -485,7 +489,7 @@ def gyeok_candidates(pillars):
     """월령 기준 격 1차 후보 (자평진전 순서). 성패·변격·종격 판정은 하지 않는다 — SKILL.md Step 4.
     순서: ① 辰戌丑未월 → 잡기(투출 장간 > 같은 오행 투간 > 본기)
           ② 월지 = 일간 록지 → 건록  ③ 양간·월지 = 양인 → 양인  ④ 음간·월지 본기 겁재 → 월겁
-          ⑤ 그 외 → 본기 격을 1순위로, 중기·여기 투출은 '변화 후보'로 병기 (errata #20)"""
+          ⑤ 그 외 → 본기 격을 1순위로, 중기·여기 투출과 월지가 낀 삼합 회국은 '변화 후보'로 병기 (errata #20·#30)"""
     yg, mg, dg, hg = [p[0] for p in pillars]
     mz = pillars[1][1]
     day, others = dg, [yg, mg, hg]
@@ -502,20 +506,19 @@ def gyeok_candidates(pillars):
         cands.append({"격": name or GYEOK_NAME[s], "근거": why, "참조": ref or GYEOK_FILE[s]})
     if mz in "辰戌丑未":
         useful = [g for g in tou if is_gyeok(g)]
-        # 같은 오행 투간은 고(庫)의 오행과 본기 土까지만 — 「甲透未库」의 근거 범위. 여기(지난 계절)는 넣지 않는다
+        # 같은 오행 투간은 고(庫)의 오행만 — 「甲透未库」의 근거 범위. 본기 土·여기(지난 계절)는 넣지 않는다 (errata #30)
         ku = KU_OHENG[mz]
-        same = [o for o in others if o not in useful and is_gyeok(o) and OHENG[o] in (ku, "土")]
+        same = [o for o in others if o not in useful and is_gyeok(o) and OHENG[o] == ku]
         for g in useful:
             add(g, f"잡기 {GYEOK_NAME[sipsin(day, g)]}", f"{mz} 중 {desc(g)} 투출", f"35_japgi.md · {GYEOK_FILE[sipsin(day, g)]}")
         for o in dict.fromkeys(same):
             j = next(j for j in jang if OHENG[j] == OHENG[o])
-            why = (f"{mz}는 {ku}庫 — 고의 오행 {desc(j)}와 같은 오행 {desc(o)} 투간. 「甲透未库」(24번 论财-07)처럼 투출로 본다"
-                   if OHENG[o] == ku else
-                   f"본기 {desc(j)}와 같은 土 {desc(o)} 투간 — 투출로 본다(24번 论印绶-09)")
+            why = f"{mz}는 {ku}庫 — 고의 오행 {desc(j)}와 같은 오행 {desc(o)} 투간. 「甲透未库」(24번 论财-07)처럼 투출로 본다"
             add(o, f"잡기 {GYEOK_NAME[sipsin(day, o)]}(같은 오행 투간)", why, f"35_japgi.md · {GYEOK_FILE[sipsin(day, o)]}")
         if is_gyeok(bongi) and bongi not in useful:
             add(bongi, f"잡기 {GYEOK_NAME[sipsin(day, bongi)]}(본기·미투출)",
-                (("투출 없음 → " if not tou else "격이 될 투출 없음(비겁만 투출) → ") if not cands else "투출 장간이 합거·극제되면 → ") + f"본기 {desc(bongi)}",
+                (("투출 없음 → " if not tou else "격이 될 투출 없음(비겁만 투출) → ") if not cands else
+                 "투출 장간이 합거·극제되면 → " if useful else "같은 오행 투간이 합거·극제되면 → ") + f"본기 {desc(bongi)}",
                 f"35_japgi.md · {GYEOK_FILE[sipsin(day, bongi)]}")
         bi = [g for g in tou if not is_gyeok(g)]
         if not cands:
@@ -538,7 +541,13 @@ def gyeok_candidates(pillars):
         for g in tou:
             if g != bongi and is_gyeok(g):
                 add(g, GYEOK_NAME[sipsin(day, g)] + "(변화 후보)",
-                    f"중기·여기 {desc(g)} 투출 — 본기가 합거·극제되거나 무력하면 이쪽으로 변한다(논용신변화)")
+                    f"중기·여기 {desc(g)} 투출 — 원문은 본기가 불투하고 중기가 투출하면 중기가 작주한다고 한다"
+                    "(「不透甲而透丙」, 논용신변화). 24번 71命이 본기 1순위로 맞으므로 변화 후보로 둔다")
+        guk = SAMHAP_OF[mz]
+        wang = BONGI[guk[1]]                                   # 국의 왕지 본기로 십성을 정한다
+        if all(z in [p[1] for p in pillars] for z in guk) and is_gyeok(wang) and sipsin(day, wang) != sipsin(day, bongi):
+            add(wang, GYEOK_NAME[sipsin(day, wang)] + "(회국 변화 후보)",
+                f"지지에 {guk} {SAMHAP[guk]}국이 모두 있다 — 「丁生亥月，本为正官，支全卯未，则化为印」처럼 국의 오행으로 변할 수 있다(논용신변화)")
     out["후보"] = cands
     # 학파 차이 경고 — 월률분야에만 있는 여기가 투간했는가
     extra = [g for g in JANGGAN_SCHOOLS["wolryul"][mz] if g not in JANGGAN_SCHOOLS["jangan_ga"][mz]]
@@ -583,7 +592,7 @@ def analyze_pillars(pillars):
     # 월지 장간 투출 체크
     transparent = [g for g in JANGGAN[mz] if g in (yg, mg, hg)]
     res["wolji_tuchul"] = ("·".join(f"{g}({sipsin(day,g)})" for g in transparent)
-                          if transparent else f"미투출 → 본기 {BONGI[mz]}({sipsin(day,BONGI[mz])}) 기준")
+                          if transparent else "미투출 (격은 '격 후보' 참조)")
     res["격 후보"] = gyeok_candidates(pillars)
     res["천간 관계"] = stem_relations(list(zip(["년간","월간","일간","시간"], [yg,mg,dg,hg]))) or {"—": ["없음"]}
     res["지지 3자 조합"] = combo_relations(list(zip(ORIGIN_ZHI, branches)))
@@ -918,17 +927,20 @@ def relate_to_unse(pillars, unse_gz, label="운"):
     return out
 
 def combo_report(pillars, spec):
-    """--combo: 원국 8자 + 대운·세운·월운·일운(최대 14자)의 3자 조합·천간 합충 일괄 판정.
-    spec 예: '대운:癸未,세운:丙午,월운:庚寅' (라벨 생략 시 운1·운2…)"""
+    """--combo: 원국 8자 + 운 간지 여러 개(대운·세운·월운·일운 등)의 3자 조합·천간 합충 일괄 판정.
+    spec 예: '대운:癸未,세운:丙午,월운:庚寅' (라벨 생략 시 운1·운2… — 직접 준 라벨과 겹치지 않게 매긴다)"""
     labels = ["년","월","일","시"]
     natal = set(ORIGIN_ZHI) | {f"{l}{k}" for l in labels for k in ("간", "주")}
+    parts = [p.strip().partition(":") for p in spec.split(",")]
+    given = {lab.strip() for lab, sep, _ in parts if sep}
     unse, n = [], 0
-    for part in spec.split(","):
-        lab, sep, gz = part.strip().partition(":")
+    for lab, sep, gz in parts:
+        part = lab + sep + gz
         if sep:
             lab, gz = lab.strip(), gz.strip()
         else:
             n += 1
+            while f"운{n}" in given: n += 1
             lab, gz = f"운{n}", lab.strip()
         if not valid_ganzhi(gz):
             raise ValueError(f"--combo 간지 형식 오류: {part!r} — 60갑자 간지여야 한다 (예: 대운:癸未)")
@@ -1120,9 +1132,25 @@ def inyeon_scan(pillars, y0, y1, daewoon=None, activity=False):
                          "명리는 빈도·성향·능력을 판정하지 않는다 (33_inyeon.md §5-5)")
     return out
 
+OHENG_KO = {"목": "木", "화": "火", "토": "土", "금": "金", "수": "水"}
+
+def _parse_yongsin(spec):
+    """'水,土' / '水土' / '수,토' → ['水','土']. 오행이 아닌 글자가 있으면 오류."""
+    items = [OHENG_KO.get(c, c) for c in re.sub(r"[\s,，·/]", "", spec)]
+    if not items or any(c not in "木火土金水" for c in items):
+        sys.exit(f"--yongsin 형식 오류: {spec!r} — 오행 글자(木火土金水 또는 목화토금수)를 쉼표로 (예: 水,土)")
+    return list(dict.fromkeys(items))
+
 def _inyeon_cli(a, ps):
     out = {}
-    ys = [s.strip() for s in a.yongsin.split(",")] if a.yongsin else None
+    for opt, val, need in [("--yongsin", a.yongsin, a.inyeon), ("--yongsin-role", a.yongsin_role, a.inyeon),
+                           ("--inyeon-daewoon", a.inyeon_daewoon, a.inyeon_scan),
+                           ("--inyeon-activity", a.inyeon_activity, a.inyeon_scan)]:
+        if val and not need:
+            sys.exit(f"{opt} 옵션은 {'--inyeon' if opt.startswith('--yongsin') else '--inyeon-scan'}과 함께 쓴다")
+    ys = _parse_yongsin(a.yongsin) if a.yongsin else None
+    if a.yongsin_role and "土" not in (ys or []):
+        sys.exit("--yongsin-role은 용신에 土가 있을 때만 쓴다 (예: --yongsin 水,土 --yongsin-role 생금)")
     if a.inyeon:
         out["배우자궁"] = baeuja_gung(ps)
         out["상대 지지 정합도"] = inyeon_fit(ps, ys, a.yongsin_role)
@@ -1131,6 +1159,8 @@ def _inyeon_cli(a, ps):
         if not m or int(m.group(1)) > int(m.group(2)):
             sys.exit(f"--inyeon-scan 형식 오류: {a.inyeon_scan!r} — 시작:끝 연도 (예: 2026:2036)")
         y0, y1 = int(m.group(1)), int(m.group(2))
+        if not (YEAR_MIN <= y0 and y1 <= YEAR_MAX):
+            sys.exit(f"--inyeon-scan 연도는 {YEAR_MIN}~{YEAR_MAX}년")
         out["인연 스캔"] = inyeon_scan(ps, y0, y1, a.inyeon_daewoon, a.inyeon_activity)
     return out
 
@@ -1185,6 +1215,17 @@ def _parse_pillars(s):
         sys.exit(f"사주 형식 오류: {s!r} — 60갑자 간지 4개 (예: \"乙亥 丙戌 癸巳 乙卯\")")
     return ps
 
+def _pillars_warnings(ps):
+    """직접 입력한 사주가 월두법·시두법과 맞는지. 시간은 야자시설(익일 일간 시두)도 허용한다."""
+    w = []
+    if month_gan(ps[0][0], ps[1][1]) != ps[1][0]:
+        w.append(f"⚠️ 월주 {ps[1]} — {ps[0][0]}년의 월두법과 맞지 않는다({ps[0][0]}년 {ps[1][1]}월 = {month_gan(ps[0][0], ps[1][1])}{ps[1][1]}). 입력을 확인할 것 (원전 명조에도 전사 오류가 있다)")
+    nxt = GAN[(GAN.index(ps[2][0]) + 1) % 10]
+    ok = {hour_pillar(ps[2][0], datetime(2000, 1, 1, h, 30))[0] for h in range(24)}
+    if ps[3] not in ok and not (ps[3][1] == "子" and ps[3] == hour_pillar(nxt, datetime(2000, 1, 1, 0, 30))[0]):
+        w.append(f"⚠️ 시주 {ps[3]} — {ps[2][0]}일의 시두법과 맞지 않는다. 입력을 확인할 것 (원전 명조에도 전사 오류가 있다)")
+    return w
+
 def _check_place(place):
     place = place or DEFAULT_PLACE
     if place not in PLACES:
@@ -1217,6 +1258,11 @@ def _birth_block(a):
         except ValueError as e:
             sys.exit(str(e))
         lunar_note = f"음력 {y:04d}-{mo:02d}-{d:02d}{' 윤달' if a.leap else ''} → 양력 {sd:%Y-%m-%d}"
+        if not a.leap:
+            try:
+                lunar_note += f" (그해 {mo}월은 윤달이 있다 — 윤{mo}월 출생이면 --leap: 양력 {lunar_to_solar(y, mo, d, True):%Y-%m-%d})"
+            except ValueError:
+                pass
         y, mo, d = sd.year, sd.month, sd.day
     elif a.leap:
         sys.exit("--leap은 --lunar와 함께 쓴다")
@@ -1224,13 +1270,15 @@ def _birth_block(a):
         wall = datetime(y, mo, d, hh, mi)
     except ValueError:
         sys.exit(bad)
+    if not YEAR_MIN <= y <= YEAR_MAX:
+        sys.exit(f"--birth 연도는 {YEAR_MIN}~{YEAR_MAX}년만 지원한다 (그레고리력 이전·먼 미래는 절기·일주 계산의 달력이 맞지 않는다)")
     place = _check_place(a.place)
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
     zone = _check_zone(a.zone or PLACES[place][1])
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
     korean = zone in ("Asia/Seoul", "Asia/Pyongyang") if a.tz is None else a.tz in (8.5, 9)
     if a.longitude is None and a.place is None and not korean:
-        sys.exit(f"한국 밖 시간대({a.zone or f'UTC{a.tz:+g}'})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
+        sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
                  "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)")
     t = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar)
     if a.longitude is None and abs(t["lon_corr_min"]) > 60:
@@ -1260,9 +1308,11 @@ def _birth_block(a):
         elif gap < 86400:
             warn.append(f"⚠️ 절입({nm} {jie_display(wall_fn(edge)):%m-%d %H:%M}) ±24시간 이내 출생 — 출생 시각 기록의 정확도가 월주를 가른다")
     if t["corr_min"]:
-        h_std = hour_pillar(pillars[2][0], t["civil_std"])[0][1]
-        if h_std != pillars[3][1]:
-            warn.append(f"⚠️ 시각 보정({t['corr_min']:+d}분)으로 시지가 {h_std}→{pillars[3][1]}로 바뀌는 경계 출생 — 보정 학설에 따라 시주가 갈린다")
+        alt, _ = four_pillars(t["utc"], t["civil_std"], a.zasi)
+        if alt[2:] != pillars[2:]:
+            what = "일주·시주" if alt[2] != pillars[2] else "시주"
+            warn.append(f"⚠️ 시각 보정({t['corr_min']:+d}분) 경계 출생 — 보정하면 {pillars[2]}일 {pillars[3]}시, "
+                        f"보정하지 않으면(표준시) {alt[2]}일 {alt[3]}시. 보정 학설에 따라 {what}가 갈린다")
 
     mode = {"lmt": f"지방평균시(LMT) — 경도 보정 {t['corr_min']:+d}분",
             "lat": f"진태양시(LAT) — 경도 {t['lon_corr_min']:+.1f}분 + 균시차 {t['eot_min']:+.1f}분 → {t['corr_min']:+d}분",
@@ -1343,7 +1393,10 @@ def main(argv=None):
     if a.export_tables:
         print(json.dumps(export_tables(), ensure_ascii=False, indent=1)); return
 
-    if a.year_fortune:
+    for opt, v in [("--year-fortune", a.year_fortune), ("--injong-year", a.injong_year)]:
+        if v is not None and not YEAR_MIN <= v <= YEAR_MAX:
+            sys.exit(f"{opt} 연도는 {YEAR_MIN}~{YEAR_MAX}년")
+    if a.year_fortune is not None:
         if ephem is None:
             sys.exit("ephem 미설치: pip install ephem --break-system-packages")
         zone = _check_zone(a.zone or PLACES[_check_place(a.place)][1])
@@ -1351,7 +1404,8 @@ def main(argv=None):
                "월운": wolwoon_table(a.year_fortune, a.tz, zone)}, a); return
 
     if a.pillars:
-        ps, extra, warn = _parse_pillars(a.pillars), {}, []
+        ps, extra = _parse_pillars(a.pillars), {}
+        warn = _pillars_warnings(ps)
     elif a.birth:
         if not a.gender:
             ap.error("--birth에는 --gender가 필요하다 (대운 방향)")
@@ -1374,7 +1428,7 @@ def main(argv=None):
         except ValueError as e:
             sys.exit(str(e))
     if a.injong: res["십성 인종"] = injong_report(ps[2][0], a.injong[-1], pillars=ps, context=[a.injong[-1]])
-    if a.injong_year: res["연간 인종"] = injong_year(ps, a.injong_year, a.tz, zone)
+    if a.injong_year is not None: res["연간 인종"] = injong_year(ps, a.injong_year, a.tz, zone)
     res.update(_inyeon_cli(a, ps))
     if warn: res["경고"] = warn
     _emit(res, a)

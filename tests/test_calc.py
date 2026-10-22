@@ -52,6 +52,13 @@ def test_yajasi_hour_stem_uses_next_day():              # errata #17
     assert p[2] == "乙丑" and p[3] == "丙子"
 
 
+def test_yajasi_midnight_stays_with_previous_day():     # errata #30
+    # 야자시설: 23:01~00:00이 한 시진. 00:00 정각은 아직 전날 일주·익일 일간 시두법 子시다
+    for wall, day in [("2000-01-07 23:59", "甲子"), ("2000-01-08 00:00", "甲子"), ("2000-01-08 00:01", "乙丑")]:
+        p, _, _ = natal(wall, solar="none", zasi="same")
+        assert (p[2], p[3]) == (day, "丙子"), wall
+
+
 # ── 절입 비교는 출생 순간으로 ──────────────────────────────────
 
 def test_jie_compare_uses_birth_instant():              # errata #18
@@ -184,11 +191,20 @@ def test_gyeok_bongi_first():                           # errata #20
     assert c[0]["격"] == "잡기 정재격(같은 오행 투간)"      # 「甲透未库」
     c = S.gyeok_candidates(["壬寅", "丁未", "丙寅", "壬辰"])["후보"]
     assert [x["격"] for x in c] == ["잡기 상관격(본기·미투출)", "잡기 비겁 투출(월겁 절차)"]
-    # 같은 오행 투간은 고의 오행·본기 土만 — 여기(丑 중 癸)와 같은 오행 壬은 넣지 않는다
+    # 같은 오행 투간은 고의 오행만 — 여기(丑 중 癸)와 같은 오행 壬, 본기 戊와 같은 土 己는 넣지 않는다 (errata #30)
     c = S.gyeok_candidates(["壬申", "癸丑", "己丑", "甲戌"])["후보"]
     assert [x["격"] for x in c] == ["잡기 편재격"]
     c = S.gyeok_candidates(["己未", "甲戌", "辛未", "癸巳"])["후보"]
-    assert c[0]["격"] == "잡기 편인격(같은 오행 투간)"      # 본기 戊와 같은 土 己
+    assert [x["격"] for x in c] == ["잡기 정인격(본기·미투출)"]
+    c = S.gyeok_candidates(["己卯", "甲戌", "癸酉", "乙卯"])["후보"]
+    assert c[0]["격"] == "잡기 정관격(본기·미투출)"
+
+
+def test_gyeok_hoeguk_change():                         # errata #30 — 「丁生亥月…支全卯未，则化为印」
+    c = S.gyeok_candidates(["癸卯", "癸亥", "丁未", "庚子"])["후보"]
+    assert [x["격"] for x in c] == ["정관격", "편인격(회국 변화 후보)"]
+    c = S.gyeok_candidates(["癸卯", "癸亥", "丁丑", "庚子"])["후보"]       # 未가 없으면 회국이 아니다
+    assert [x["격"] for x in c] == ["정관격"]
 
 
 CHAPTER = {"论正官": "정관", "论财": "재", "论印绶": "인수", "论食神": "식신", "论偏官": "칠살",
@@ -260,6 +276,7 @@ def test_combo_origin_only():
 def test_combo_labels():
     p = ["甲寅", "庚午", "丙戌", "戊子"]
     assert S.combo_report(p, "癸未,세운:丙午,庚寅")["대상"].endswith("운1 癸未 / 세운 丙午 / 운2 庚寅")
+    assert S.combo_report(p, "운1:癸未,丙午")["대상"].endswith("운1 癸未 / 운2 丙午")   # 자동 라벨은 준 라벨을 피한다
     for spec in ["년지:丁未", "월주:丁未", "세운:丙午,세운:丁未"]:
         with pytest.raises(ValueError):
             S.combo_report(p, spec)
@@ -282,6 +299,7 @@ def test_inyeon_earth_role():                           # errata #24
 
 def test_fixtures_unchanged():
     fx = load("natal_cases.json")
+    assert [(c["date"], c["time"], c["gender"]) for c in fx["cases"]] == [c[:3] for c in F.CASES]   # 케이스가 빠지면 실패
     for c in fx["cases"]:
         assert F.compute(c["date"], c["time"], c["gender"]) == c["expect"], (c["date"], c["time"], c["memo"])
     assert F.corpus() == fx["corpus"]
@@ -355,6 +373,43 @@ def test_cli_warnings():
     assert "서머타임" in w and "UTC+8:30" in w
     d = json.loads(run_cli("--birth", "2026-02-04 05:03", "--gender", "M", "--json"))
     assert any("2분 이내" in x for x in d["경고"])
+
+
+def test_cli_correction_boundary_warning():              # errata #30
+    d = json.loads(run_cli("--birth", "2000-01-07 23:20", "--gender", "M", "--json"))
+    assert d["pillars"][2:] == ["甲子", "乙亥"]
+    assert any("乙丑일 丙子시" in w and "일주·시주가 갈린다" in w for w in d["경고"])
+    d = json.loads(run_cli("--birth", "2000-01-07 12:00", "--gender", "M", "--json"))
+    assert not any("경계 출생" in w for w in d.get("경고", []))
+
+
+def test_cli_year_range():
+    for argv in [["--birth", "1500-01-01 12:00", "--gender", "M"], ["--year-fortune", "2200"],
+                 ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--injong-year", "1200"],
+                 ["--pillars", "乙亥 丙戌 癸巳 乙卯", "--inyeon-scan", "2090:2110"]]:
+        with pytest.raises(SystemExit) as e:
+            run_cli(*argv)
+        assert "년" in str(e.value.code), argv
+
+
+def test_cli_yongsin_options():
+    ps = ["--pillars", "乙亥 丙戌 癸巳 乙卯"]
+    d = json.loads(run_cli(*ps, "--inyeon", "--yongsin", "수,토", "--yongsin-role", "생금", "--json"))
+    assert d["상대 지지 정합도"]["辰"]["용신 방향"] == "◎"
+    for extra in [["--yongsin", "水,土"], ["--inyeon-activity"], ["--inyeon", "--yongsin", "물"],
+                  ["--inyeon", "--yongsin", "水,火", "--yongsin-role", "생금"]]:
+        with pytest.raises(SystemExit) as e:
+            run_cli(*ps, *extra)
+        assert isinstance(e.value.code, str), extra
+
+
+def test_pillars_input_checked_against_month_and_hour_rules():
+    assert S._pillars_warnings(["乙亥", "丙戌", "癸巳", "乙卯"]) == []
+    assert S._pillars_warnings(["甲子", "丙寅", "甲子", "丙子"]) == []    # 야자시설 익일 일간 시두
+    w = S._pillars_warnings(["乙亥", "戊戌", "癸巳", "丁卯"])
+    assert len(w) == 2 and "월두법" in w[0] and "시두법" in w[1]
+    d = json.loads(run_cli("--pillars", "乙亥 戊戌 癸巳 乙卯", "--json"))
+    assert any("월두법" in x for x in d["경고"])
 
 
 def test_cli_rejects_invalid_ganzhi():

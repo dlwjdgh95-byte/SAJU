@@ -81,7 +81,7 @@ github-linked/
 ```bash
 pip install -r requirements.txt            # ephem·음력 변환·tzdata·pytest (ephem은 버전 고정)
 python3 -m pytest -q                       # 계산 회귀 테스트
-python3 scripts/check_consistency.py       # 문서 표 ↔ 코드 표, 링크, 표 깨짐, 웹 표 구획
+python3 scripts/check_consistency.py       # 문서 표 ↔ 코드 표, 궁통보감 인용 ↔ 원문(tests/fixtures/qtbj_wikisource.txt), 링크, 표 깨짐, 웹 표 구획
 node --test tests/*.test.mjs               # 웹 엔진 ↔ Python 교차검증
 ```
 

@@ -419,7 +419,7 @@
       <button type="submit">적용</button>
       <button type="button" class="ghost" id="resetBtn">되돌리기</button>
       <p class="note">
-        태어난 날 그때 시계가 가리킨 시각을 넣으면 됩니다. 1908~1911·1954~1961년의 UTC+8:30 표준시와 서머타임 연도는 자동으로 반영하고, 서울 경도 보정(지방평균시, 지금 표준시 기준 −32분)은 시주에만 적용합니다.
+        태어난 날 그때 시계가 가리킨 시각을 넣으면 됩니다. 1908~1911·1954~1961년의 UTC+8:30 표준시와 서머타임 연도는 자동으로 반영하고, 서울 경도 보정(지방평균시, 지금 표준시 기준 −32분)은 시주와 23시 일주 경계에만 적용하고, 연주·월주(절입)는 출생 순간 그대로 봅니다.
         입력한 정보는 이 브라우저에만 저장되며 어디로도 전송되지 않습니다.
       </p>
     </form>
@@ -713,6 +713,27 @@ function buildNatal(profile) {
   const dp = dayPillar(corrected);
   const hp = known ? hourPillar(dp[0], corrected) : null;
   const pillars = [yp, mp, dp, hp];
+
+  // 확인할 점 — saju_calc.py 경고의 웹판
+  const warn = [];
+  const pm = i => { const s = jieSlot(i), y = yearPillar(s.jieYear), z = MONTH_ZHI[s.k]; return y + "년 " + monthGan(y[0], z) + z + "월"; };
+  if (!known) {
+    const d0 = kmin(new Date(Date.UTC(Y, M - 1, D, 0, 0))), d1 = d0 + 1439;
+    const i0 = d0 - (seoulOffset(d0)[0] - 540), i1 = d1 - (seoulOffset(d1)[0] - 540);
+    if (jieSlot(i0).i !== jieSlot(i1).i)
+      warn.push(`절입일 출생 — 시각을 모르면 연주·월주가 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
+    warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
+  } else {
+    const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
+    if (gap < 2) warn.push("절입 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 1분 다를 수 있습니다. 천문연 역서로 월주를 확인하세요.");
+    else if (gap < 1440) warn.push("절입 ±24시간 이내 출생 — 출생 시각 기록의 정확도가 월주를 가릅니다.");
+    if (corr) {
+      const dStd = dayPillar(stdMin), hStd = hourPillar(dStd[0], stdMin);
+      if (dStd !== dp || hStd !== hp)
+        warn.push(`시각 보정 경계 출생 — 보정하면 ${dp}일 ${hp}시, 표준시 그대로면 ${dStd}일 ${hStd}시로 갈립니다.`);
+    }
+  }
+  if (dst) warn.push(`서머타임 기간 — 입력 시각에서 ${dst}분을 빼 표준시로 환산했습니다.`);
   const zhis = [yp[1], mp[1], dp[1], hp ? hp[1] : null];
   const dayGan = dp[0];
 
@@ -768,7 +789,7 @@ function buildNatal(profile) {
   const dw = daewoon(profile, yp[0], mp, instMin, slot);
 
   return { profile, pillars, zhis, dayGan, yearZhi: yp[1], dayZhi: dp[1],
-           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm,
+           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn,
            guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: instMin, solarMin: corrected,
            tz: { off, dst, corr } };
 }
@@ -789,7 +810,7 @@ function gyeokCandidates(pillars) {
   if ("辰戌丑未".includes(mz)) {
     const useful = tou.filter(ok);
     useful.forEach(g => out.push(`잡기 ${nm(g)}`));
-    const same = [...new Set(others.filter(o => !useful.includes(o) && ok(o) && [T.KU_OHENG[mz], "土"].includes(og(o))))];   // 고의 오행·본기 土만
+    const same = [...new Set(others.filter(o => !useful.includes(o) && ok(o) && og(o) === T.KU_OHENG[mz]))];   // 고(庫)의 오행만 (errata #30)
     same.forEach(o => out.push(`잡기 ${nm(o)}(같은 오행 투간)`));
     if (ok(bongi) && !useful.includes(bongi)) out.push(`잡기 ${nm(bongi)}(본기·미투출)`);
     if (!out.length) out.push("잡기 — 본기 비겁");
@@ -800,6 +821,9 @@ function gyeokCandidates(pillars) {
   else {
     out.push(nm(bongi));
     tou.forEach(g => { if (g !== bongi && ok(g)) out.push(nm(g) + "(변화 후보)"); });
+    // 월지가 낀 삼합이 다 모이면 국의 오행도 변화 후보 — 「支全卯未，则化为印」(saju_calc.gyeok_candidates와 같은 규칙)
+    const guk = SAMHAP.find(k => k.includes(mz)), wang = JANGGAN[guk[1]].slice(-1);
+    if ([...guk].every(z => pillars.some(p => p && p[1] === z)) && ok(wang) && nm(wang) !== nm(bongi)) out.push(nm(wang) + "(회국 변화 후보)");
   }
   return out;
 }
@@ -812,7 +836,7 @@ function daewoon(profile, yearGan, monthGz, birthMin, slot) {
   let startAge = Math.floor(ageExact + 0.5); if (startAge === 0) startAge = 1;
   const m60 = gzIndex(monthGz);
   const list = [];
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= 10; n++) {                // saju_calc.daewoon()과 같은 10개
     // 교체 순간 = 출생 순간 + (정밀 대운수 + 10(n−1))년 — saju_calc.daewoon()과 같은 식
     const startMin = birthMin + (ageExact + 10 * (n - 1)) * 365.2425 * 1440;
     const w = kd(instToWall(startMin));
@@ -820,6 +844,13 @@ function daewoon(profile, yearGan, monthGz, birthMin, slot) {
                 year: w.getUTCFullYear(), ym: `${w.getUTCFullYear()}-${String(w.getUTCMonth() + 1).padStart(2, "0")}` });
   }
   return { forward, startAge, list, rule: `연간 ${yearGan}(${yangYear ? "양" : "음"}간) · ${profile.gender === "M" ? "남명" : "여명"} → ${forward ? "순행" : "역행"}` };
+}
+
+/** 현재 대운 = 시작 ≤ 지금 < 다음 시작. 마지막 대운(10번째)도 끝났으면 −1 */
+function currentDaewoonIdx(list, nowMin) {
+  const TEN_Y = 10 * 365.2425 * 1440;
+  return list.findIndex((d, i) => nowMin >= d.startMin &&
+    nowMin < (i + 1 < list.length ? list[i + 1].startMin : d.startMin + TEN_Y));
 }
 
 /* ══ 기간 판독 ══════════════════════════════════ */
@@ -920,7 +951,7 @@ function render() {
   const rd = readPeriod(n, p.ganzhi, p.start, p.end, p);
 
   /* 마스트헤드 */
-  const now = kmin(nowKd()), tgz = dayPillar(now), tslot = jieSlot(now);
+  const now = kmin(nowKd()), tgz = dayPillar(Math.floor(now / 1440) * 1440 + 720), tslot = jieSlot(now);   // 오늘 = 달력 날짜(정오 기준, 주간 표와 같은 기준)
   const td = kd(now);
   document.getElementById("todayDate").textContent =
     `${td.getUTCFullYear()}년 ${td.getUTCMonth() + 1}월 ${td.getUTCDate()}일 ${"일월화수목금토"[td.getUTCDay()]}요일`;
@@ -1080,7 +1111,8 @@ function render() {
   });
   const sk = document.getElementById("structKv");
   sk.innerHTML = `<dt>격 후보</dt><dd>${n.gyeok}<br><span style="font-size:11px">월령 본기 우선(건록·양인·잡기 별도)으로 뽑은 1차 후보입니다. 용신·격의 성패 판정은 별도 감명이 필요합니다.</span></dd>` +
-                 `<dt>일간 뿌리</dt><dd>${n.roots.length ? "<b>" + n.roots.join(" · ") + "</b>" : "<b>무근(無根)</b>"}</dd>`;
+                 `<dt>일간 뿌리</dt><dd>${n.roots.length ? "<b>" + n.roots.join(" · ") + "</b>" : "<b>무근(無根)</b>"}</dd>` +
+                 (n.warn.length ? `<dt>확인</dt><dd>${n.warn.join("<br>")}</dd>` : "");
 
   const ns = document.getElementById("natalSinsal");
   ns.innerHTML = n.sinsal.map(s => `<div style="padding:5px 0;border-bottom:1px dotted var(--rule-soft);font-size:12.5px"><b style="font-weight:500">${s.n}</b> <span class="tag">${s.g}</span><br><span style="color:var(--ink-dim);font-size:12px">${s.v}</span></div>`).join("") +
@@ -1089,9 +1121,7 @@ function render() {
 
   const dwBox = document.getElementById("daewoon");
   dwBox.innerHTML = "";
-  const nowMin = kmin(nowKd());
-  let curIdx = -1;
-  n.dw.list.forEach((d, i) => { if (nowMin >= d.startMin) curIdx = i; });
+  const curIdx = currentDaewoonIdx(n.dw.list, kmin(nowKd()));
   n.dw.list.forEach((d, i) => {
     const c = el("div", "dw" + (i === curIdx ? " on" : ""));
     c.innerHTML = `<span class="a">${d.age}세</span><span class="g m${OZ[ZHI.indexOf(d.gz[1])]}">${d.gz}</span><span class="a" title="${d.ym} 교체">${d.year}</span>`;
@@ -1127,7 +1157,7 @@ function renderDaily(natal) {
   const box = document.getElementById("daily");
   const now = kmin(nowKd());
   const todayKey = fmtD(now).replace(/\./g, "-");
-  const gzT = dayPillar(now);
+  const gzT = dayPillar(Math.floor(now / 1440) * 1440 + 720);      // 달력 날짜 기준
   const zT = gzT[1];
   const s12 = sinsal12(natal.yearZhi, zT);
   const un = unseong(natal.dayGan, zT, "eum");

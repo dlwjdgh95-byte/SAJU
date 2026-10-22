@@ -8,8 +8,9 @@ const root = new URL("..", import.meta.url);
 const html = readFileSync(new URL("web/unui-sigantable.html", root), "utf8");
 // 페이지의 const 선언은 eval로는 밖으로 새지 않는다. new Function으로 감싸 필요한 것만 돌려받는다.
 const src = html.slice(html.indexOf("<script>") + 8, html.indexOf("/* ══ 렌더"));
-const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, T};")();
+const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, currentDaewoonIdx, T};")();
 const fx = JSON.parse(readFileSync(new URL("tests/fixtures/natal_cases.json", root), "utf8"));
+assert.ok(fx.cases.length >= 38, `픽스처 명조 ${fx.cases.length}개 — 38개 이상이어야 한다 (pytest가 build_fixtures.CASES와 대조)`);
 
 for (const c of fx.cases) {
   test(`${c.date} ${c.time} ${c.gender} — ${c.memo}`, () => {
@@ -42,4 +43,27 @@ test("야자시 시주 — 익일 일간으로 시두법 (errata #17)", () => {
   assert.equal(today, "甲子");
   assert.equal(E.hourPillar(today[0], m, next[0]), "丙子");
   assert.equal(E.hourPillar(today[0], m), "甲子", "nextDayGan 없으면 당일 시두법(자시 정설 경로 전용)");
+});
+
+test("현재 대운 — 교체 순간으로 고르고, 10번째가 끝나면 없음", () => {
+  const n = E.buildNatal({ date: "1930-05-05", time: "12:00", timeKnown: true, gender: "M" });
+  assert.equal(n.dw.list.length, 10);
+  const at = s => E.kmin(new Date(Date.parse(s + "T00:00:00Z")));   // KST 눈금
+  assert.equal(n.dw.list[E.currentDaewoonIdx(n.dw.list, at("2026-10-22"))].gz, "庚寅");    // 10번째 (2020-09~)
+  assert.equal(E.currentDaewoonIdx(n.dw.list, at("2035-01-01")), -1);
+  const i = 3, d = n.dw.list[i];
+  assert.equal(E.currentDaewoonIdx(n.dw.list, d.startMin - 1), i - 1);
+  assert.equal(E.currentDaewoonIdx(n.dw.list, d.startMin), i);
+});
+
+test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
+  const n = E.buildNatal({ date: "2026-02-04", timeKnown: false, gender: "M" });
+  assert.ok(n.warn.some(w => w.startsWith("절입일 출생")), n.warn.join(" / "));
+  const m = E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" });
+  assert.ok(!m.warn.some(w => w.startsWith("절입일 출생")));
+});
+
+test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {
+  const n = E.buildNatal({ date: "2000-01-07", time: "23:20", timeKnown: true, gender: "M" });
+  assert.ok(n.warn.some(w => w.includes("甲子일 乙亥시") && w.includes("乙丑일 丙子시")), n.warn.join(" / "));
 });
