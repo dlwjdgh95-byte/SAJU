@@ -31,6 +31,7 @@ const profiles = [
 ];
 for (const p of profiles) {
   test(`렌더 — ${p.date} ${p.time ?? "시각 모름"}`, () => {
+    for (const k of ["todayGz", "daewoonKv", "structKv"]) els[k].innerHTML = "";   // 앞 명조의 렌더가 남아 통과하지 않게
     boot({ name: "", ...p });
     assert.ok(els.todayGz.innerHTML.length > 0, "오늘 일진");
     assert.ok(els.daewoonKv.innerHTML.length > 0, "대운");

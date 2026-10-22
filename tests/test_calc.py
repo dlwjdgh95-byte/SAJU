@@ -410,7 +410,9 @@ def test_cli_numeric_ranges():
     b = ["--birth", "2000-01-01 12:00", "--gender", "M"]
     for argv, word in [(b + ["--tz", "99"], "--tz"), (b + ["--longitude", "nan"], "--longitude"),
                        (b + ["--longitude", "200"], "--longitude"),
-                       (["--birth", "2060-01-01 12:00", "--gender", "M", "--lunar"], "변환표 범위")]:
+                       (["--birth", "2060-01-01 12:00", "--gender", "M", "--lunar"], "변환표 범위"),
+                       (b + ["--eot", "--no-solar-correction"], "함께 쓸 수 없다"),
+                       (["--pillars", "乙亥 丙戌 癸巳 乙卯", "--combo", ""], "--combo")]:
         with pytest.raises(SystemExit) as e:
             run_cli(*argv)
         assert word in str(e.value.code), argv

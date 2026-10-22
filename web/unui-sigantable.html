@@ -723,7 +723,7 @@ function buildNatal(profile) {
     const d0 = kmin(new Date(Date.UTC(Y, M - 1, D, 0, 0))), d1 = d0 + 1439;
     const i0 = d0 - (seoulOffset(d0)[0] - 540), i1 = d1 - (seoulOffset(d1)[0] - 540);
     if (jieSlot(i0).i !== jieSlot(i1).i)
-      warn.push(`절입일 출생 — 시각을 모르면 연주·월주가 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
+      warn.push(`절입일 출생 — 시각을 모르면 ${yearPillar(jieSlot(i0).jieYear) === yearPillar(jieSlot(i1).jieYear) ? "월주가" : "연주·월주가"} 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
     const [o1, s1] = seoulOffset(d1);
     const c1 = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (o1 - s1) + 0.5);
     const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;    // 23:01(보정 후)부터 익일 일주

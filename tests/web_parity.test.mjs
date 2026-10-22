@@ -63,7 +63,9 @@ test("현재 대운 — 교체 순간으로 고르고, 10번째가 끝나면 없
 
 test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
   const n = E.buildNatal({ date: "2026-02-04", timeKnown: false, gender: "M" });
-  assert.ok(n.warn.some(w => w.startsWith("절입일 출생")), n.warn.join(" / "));
+  assert.ok(n.warn.some(w => w.startsWith("절입일 출생 — 시각을 모르면 연주·월주가")), n.warn.join(" / "));   // 입춘: 연주도 갈린다
+  const k = E.buildNatal({ date: "2026-03-05", timeKnown: false, gender: "M" });                       // 경칩: 월주만
+  assert.ok(k.warn.some(w => w.startsWith("절입일 출생 — 시각을 모르면 월주가")), k.warn.join(" / "));
   const m = E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" });
   assert.ok(!m.warn.some(w => w.startsWith("절입일 출생")));
   assert.ok(m.warn.some(w => w.includes("23:33 이후 출생이면 일주가 己丑")), m.warn.join(" / "));
