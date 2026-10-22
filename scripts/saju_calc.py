@@ -98,6 +98,8 @@ GYEOK_FILE = {"정관":"11_jeonggwan.md","편관":"12_chilsal.md","정인":"13_j
               "정재":"15_jeongjae.md","편재":"16_pyeonjae.md","식신":"17_sikshin.md","상관":"18_sanggwan.md"}
 GYEOK_NAME = {"정관":"정관격","편관":"칠살격","정인":"정인격","편인":"편인격",
               "정재":"정재격","편재":"편재격","식신":"식신격","상관":"상관격"}
+GYEOK_GROUP = {"정관":"관살","편관":"관살","정인":"인수","편인":"인수",
+               "정재":"재","편재":"재","식신":"식상","상관":"식상"}
 
 # 천간 관계 (references/22 §1)
 CHEONGAN_HAP = {frozenset(p): oh for p, oh in [("甲己","土"),("乙庚","金"),("丙辛","水"),("丁壬","木"),("戊癸","火")]}
@@ -281,14 +283,16 @@ def equation_of_time(dt_utc):
 # ═══════════════════════ 2. 시간 처리 (시간대 이력·경도·음력) ═══════════════════════
 
 def lunar_to_solar(y, m, d, leap=False):
-    """음력 → 양력 (한국천문연구원 기준표, 1000~2050년)."""
+    """음력 → 양력 (한국천문연구원 기준표, 음력 1000-01-01 ~ 2050-11-18)."""
     try:
         from korean_lunar_calendar import KoreanLunarCalendar
     except ImportError:
         sys.exit("음력 변환 라이브러리 미설치: pip install korean-lunar-calendar")
     c = KoreanLunarCalendar()
     if not c.setLunarDate(y, m, d, leap):
-        raise ValueError(f"음력 {y}-{m:02d}-{d:02d}{' 윤달' if leap else ''}은 존재하지 않는 날짜다")
+        why = ("변환표 범위(음력 1000-01-01 ~ 2050-11-18) 밖이다 — 양력으로 바꿔 --lunar 없이 줄 것"
+               if (y, m, d) < (1000, 1, 1) or (y, m, d) > (2050, 11, 18) else "존재하지 않는 날짜다")
+        raise ValueError(f"음력 {y}-{m:02d}-{d:02d}{' 윤달' if leap else ''}은 {why}")
     return date.fromisoformat(c.SolarIsoFormat())
 
 def jie_display(dt):
@@ -485,11 +489,22 @@ def combo_relations(items, origin=ORIGIN_ZHI):
 
 # ═══════════════════════ 5. 원국 분석 ═══════════════════════
 
+def _guk_gyeok(day, oh, others):
+    """회국(삼합)한 오행의 격 이름·참조. 그 오행의 천간이 한 가지만 투간했으면 그 십성(「藏庚透壬，会子会辰，则化为煞」),
+    아니면 무리 이름(관살·재·인수·식상) — 원문도 「化为印」「化为煞」「伤化为财」「劫化为食伤」처럼 국을 무리로 부른다 (논용신변화)"""
+    t = {sipsin(day, g) for g in others if OHENG[g] == oh}
+    if len(t) == 1:
+        s = t.pop()
+        return GYEOK_NAME[s], GYEOK_FILE[s]
+    ss = [sipsin(day, g) for g in GAN if OHENG[g] == oh]
+    return GYEOK_GROUP[ss[0]] + "격", " · ".join(sorted(GYEOK_FILE[x] for x in ss))
+
 def gyeok_candidates(pillars):
     """월령 기준 격 1차 후보 (자평진전 순서). 성패·변격·종격 판정은 하지 않는다 — SKILL.md Step 4.
-    순서: ① 辰戌丑未월 → 잡기(투출 장간 > 같은 오행 투간 > 본기)
+    순서: ① 辰戌丑未월 → 잡기(투출 장간 > 같은 오행 투간 > 회지(삼합) > 본기)
           ② 월지 = 일간 록지 → 건록  ③ 양간·월지 = 양인 → 양인  ④ 음간·월지 본기 겁재 → 월겁
-          ⑤ 그 외 → 본기 격을 1순위로, 중기·여기 투출과 월지가 낀 삼합 회국은 '변화 후보'로 병기 (errata #20·#30)"""
+          ⑤ 그 외 → 본기 격을 1순위로, 본기가 불투할 때의 중기·여기 투출과 월지가 낀 삼합 회국은 '변화 후보'로 병기 (errata #20·#30·#33)
+    회국·회지의 십성은 _guk_gyeok — 정·편을 투간으로만 가리고, 아니면 무리(관살·재·인수·식상)로 부른다"""
     yg, mg, dg, hg = [p[0] for p in pillars]
     mz = pillars[1][1]
     day, others = dg, [yg, mg, hg]
@@ -515,10 +530,20 @@ def gyeok_candidates(pillars):
             j = next(j for j in jang if OHENG[j] == OHENG[o])
             why = f"{mz}는 {ku}庫 — 고의 오행 {desc(j)}와 같은 오행 {desc(o)} 투간. 「甲透未库」(24번 论财-07)처럼 투출로 본다"
             add(o, f"잡기 {GYEOK_NAME[sipsin(day, o)]}(같은 오행 투간)", why, f"35_japgi.md · {GYEOK_FILE[sipsin(day, o)]}")
+        guk = SAMHAP_OF[mz]
+        oh = SAMHAP[guk]                                        # 고의 오행 = 그 고가 낀 삼합의 오행
+        hoeji = (all(z in [p[1] for p in pillars] for z in guk) and oh != OHENG[day]
+                 and not any(OHENG[g] == oh for g in useful + same))       # 같은 오행이 이미 투출했으면 겹친다
+        if hoeji:
+            nm, ref = _guk_gyeok(day, oh, others)
+            cands.append({"격": f"잡기 {nm}(회지 후보)",
+                          "근거": f"지지에 {guk} {oh}국이 모두 있다 — 「如甲生辰月，逢申与子会局，则用水印」(35번 ③ 회지). "
+                                  "국의 정·편은 투간이 없어 가리지 않는다",
+                          "참조": f"35_japgi.md · {ref}"})
         if is_gyeok(bongi) and bongi not in useful:
-            add(bongi, f"잡기 {GYEOK_NAME[sipsin(day, bongi)]}(본기·미투출)",
-                (("투출 없음 → " if not tou else "격이 될 투출 없음(비겁만 투출) → ") if not cands else
-                 "투출 장간이 합거·극제되면 → " if useful else "같은 오행 투간이 합거·극제되면 → ") + f"본기 {desc(bongi)}",
+            why = ("투출 장간이 합거·극제되면 → " if useful else "같은 오행 투간이 합거·극제되면 → " if same else
+                   "회지한 국이 깨지면 → " if hoeji else "투출 없음 → " if not tou else "격이 될 투출 없음(비겁만 투출) → ")
+            add(bongi, f"잡기 {GYEOK_NAME[sipsin(day, bongi)]}(본기·미투출)", why + f"본기 {desc(bongi)}",
                 f"35_japgi.md · {GYEOK_FILE[sipsin(day, bongi)]}")
         bi = [g for g in tou if not is_gyeok(g)]
         if not cands:
@@ -528,7 +553,7 @@ def gyeok_candidates(pillars):
             cands.append({"격": "잡기 비겁 투출(월겁 절차)", "근거": f"{mz} 중 {'·'.join(desc(g) for g in bi)} 투출 — 「透乙则用月劫」. 비겁은 용신이 아니므로 위 후보로 용신을 정한다",
                           "참조": "35_japgi.md · 34_geonrok_yangin.md"})
     elif mz == ROK[day]:
-        cands.append({"격": "건록격", "근거": f"월지 {mz} = 일간 {day}의 록지. 록겁은 용신이 아니므로 투출·회지한 재관식상으로 용신을 따로 취한다",
+        cands.append({"격": "건록격", "근거": f"월지 {mz} = 일간 {day}의 록지. 록겁은 용신이 아니므로 투출·회지한 재·관·살·식상으로 용신을 따로 취한다(「别取财官煞食为用」)",
                       "참조": "34_geonrok_yangin.md"})
     elif YANGIN.get(day) == mz:
         cands.append({"격": "양인격", "근거": f"양간 {day}, 월지 {mz} = 양인(제왕). 관살로 제복함을 귀하게 본다",
@@ -538,16 +563,21 @@ def gyeok_candidates(pillars):
                       "참조": "34_geonrok_yangin.md"})
     else:
         add(bongi, None, f"월령 본기 {desc(bongi)} " + ("투출" if bongi in others else "미투출 — 그래도 본기가 격의 1순위"))
-        for g in tou:
-            if g != bongi and is_gyeok(g):
-                add(g, GYEOK_NAME[sipsin(day, g)] + "(변화 후보)",
-                    f"중기·여기 {desc(g)} 투출 — 원문은 본기가 불투하고 중기가 투출하면 중기가 작주한다고 한다"
-                    "(「不透甲而透丙」, 논용신변화). 24번 71命이 본기 1순위로 맞으므로 변화 후보로 둔다")
+        # 본기도 투출했으면 변하지 않는다 — 「不透甲而透丙」, 「丙生寅月，午戌会劫，而又或透甲…则仍为印而格不破」
+        chg = [g for g in tou if g != bongi and is_gyeok(g)] if bongi not in others else []
+        for g in chg:
+            add(g, GYEOK_NAME[sipsin(day, g)] + "(변화 후보)",
+                f"중기·여기 {desc(g)} 투출 — 원문은 본기가 불투하고 중기가 투출하면 중기가 작주한다고 한다"
+                "(「不透甲而透丙」, 논용신변화). 24번 71命이 본기 1순위로 맞으므로 변화 후보로 둔다")
         guk = SAMHAP_OF[mz]
-        wang = BONGI[guk[1]]                                   # 국의 왕지 본기로 십성을 정한다
-        if all(z in [p[1] for p in pillars] for z in guk) and is_gyeok(wang) and sipsin(day, wang) != sipsin(day, bongi):
-            add(wang, GYEOK_NAME[sipsin(day, wang)] + "(회국 변화 후보)",
-                f"지지에 {guk} {SAMHAP[guk]}국이 모두 있다 — 「丁生亥月，本为正官，支全卯未，则化为印」처럼 국의 오행으로 변할 수 있다(논용신변화)")
+        oh = SAMHAP[guk]
+        if (bongi not in others and all(z in [p[1] for p in pillars] for z in guk)
+                and oh not in (OHENG[day], OHENG[bongi]) and not any(OHENG[g] == oh for g in chg)):
+            nm, ref = _guk_gyeok(day, oh, others)
+            cands.append({"격": nm + "(회국 변화 후보)",
+                          "근거": f"본기 불투, 지지에 {guk} {oh}국이 모두 있다 — 「丁生亥月，本为正官，支全卯未，则化为印」처럼 "
+                                  "국의 오행으로 변할 수 있다(논용신변화). 국의 정·편은 투간으로만 가린다",
+                          "참조": ref})
     out["후보"] = cands
     # 학파 차이 경고 — 월률분야에만 있는 여기가 투간했는가
     extra = [g for g in JANGGAN_SCHOOLS["wolryul"][mz] if g not in JANGGAN_SCHOOLS["jangan_ga"][mz]]
@@ -1310,7 +1340,7 @@ def _birth_block(a):
     if t["corr_min"]:
         alt, _ = four_pillars(t["utc"], t["civil_std"], a.zasi)
         if alt[2:] != pillars[2:]:
-            what = "일주·시주" if alt[2] != pillars[2] else "시주"
+            what = "·".join(n for n, i in [("일주", 2), ("시주", 3)] if alt[i] != pillars[i])
             warn.append(f"⚠️ 시각 보정({t['corr_min']:+d}분) 경계 출생 — 보정하면 {pillars[2]}일 {pillars[3]}시, "
                         f"보정하지 않으면(표준시) {alt[2]}일 {alt[3]}시. 보정 학설에 따라 {what}가 갈린다")
 
@@ -1354,7 +1384,7 @@ def build_parser():
     ap.add_argument("--relate", metavar="干支",
                     help="운 간지 하나를 원국에 대입 (--pillars 또는 --birth와 함께). 예: --relate 丁酉")
     ap.add_argument("--combo", metavar="라벨:干支,...",
-                    help="원국 + 운 간지 여러 개(최대 14자)의 삼합·방합·삼형·천간합충 일괄 판정. 예: --combo 대운:癸未,세운:丙午,월운:庚寅")
+                    help="원국 + 운 간지 여러 개의 삼합·방합·삼형·천간합충 일괄 판정. 예: --combo 대운:癸未,세운:丙午,월운:庚寅")
     ap.add_argument("--injong", metavar="支",
                     help="십성 인종 전개. 지지 하나 또는 간지. --pillars/--birth와 함께 쓰면 원국 교차(4분면)까지. 예: --injong 酉")
     ap.add_argument("--injong-year", type=int, metavar="YYYY",
@@ -1396,6 +1426,10 @@ def main(argv=None):
     for opt, v in [("--year-fortune", a.year_fortune), ("--injong-year", a.injong_year)]:
         if v is not None and not YEAR_MIN <= v <= YEAR_MAX:
             sys.exit(f"{opt} 연도는 {YEAR_MIN}~{YEAR_MAX}년")
+    if a.tz is not None and not (math.isfinite(a.tz) and abs(a.tz) <= 14):
+        sys.exit(f"--tz는 -14~+14 사이의 시간 수다 (받은 값 {a.tz})")
+    if a.longitude is not None and not (math.isfinite(a.longitude) and abs(a.longitude) <= 180):
+        sys.exit(f"--longitude는 -180~+180 사이의 도 수다 (동경 +, 서경 −. 받은 값 {a.longitude})")
     if a.year_fortune is not None:
         if ephem is None:
             sys.exit("ephem 미설치: pip install ephem --break-system-packages")

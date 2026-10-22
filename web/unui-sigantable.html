@@ -502,18 +502,20 @@ function monthGan(yGan, mZhi) {
   const start = { 甲:"丙",己:"丙",乙:"戊",庚:"戊",丙:"庚",辛:"庚",丁:"壬",壬:"壬",戊:"甲",癸:"甲" }[yGan];
   return GAN[(GAN.indexOf(start) + MONTH_ZHI.indexOf(mZhi)) % 10];
 }
-/** 일주 — 1900-01-01(KST) = 甲戌(index 10). 23:00 초과는 익일. */
+/** 일주 — 1900-01-01(KST) = 甲戌(index 10). 23:00 초과는 익일. 야자시설(zasiNext=false)은 00:00 정각까지 당일 (saju_calc.day_pillar와 같다) */
 function dayPillar(min, zasiNext = true) {
   let d = kd(min);
-  if (zasiNext && (d.getUTCHours() * 60 + d.getUTCMinutes()) > 23 * 60) d = new Date(d.getTime() + 864e5);
+  const mm = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (zasiNext && mm > 23 * 60) d = new Date(d.getTime() + 864e5);
+  else if (!zasiNext && mm === 0) d = new Date(d.getTime() - 864e5);
   const days = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - K_EPOCH) / 864e5);
   return gz((10 + days) % 60);
 }
-/** 시주 — 정각은 이전 시지. nextDayGan: 야자시설(일주 당일 유지)에서 23:01~24:00이면 익일 일간으로 시두법. */
+/** 시주 — 정각은 이전 시지. nextDayGan: 야자시설(일주 당일 유지)에서 23:01~00:00(정각 포함)이면 익일 일간으로 시두법. */
 function hourPillar(dayGan, min, nextDayGan) {
   const d = kd(min), mm = d.getUTCHours() * 60 + d.getUTCMinutes();
   const zi = Math.floor((((mm - 1 + 1440) % 1440) + 60) / 120) % 12;
-  const base = nextDayGan && mm > 23 * 60 ? nextDayGan : dayGan;
+  const base = nextDayGan && (mm > 23 * 60 || mm === 0) ? nextDayGan : dayGan;
   const start = { 甲:"甲",己:"甲",乙:"丙",庚:"丙",丙:"戊",辛:"戊",丁:"庚",壬:"庚",戊:"壬",癸:"壬" }[base];
   return GAN[(GAN.indexOf(start) + zi) % 10] + ZHI[zi];
 }
@@ -722,6 +724,11 @@ function buildNatal(profile) {
     const i0 = d0 - (seoulOffset(d0)[0] - 540), i1 = d1 - (seoulOffset(d1)[0] - 540);
     if (jieSlot(i0).i !== jieSlot(i1).i)
       warn.push(`절입일 출생 — 시각을 모르면 연주·월주가 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
+    const [o1, s1] = seoulOffset(d1);
+    const c1 = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (o1 - s1) + 0.5);
+    const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;    // 23:01(보정 후)부터 익일 일주
+    if (late !== dp && cut < 1440)
+      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${String(cut / 60 | 0).padStart(2, "0")}:${String(cut % 60).padStart(2, "0")} 이후 출생이면 일주가 ${late}로 바뀝니다(자시 정설·경도 보정).`);
     warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
   } else {
     const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
@@ -796,6 +803,7 @@ function buildNatal(profile) {
 
 const ROK = T.ROK;
 const GYEOK_NAME = { 정관: "정관격", 편관: "칠살격", 정인: "정인격", 편인: "편인격", 정재: "정재격", 편재: "편재격", 식신: "식신격", 상관: "상관격" };
+const GYEOK_GROUP = { 정관: "관살", 편관: "관살", 정인: "인수", 편인: "인수", 정재: "재", 편재: "재", 식신: "식상", 상관: "식상" };
 
 /** 격 1차 후보 이름 — ① 辰戌丑未 잡기 ② 건록 ③ 양인 ④ 월겁 ⑤ 본기 우선 + 변화 후보 (references/34·35, errata #20) */
 function gyeokCandidates(pillars) {
@@ -806,12 +814,21 @@ function gyeokCandidates(pillars) {
   const nm = g => GYEOK_NAME[sipsin(day, g)];
   const ok = g => !!nm(g);                                                // 비겁은 격이 되지 않는다
   const og = g => OG[GAN.indexOf(g)];
+  // 회국 오행의 격 이름 — 그 오행 천간이 한 가지만 투간했으면 그 십성, 아니면 무리 이름 (saju_calc._guk_gyeok와 같다)
+  const gukName = oh => {
+    const t = [...new Set(others.filter(g => og(g) === oh).map(g => sipsin(day, g)))];
+    return t.length === 1 ? GYEOK_NAME[t[0]] : GYEOK_GROUP[sipsin(day, [...GAN].find(g => og(g) === oh))] + "격";
+  };
+  const full = guk => [...guk].every(z => pillars.some(p => p && p[1] === z));
   const out = [];
   if ("辰戌丑未".includes(mz)) {
     const useful = tou.filter(ok);
     useful.forEach(g => out.push(`잡기 ${nm(g)}`));
     const same = [...new Set(others.filter(o => !useful.includes(o) && ok(o) && og(o) === T.KU_OHENG[mz]))];   // 고(庫)의 오행만 (errata #30)
     same.forEach(o => out.push(`잡기 ${nm(o)}(같은 오행 투간)`));
+    // 회지 — 월지가 낀 삼합이 다 모이면 국의 오행 (「如甲生辰月，逢申与子会局，则用水印」, saju_calc와 같은 규칙)
+    const guk = SAMHAP.find(k => k.includes(mz)), oh = T.KU_OHENG[mz];     // 고의 오행 = 그 고가 낀 삼합의 오행
+    if (full(guk) && oh !== og(day) && !useful.concat(same).some(g => og(g) === oh)) out.push(`잡기 ${gukName(oh)}(회지 후보)`);
     if (ok(bongi) && !useful.includes(bongi)) out.push(`잡기 ${nm(bongi)}(본기·미투출)`);
     if (!out.length) out.push("잡기 — 본기 비겁");
     else if (tou.some(g => !ok(g))) out.push("잡기 비겁 투출(월겁 절차)");
@@ -820,10 +837,13 @@ function gyeokCandidates(pillars) {
   else if (sipsin(day, bongi) === "겁재") out.push("월겁격");
   else {
     out.push(nm(bongi));
-    tou.forEach(g => { if (g !== bongi && ok(g)) out.push(nm(g) + "(변화 후보)"); });
+    // 본기가 불투할 때만 변한다 — 「不透甲而透丙」, 「丙生寅月，午戌会劫，而又或透甲…则仍为印而格不破」
+    const chg = others.includes(bongi) ? [] : tou.filter(g => g !== bongi && ok(g));
+    chg.forEach(g => out.push(nm(g) + "(변화 후보)"));
     // 월지가 낀 삼합이 다 모이면 국의 오행도 변화 후보 — 「支全卯未，则化为印」(saju_calc.gyeok_candidates와 같은 규칙)
-    const guk = SAMHAP.find(k => k.includes(mz)), wang = JANGGAN[guk[1]].slice(-1);
-    if ([...guk].every(z => pillars.some(p => p && p[1] === z)) && ok(wang) && nm(wang) !== nm(bongi)) out.push(nm(wang) + "(회국 변화 후보)");
+    const guk = SAMHAP.find(k => k.includes(mz)), oh = { 申子辰: "水", 亥卯未: "木", 寅午戌: "火", 巳酉丑: "金" }[guk];
+    if (!others.includes(bongi) && full(guk) && oh !== og(day) && oh !== og(bongi) && !chg.some(g => og(g) === oh))
+      out.push(gukName(oh) + "(회국 변화 후보)");
   }
   return out;
 }

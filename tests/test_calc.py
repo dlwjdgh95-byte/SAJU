@@ -53,7 +53,7 @@ def test_yajasi_hour_stem_uses_next_day():              # errata #17
 
 
 def test_yajasi_midnight_stays_with_previous_day():     # errata #30
-    # 야자시설: 23:01~00:00이 한 시진. 00:00 정각은 아직 전날 일주·익일 일간 시두법 子시다
+    # 야자시설: 23:01~00:00이 야자시 구간. 00:00 정각은 아직 전날 일주·익일 일간 시두법 子시다
     for wall, day in [("2000-01-07 23:59", "甲子"), ("2000-01-08 00:00", "甲子"), ("2000-01-08 00:01", "乙丑")]:
         p, _, _ = natal(wall, solar="none", zasi="same")
         assert (p[2], p[3]) == (day, "丙子"), wall
@@ -202,9 +202,20 @@ def test_gyeok_bongi_first():                           # errata #20
 
 def test_gyeok_hoeguk_change():                         # errata #30 — 「丁生亥月…支全卯未，则化为印」
     c = S.gyeok_candidates(["癸卯", "癸亥", "丁未", "庚子"])["후보"]
-    assert [x["격"] for x in c] == ["정관격", "편인격(회국 변화 후보)"]
+    assert [x["격"] for x in c] == ["정관격", "인수격(회국 변화 후보)"]       # 「化为印」— 투간이 없으면 정·편을 가리지 않는다
     c = S.gyeok_candidates(["癸卯", "癸亥", "丁丑", "庚子"])["후보"]       # 未가 없으면 회국이 아니다
     assert [x["격"] for x in c] == ["정관격"]
+    c = S.gyeok_candidates(["乙丑", "甲申", "丙辰", "戊子"])["후보"]       # 「丙生申月…干不透庚…或会子会辰…财化为煞」
+    assert [x["격"] for x in c] == ["편재격", "식신격(변화 후보)", "관살격(회국 변화 후보)"]
+    for ps, top in [(["庚子", "甲申", "丙辰", "己丑"], "편재격"),            # 본기 庚 투출 → 변하지 않는다
+                    (["甲午", "丙寅", "癸卯", "甲戌"], "상관격"),            # 「丙生寅月，午戌会劫，而又或透甲…则仍为印」
+                    (["甲寅", "丙寅", "辛卯", "庚寅"], "정재격")]:           # 「辛生寅月，透丙化官，而又透甲，格成正财」
+        assert [x["격"] for x in S.gyeok_candidates(ps)["후보"]] == [top], ps
+
+
+def test_gyeok_japgi_hoeji():                           # 35번 ③ 「如甲生辰月，逢申与子会局，则用水印」
+    c = S.gyeok_candidates(["庚申", "庚辰", "甲子", "丙寅"])["후보"]
+    assert [x["격"] for x in c] == ["잡기 인수격(회지 후보)", "잡기 편재격(본기·미투출)"]
 
 
 CHAPTER = {"论正官": "정관", "论财": "재", "论印绶": "인수", "论食神": "식신", "论偏官": "칠살",
@@ -247,6 +258,9 @@ def test_stem_relations():
     assert S.cheongan_relations("甲", "庚") == ["천간충"]
     assert S.cheongan_relations("戊", "己") == []
     assert S.cheongan_relations("戊", "甲") == []
+    r = S.stem_relations([("년간", "甲"), ("월간", "丙"), ("일간", "乙"), ("시간", "庚")])
+    assert r["년간甲—시간庚"] == ["천간충", "격위(사이에 다른 천간이 있다)"]
+    assert r["일간乙—시간庚"] == ["천간합(金)"]
 
 
 def test_samhyeong_names():                             # errata #12
@@ -390,6 +404,16 @@ def test_cli_year_range():
         with pytest.raises(SystemExit) as e:
             run_cli(*argv)
         assert "년" in str(e.value.code), argv
+
+
+def test_cli_numeric_ranges():
+    b = ["--birth", "2000-01-01 12:00", "--gender", "M"]
+    for argv, word in [(b + ["--tz", "99"], "--tz"), (b + ["--longitude", "nan"], "--longitude"),
+                       (b + ["--longitude", "200"], "--longitude"),
+                       (["--birth", "2060-01-01 12:00", "--gender", "M", "--lunar"], "변환표 범위")]:
+        with pytest.raises(SystemExit) as e:
+            run_cli(*argv)
+        assert word in str(e.value.code), argv
 
 
 def test_cli_yongsin_options():

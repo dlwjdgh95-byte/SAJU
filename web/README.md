@@ -33,6 +33,7 @@ node --test tests/*.test.mjs                 # 웹 엔진 ↔ Python 픽스처 �
 `tests/web_parity.test.mjs`는 `tests/fixtures/natal_cases.json`의 38개 명조(1900~2044년생 — LMT·UTC+8:30·서머타임 공백/중복 시각·절입 직후·자시 경계 포함)에서
 **4기둥 · UTC 오프셋 · 서머타임 · 경도 보정 · 대운 방향·대운수·간지 10개·교체 연월 · 12신살 · 공망 · 십이운성 · 격 후보**가 Python과 같은지,
 24번 원전 명조 전부에서 격 후보가 같은지, 현재 대운 선택·시각 모름/보정 경계 경고가 맞는지 본다.
+`tests/web_render.test.mjs`는 DOM 스텁 위에서 페이지 렌더(`boot()`)를 돌려 명조 6개가 오류 없이 그려지고 경고가 화면의 '확인할 점'에 나오는지 본다.
 
 > 페이지의 `const` 선언은 그냥 `eval`로는 밖으로 새지 않는다. 테스트는 `new Function`으로 감싸 필요한 것만 돌려받는다.
 

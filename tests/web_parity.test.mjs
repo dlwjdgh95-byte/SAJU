@@ -43,6 +43,11 @@ test("야자시 시주 — 익일 일간으로 시두법 (errata #17)", () => {
   assert.equal(today, "甲子");
   assert.equal(E.hourPillar(today[0], m, next[0]), "丙子");
   assert.equal(E.hourPillar(today[0], m), "甲子", "nextDayGan 없으면 당일 시두법(자시 정설 경로 전용)");
+  // 00:00 정각은 야자시 구간의 끝 — 전날 일주·익일 일간 시두법 (saju_calc와 같다, errata #30)
+  const mid = E.kmin(new Date(Date.UTC(2000, 0, 8, 0, 0)));
+  assert.equal(E.dayPillar(mid, false), "甲子");
+  assert.equal(E.hourPillar("甲", mid, "乙"), "丙子");
+  assert.equal(E.dayPillar(mid + 1, false), "乙丑");
 });
 
 test("현재 대운 — 교체 순간으로 고르고, 10번째가 끝나면 없음", () => {
@@ -61,6 +66,9 @@ test("시각 모름 — 절입일이면 연주·월주 미정 경고", () => {
   assert.ok(n.warn.some(w => w.startsWith("절입일 출생")), n.warn.join(" / "));
   const m = E.buildNatal({ date: "2026-03-15", timeKnown: false, gender: "M" });
   assert.ok(!m.warn.some(w => w.startsWith("절입일 출생")));
+  assert.ok(m.warn.some(w => w.includes("23:33 이후 출생이면 일주가 己丑")), m.warn.join(" / "));
+  const s = E.buildNatal({ date: "1960-07-01", timeKnown: false, gender: "M" });   // 서머타임: 23:59도 보정 후 당일
+  assert.ok(!s.warn.some(w => w.includes("이후 출생이면 일주가")), s.warn.join(" / "));
 });
 
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {
