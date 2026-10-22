@@ -458,3 +458,21 @@ def test_export_tables():
     assert t["JANGGAN"] == S.JANGGAN_SCHOOLS["jangan_ga"]
     assert set(t["CHEONGAN_CHUNG"]) == {"甲庚", "乙辛", "丙壬", "丁癸"}
     assert t["YANGIN"] == S.YANGIN and t["ROK"]["戊"] == "巳"
+
+
+# ── 궁통보감 json — 이미 고친 달이 옛 오류로 돌아가지 않도록 ───────────
+@pytest.mark.parametrize("g,z,order,quote", [
+    ("戊", "寅", "丙甲癸", "正二月先丙后甲，癸又次之"),       # errata #29 ①
+    ("戊", "卯", "丙甲癸", "正二月先丙后甲，癸又次之"),
+    ("壬", "亥", "戊丙庚", "十月壬水、专用戊丙，次取庚金"),     # #29 ②
+    ("甲", "卯", "庚戊丙丁", "二月甲木，庚金得所"),            # #29 ③ — 正二月 공통 단락을 卯 단독처럼 자르지 않는다
+    ("庚", "寅", "丙甲丁", "丙甲为上，丁火次之"),             # #32 ①
+    ("癸", "寅", "辛丙庚", "先用辛金"),                       # #32 ②
+    ("丁", "申", "甲庚丙", "七月丁火"),                       # #32 ③ — 三秋 공통 문장이 아니라 七月 단락
+    ("丁", "酉", "甲庚丙", "三秋丁火，退气柔弱，耑用甲木"),
+])
+def test_johu_fixed_months(g, z, order, quote):
+    with open(os.path.join(ROOT, "references", "johu_wonmun.json"), encoding="utf-8") as f:
+        e = json.load(f)["table"][g][z]
+    assert "".join(e["order"]) == order
+    assert quote in e["quote"]
