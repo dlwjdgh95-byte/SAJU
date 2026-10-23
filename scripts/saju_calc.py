@@ -188,15 +188,16 @@ PLACES = {
 }
 DEFAULT_PLACE = "서울"
 # 38선 이남·이북이 바뀐 출생지 — zoneinfo는 지금의 나라로 나뉘어 1948~50년 남한 서머타임 적용이 거꾸로 나온다
-PLACE_ZONE_BEFORE = {"개성": (datetime(1950, 6, 25), "Asia/Seoul"),        # 그 전엔 38선 이남(미군정·대한민국)
-                     "속초": (datetime(1950, 10, 1), "Asia/Pyongyang")}    # 그 전엔 38선 이북
+PLACE_ZONE_BEFORE = {"개성": (datetime(1950, 6, 25), "Asia/Seoul"),        # 38선 분할(1945-08-15)부터 이때까지 이남(미군정·대한민국)
+                     "속초": (datetime(1950, 10, 1), "Asia/Pyongyang")}    # 38선 분할부터 이때까지 이북
+DIVISION = datetime(1945, 8, 15)                                           # 그 전(지방시·조선총독부 표준시)은 바꾸지 않는다
 WAR_SPAN = (datetime(1950, 6, 25), datetime(1953, 7, 27))                  # 관할이 오간 기간 — 두 시간대가 갈리면 경고
 
 
 def place_zone(place, wall):
     """출생지의 그 시각 시간대. 개성·속초는 1950년 관할 변경 전후로 다르다."""
     cut = PLACE_ZONE_BEFORE.get(place)
-    return cut[1] if cut and wall < cut[0] else PLACES[place][1]
+    return cut[1] if cut and DIVISION <= wall < cut[0] else PLACES[place][1]
 YEAR_MIN, YEAR_MAX = 1583, 2100      # 그레고리력 이후 — ephem(율리우스력 입력)과 일주 계산의 달력이 같아지는 구간
 
 
@@ -1416,7 +1417,7 @@ def _birth_block(a):
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
     zone = _check_zone(a.zone or place_zone(place, wall))
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
-    korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) or korean_dst_tz(wall, zone, a.tz))    # --zone Asia/Tokyo --tz 9도 한국 밖
+    korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) or korean_dst_tz(wall, zone, a.tz, lon))    # --zone Asia/Tokyo --tz 9도 한국 밖
     if a.longitude is None and a.place is None and not korean:
         sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None and zone in KOREA_ZONES else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
                  "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)"
@@ -1430,7 +1431,8 @@ def _birth_block(a):
     pillars, minfo = four_pillars(t["utc"], t["local"], a.zasi)
     if not known:
         pillars = pillars[:3]
-    disp_tz = None if korean else a.tz     # --tz로 준 한국 오프셋(8.5·9·서머타임) — 절입·대운·월운 날짜는 그날의 한국 시계(이력)로 적는다
+    in_korea = KOREA_LON[0] <= lon <= KOREA_LON[1]
+    disp_tz = None if korean and in_korea else a.tz     # 한국에서 --tz로 준 한국 오프셋(8.5·9·서머타임) — 절입·대운·월운 날짜는 그날의 한국 시계(이력)로
     a.year_tz = disp_tz                    # --injong-year 월운 절입도 같은 기준 (출생 시각용 --tz를 그해에 쓰지 않는다)
     wall_fn = lambda u: utc_to_wall(u, zone, disp_tz)
 
@@ -1443,7 +1445,7 @@ def _birth_block(a):
     if (a.zone is None and a.tz is None and place in PLACE_ZONE_BEFORE and WAR_SPAN[0] <= wall < WAR_SPAN[1] and ZoneInfo
             and wall.replace(tzinfo=ZoneInfo("Asia/Seoul")).utcoffset() != wall.replace(tzinfo=ZoneInfo("Asia/Pyongyang")).utcoffset()):
         warn.append(f"⚠️ {place}{'은' if (ord(place[-1]) - 0xAC00) % 28 else '는'} 6·25 전쟁 중 관할이 오간 곳이라 이날 남한 서머타임이 쓰였는지 불확실하다 — {t['tzname']}로 계산했다. "
-                    "서머타임이었으면 --tz 10, 아니었으면 --tz 9로 비교할 것")
+                    "남한 서머타임이 쓰였으면 --zone Asia/Seoul, 아니면 --zone Asia/Pyongyang으로 다시 계산해 비교할 것")
     if a.tz is None and zone == "Asia/Seoul" and t["offset_min"] - t["dst_min"] == 510:
         warn.append("ℹ️ 당시 한국 표준시는 UTC+8:30 (1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했다")
     if a.longitude is not None and abs(t["lon_corr_min"]) > 60:

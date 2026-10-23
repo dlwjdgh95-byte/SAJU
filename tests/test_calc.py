@@ -729,6 +729,10 @@ def test_place_zone_38th_parallel():                       # 개성·속초 — 
     assert sok["pillars"][3] == "乙巳" and not any("서머타임" in w for w in sok.get("경고", []))
     war = json.loads(run_cli("--birth", "1950-07-01 10:10", "--place", "개성", "--gender", "M", "--json"))
     assert any("개성은 6·25 전쟁 중 관할이 오간 곳" in w for w in war["경고"])
+    for z, tzname in [("Asia/Seoul", "KDT"), ("Asia/Pyongyang", "KST")]:       # 경고가 권하는 재계산이 실제로 돈다
+        re_ = json.loads(run_cli("--birth", "1950-07-01 10:10", "--place", "개성", "--zone", z, "--gender", "M", "--json"))
+        assert re_["입력"]["시간대"].startswith(tzname) and not any("관할이 오간" in w for w in re_.get("경고", []))
+    assert json.loads(run_cli("--birth", "1900-03-01 11:00", "--place", "개성", "--gender", "M", "--json"))["pillars"][3] == "戊午"   # 분할 전은 그대로
     assert not json.loads(run_cli("--birth", "1960-07-01 10:10", "--place", "개성", "--gender", "M", "--json")).get("경고")
 
 
@@ -740,6 +744,8 @@ def test_injong_year_tz_is_birth_only():                   # 출생 시각용 --
     assert auto[0] == "입춘 2026-02-04 05:02" and auto[7] == "백로 2026-09-07 23:41"
     for b, tz in [("1987-07-15 10:00", "10"), ("1957-07-01 10:00", "8.5"), ("1958-07-01 12:00", "9.5"), ("1970-07-01 12:00", "9")]:
         assert jie("--birth", b, "--tz", tz) == auto, (b, tz)
+    sydney = json.loads(run_cli("--birth", "1987-07-15 10:00", "--gender", "M", "--tz", "10", "--longitude", "151.21", "--injong-year", "2026", "--json"))
+    assert sydney["대운"]["start_date"] == "1989-12-26" and sydney["연간 인종"]["월운 12"][0]["절입"] == "입춘 2026-02-04 06:02"   # 한국 밖이면 그 고정 오프셋
     for b, tz, same_instant in [("1965-01-01 12:00", "8.5", "1965-01-01 12:30"), ("1958-01-15 12:00", "9", "1958-01-15 11:30")]:
         fixed = json.loads(run_cli("--birth", b, "--tz", tz, "--gender", "M", "--json"))["대운"]      # 대운 날짜도 그날의 한국 시계로
         auto = json.loads(run_cli("--birth", same_instant, "--gender", "M", "--json"))["대운"]

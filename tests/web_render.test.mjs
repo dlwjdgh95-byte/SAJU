@@ -87,3 +87,13 @@ test("십성 인종 — 세력 점수가 아니라 32번 규범(슬롯·원국 �
   assert.ok(pr.includes("식신") && pr.includes("허상"), "원국에 없는 壬(식신)이 관대 — 허상");
   assert.ok(els.ledger.children.some(c => c.innerHTML.includes("사고지 개폐: <b>충개고</b>")), "원장 줄");
 });
+
+test("십성 인종 — 사고지 개폐는 원국에 세운·대운 지지까지 대조한다 (32번 §4-1)", () => {
+  const t0 = Date.parse("2027-01-15T03:00:00Z");                    // 辛丑월, 세운 丙午, 대운 辛未
+  class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [t0])); } static now() { return t0; } }
+  const { boot: b } = new Function("document", "window", "localStorage", "Date", src + "; return { boot };")(document, { scrollTo() {} }, localStorage, FixedDate);
+  els.ledger.children.length = 0;
+  b({ name: "", date: "1950-02-25", time: "21:00", timeKnown: true, gender: "F" });   // 庚寅 戊寅 辛卯 戊戌 — 원국만 보면 폐고
+  assert.ok(els.ledger.children.some(c => c.innerHTML.includes("사고지 개폐: <b>충개고</b> (원국·午·未 대조)")), "丑未충");
+  assert.ok(els.prose.innerHTML.includes("충으로 창고 문이 열립니다"));
+});

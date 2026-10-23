@@ -573,7 +573,7 @@ function injongRead(natal, z, context = []) {
     const mem = Object.keys(row).filter(s => SIPSIN_GROUP[s] === grp);
     return { grp, mem, slot: SLOT_PAIR[mem.map(s => row[s].un).sort().join("·")] || "혼합" };
   });
-  const out = { row, groups, timeKnown: natal.timeKnown, kind: "子午卯酉".includes(z) ? "왕지" : "寅申巳亥".includes(z) ? "생지" : "사고지" };
+  const out = { row, groups, ctx: context, timeKnown: natal.timeKnown, kind: "子午卯酉".includes(z) ? "왕지" : "寅申巳亥".includes(z) ? "생지" : "사고지" };
   if (out.kind === "사고지") {                       // §4 개폐 — 충개고가 먼저, 삼합 짝은 작용 강화(학파 이견)
     const ctx = [...context, ...natal.zhis.filter(Boolean)];
     out.gaego = ctx.includes(GOJI_CHUNG[z]) ? "충개고" : ctx.some(x => GOJI_KEY[z].includes(x)) ? "합국" : "폐고";
@@ -965,8 +965,12 @@ function readPeriod(natal, ganzhi, startMin, endMin, meta) {
   const unYang = unseong(natal.dayGan, z, "yang");
   const rels = relationsTo(natal, z);
 
-  // 십성 인종 — 월운은 그해 세운 지지까지 대조해 사고지 개폐를 본다 (Python injong_year와 같다)
-  const ctx = meta && meta.kind === "month" ? [yearPillar(meta.slot.jieYear)[1]] : [];
+  // 십성 인종 — 사고지 개폐는 원국 지지에 그 기간의 상위 층위(세운·대운) 지지까지 대조한다 (32번 §4-1)
+  const mid = startMin + Math.floor((endMin - startMin) / 2);
+  const ctx = [];
+  if (!meta || meta.kind !== "year") ctx.push(yearPillar(jieSlot(mid).jieYear)[1]);
+  const di = natal.dw ? currentDaewoonIdx(natal.dw.list, mid) : -1;
+  if (di >= 0) ctx.push(natal.dw.list[di].gz[1]);
   const injong = injongRead(natal, z, ctx);
 
   return { ganzhi, g, z, gO, zO, gzRel, s12y, s12d, unY, unYang, rels, injong,
@@ -1035,6 +1039,8 @@ function injongProse(rd) {
   const by = slot => ij.groups.filter(x => x.slot === slot);
   const ps = [];
   const fake = Object.keys(R).filter(s => R[s].quad === "허상");
+  const span = { month: "이 달", year: "이 해", week: "이 주" }[rd.meta && rd.meta.kind] || "이 기간";
+  const josa = w => (w.charCodeAt(w.length - 1) - 0xAC00) % 28 ? "은" : "는";
   if (ij.kind !== "사고지") {
     for (const x of by("최고조"))
       ps.push(`<b>주무대</b> — ${x.grp}(${GROUP_DESC[x.grp]}): ${x.mem.map(say).join(", ")}. 건록·제왕 자리라 이 영역이 이번 기간 스스로 굴러갑니다.`);
@@ -1044,20 +1050,21 @@ function injongProse(rd) {
     }
     for (const x of by("갈림")) {
       const on = x.mem.find(s => R[s].un === "장생"), off = x.mem.find(s => R[s].un === "사");
-      const part = [told(on) && `${say(on)}은 개화`, told(off) && `${say(off)}은 머리가 몸보다 앞섭니다`].filter(Boolean);
+      const part = [told(on) && `${say(on)}${josa(on)} 개화`, told(off) && `${say(off)}${josa(off)} 머리가 몸보다 앞섭니다`].filter(Boolean);
       if (part.length) ps.push(`<b>갈림</b> — ${x.grp}: ${part.join(", ")}.`);
     }
   } else {
     const shut = { 충개고: "충으로 창고 문이 열립니다(개방과 손상이 함께 옵니다)", 합국: "삼합 짝이 있어 작용이 커집니다 — 여는지 묶는지는 학파 이견", 폐고: "여닫는 글자가 없어 닫혀 있습니다" }[ij.gaego];
     ps.push(`<b>창고</b> — ${rd.z}는 사고지라 강약이 아니라 여닫음으로 읽습니다. ${shut}. ` +
-            (ij.ijung.length ? `이중 입묘는 ${ij.ijung.join("·")} — 이 달 개폐의 주체입니다.` : `이중 입묘는 없습니다 — 창고보다 전환·관리 국면입니다.`) +
+            (ij.ijung.length ? `이중 입묘는 ${ij.ijung.join("·")} — ${span} 개폐의 주체입니다.` : `이중 입묘는 없습니다 — 창고보다 전환·관리 국면입니다.`) +
             (!ij.timeKnown && ij.gaego !== "충개고" ? ` 시지에 따라 개폐가 바뀔 수 있습니다(시각 모름).` : ""));
     for (const x of by("관리")) {
       const m = x.mem.filter(told);
       if (m.length) ps.push(`<b>관리</b> — ${x.grp}: ${m.map(say).join(", ")}. 진입 준비이거나 유지하는 쪽입니다.`);
     }
   }
-  if (fake.length) ps.push(`⚠️ ${fake.join("·")}은 원국에 없는 십성이라 운에서 켜져도 허상일 수 있습니다 — 기회로 단정하지 않습니다.`);
+  if (fake.length) ps.push(`⚠️ ${fake.join("·")}${josa(fake[fake.length - 1])} 원국에 없는 십성이라 운에서 켜져도 허상일 수 있습니다 — 기회로 단정하지 않습니다.` +
+                           (ij.timeKnown ? "" : " (시주 미상 — 시주에 있으면 달라집니다)"));
   ps.push(`<span style="color:var(--ink-dim)">십성 인종은 음포태 기준 서술용입니다. 통근·강약이 아니고, 길흉은 격국이 정합니다.</span>`);
   return ps.map(t => `<p>${t}</p>`).join("");
 }
@@ -1153,7 +1160,7 @@ function render() {
   const ij = rd.injong, IR = ij.row;
   const shown = ij.groups.filter(x => ["최고조", "최저", "갈림"].includes(x.slot) || (ij.kind === "사고지" && x.slot !== "혼합"));
   row("십성 인종", shown.map(x => `<span class="sub">${x.slot} — ${x.grp} ${x.mem.map(s => `<span class="tag ${stTag(IR[s].st)}">${s}·${IR[s].un}</span>`).join("")}</span>`).join("") +
-      (ij.kind === "사고지" ? `<span class="sub">사고지 개폐: <b>${ij.gaego}</b> · 이중 입묘: ${ij.ijung.join("·") || "없음"}</span>` : "") +
+      (ij.kind === "사고지" ? `<span class="sub">사고지 개폐: <b>${ij.gaego}</b> (원국${ij.ctx.length ? "·" + ij.ctx.join("·") : ""} 대조) · 이중 입묘: ${ij.ijung.join("·") || "없음"}</span>` : "") +
       `<span class="sub">음포태 기준 · 서술 전용 — 통근·강약이 아니다 (32번)</span>`);
   row("관계", rd.rels.length
     ? `<ul class="rels" style="margin:0">${rd.rels.map(r => `<li><span class="who">${r.pos}지 ${r.zhi}</span><span class="what"><b>${r.rel.join(" · ")}</b> <span>${GUNG[r.pos].short}</span></span></li>`).join("")}</ul>`
