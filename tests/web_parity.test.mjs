@@ -8,7 +8,7 @@ const root = new URL("..", import.meta.url);
 const html = readFileSync(new URL("web/unui-sigantable.html", root), "utf8");
 // 페이지의 const 선언은 eval로는 밖으로 새지 않는다. new Function으로 감싸 필요한 것만 돌려받는다.
 const src = html.slice(html.indexOf("<script>") + 8, html.indexOf("/* ══ 렌더"));
-const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, currentDaewoonIdx, T};")();
+const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, currentDaewoonIdx, relationsTo, T};")();
 const fx = JSON.parse(readFileSync(new URL("tests/fixtures/natal_cases.json", root), "utf8"));
 assert.ok(fx.cases.length >= 38, `픽스처 명조 ${fx.cases.length}개 — 38개 이상이어야 한다 (pytest가 build_fixtures.CASES와 대조)`);
 
@@ -150,6 +150,21 @@ test("신살·원국 지지 관계·일간 뿌리 (test_calc.test_shared_outputs
   assert.equal(b.sinsal.find(s => s.n === "천을귀인").v, "亥 — 결과가 아니라 통로");
   assert.deepEqual(b.inner.filter(r => r.a === "월지丑").map(r => r.r.join("·")), ["지지육해·원진·귀문", "형"]);
   assert.deepEqual(b.roots, ["일지 午", "시지 戌"]);
+});
+
+test("개별 신살 — 금여·홍염·지망·괴강(시주) (test_calc.test_shinsal_individual_entries와 같은 명조)", () => {
+  const a = E.buildNatal({ date: "1977-07-07", time: "08:30", timeKnown: true, gender: "M" });
+  assert.deepEqual(a.pillars, ["丁巳", "丙午", "乙丑", "庚辰"]);
+  assert.deepEqual(a.sinsal.map(s => `${s.n}:${s.v}`),
+    ["문창귀인:월지 午", "학당귀인:월지 午", "공망:공망지 戌亥 — 원국에 없음", "괴강:庚辰", "금여:巳", "홍염살:午 — 근거가 얇은 항목", "지망:辰巳"]);
+  const b = E.buildNatal({ date: "1980-11-14", time: "20:30", timeKnown: true, gender: "F" });
+  assert.deepEqual(b.sinsal.map(s => `${s.n}:${s.v}`), ["공망:공망지 午未 — 원국에 없음", "금여:亥", "천라:戌亥"]);
+  assert.equal(b.guk, "申子辰");                          // 삼재는 년지 申 기준(일지 卯의 亥卯未가 아니다)
+});
+
+test("기간 판독 — 원국 지지 관계는 무거운 것부터", () => {
+  const n = E.buildNatal({ date: "1995-10-29", time: "06:30", timeKnown: true, gender: "M" });
+  assert.deepEqual(E.relationsTo(n, "酉").map(r => `${r.pos}:${r.rel.join("·")}`), ["시:충", "일:반합", "월:지지육해·방합", "년:격각"]);
 });
 
 test("시각 보정 경계 — 일주까지 갈리면 둘 다 보여 준다", () => {

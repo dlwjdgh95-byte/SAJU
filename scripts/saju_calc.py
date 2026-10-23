@@ -298,7 +298,22 @@ def jie_display(dt):
     return dt + timedelta(seconds=30)
 
 KOREA_ZONES = ("Asia/Seoul", "Asia/Pyongyang")
-KOREA_DST_TZ = (9.5, 10)     # 한국 서머타임 오프셋(1948~51·1987~88 UTC+10, 1955~60 UTC+9:30) — 표준시로 쓰인 적이 없어 --tz로 주면 서머타임으로 본다
+KOREA_DST_TZ = (9.5, 10)     # 한국 서머타임 오프셋(1948~51·1987~88 UTC+10, 1955~60 UTC+9:30) — 한국 표준시로 쓰인 적은 없지만 다른 나라의 표준시다
+KOREA_LON = (124.0, 132.0)   # 한반도·부속 섬 경도 — 이 밖의 --longitude면 --tz 10·9.5를 그 지역 표준시로 본다
+
+def korean_dst_tz(wall, zone, tz, longitude=None):
+    """--tz 10·9.5를 한국 서머타임으로 읽을 것인가 — 한국 시간대이고, 경도가 한국이거나 없고,
+    그 벽시계 시각에 시간대 이력이 같은 오프셋의 서머타임일 때만(전환 빈 시각·겹친 시각은 어느 쪽이든). 아니면 고정 표준시다."""
+    if zone not in KOREA_ZONES or tz not in KOREA_DST_TZ or ZoneInfo is None:
+        return False
+    if longitude is not None and not KOREA_LON[0] <= longitude <= KOREA_LON[1]:
+        return False
+    zi = ZoneInfo(zone)
+    for f in (0, 1):
+        aa = wall.replace(tzinfo=zi, fold=f)
+        if aa.dst() and aa.utcoffset() == timedelta(hours=tz):
+            return True
+    return False
 
 def utc_to_wall(utc, zone="Asia/Seoul", tz=None):
     """UTC(naive) → 그 지역 벽시계(naive). tz를 주면 고정 오프셋."""
@@ -318,7 +333,7 @@ def resolve_time(wall, zone="Asia/Seoul", tz=None, longitude=126.978, solar="lmt
     ⚠️ 절입 비교·대운수는 반환값의 utc로, 시주·자시 판정은 local로 한다 (errata #18).
     보정량은 분 단위로 반올림한다 — JS 엔진과 같은 규칙."""
     if tz is not None:
-        dst = timedelta(hours=1) if zone in KOREA_ZONES and tz in KOREA_DST_TZ else timedelta(0)
+        dst = timedelta(hours=1) if korean_dst_tz(wall, zone, tz, longitude) else timedelta(0)
         off, tzname, ambiguous = timedelta(hours=tz), f"UTC{tz:+g}(고정{', 서머타임' if dst else ''})", False
     else:
         if ZoneInfo is None:
@@ -1375,10 +1390,12 @@ def _birth_block(a):
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
     zone = _check_zone(a.zone or PLACES[place][1])
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
-    korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) + KOREA_DST_TZ)    # --zone Asia/Tokyo --tz 9도 한국 밖
+    korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) or korean_dst_tz(wall, zone, a.tz))    # --zone Asia/Tokyo --tz 9도 한국 밖
     if a.longitude is None and a.place is None and not korean:
         sys.exit(f"한국 밖 시간대({f'UTC{a.tz:+g}' if a.tz is not None and zone in KOREA_ZONES else zone})에는 출생지 경도가 필요하다 — --longitude로 줄 것 "
-                 "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)")
+                 "(동경 +, 서경 −. 예: 뉴욕 --longitude -74.006, 도쿄 --longitude 139.692)"
+                 + (". 그날은 한국 서머타임 기간(1948~51·1955~60·1987~88의 여름)이 아니라 이 오프셋을 그 지역 표준시로 본다"
+                    if a.tz in KOREA_DST_TZ and zone in KOREA_ZONES else ""))
     t = resolve_time(wall, zone=zone, tz=a.tz, longitude=lon, solar=solar)
     if a.longitude is None and abs(t["lon_corr_min"]) > 60:
         sys.exit(f"출생지 경도({place} {lon:.3f}°E)가 시간대({t['tzname']} {_fmt_offset(t['offset_min'])})와 "
@@ -1387,12 +1404,14 @@ def _birth_block(a):
     pillars, minfo = four_pillars(t["utc"], t["local"], a.zasi)
     if not known:
         pillars = pillars[:3]
-    wall_fn = lambda u: utc_to_wall(u, zone, a.tz)
+    disp_tz = None if a.tz is not None and t["dst_min"] else a.tz     # --tz로 준 한국 서머타임 — 절입·대운 날짜는 그날의 한국 시계(이력)로 적는다
+    wall_fn = lambda u: utc_to_wall(u, zone, disp_tz)
 
     warn = []
     if t["dst_min"]:
+        std = f"{(t['offset_min'] - t['dst_min']) / 60:g}"
         warn.append(f"⚠️ 서머타임 기간({t['tzname']}) — 입력 시각에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다. "
-                    f"기록된 시각이 이미 표준시라면 --tz {(t['offset_min'] - t['dst_min']) / 60:g}로 다시 계산할 것" if known else
+                    f"기록된 시각이 이미 표준시라면 --tz {std}{'으로' if std[-1] in '036' else '로'} 다시 계산할 것" if known else
                     f"⚠️ 서머타임 기간({t['tzname']}) — 기준 시각(정오)에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다")
     if a.tz is None and zone == "Asia/Seoul" and t["offset_min"] - t["dst_min"] == 510:
         warn.append("ℹ️ 당시 한국 표준시는 UTC+8:30 (1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했다")
@@ -1473,7 +1492,9 @@ def build_parser():
     ap.add_argument("--place", help=f"출생지 → 경도·시간대 (기본 {DEFAULT_PLACE}). 예: 부산, 광주, 제주")
     ap.add_argument("--longitude", type=float, help="출생지 경도 직접 지정 (--place보다 우선)")
     ap.add_argument("--zone", help="IANA 시간대 (기본 Asia/Seoul). 표준시 변경·서머타임 이력 자동 적용")
-    ap.add_argument("--tz", type=float, help="고정 UTC 오프셋(시간). 주면 시간대 이력을 쓰지 않는다. 예: 9, 8.5")
+    ap.add_argument("--tz", type=float, help="고정 UTC 오프셋(시간). 주면 시간대 이력을 쓰지 않는다. 예: 9, 8.5. "
+                    "10·9.5는 한국 서머타임 기간(1948~51·1955~60·1987~88의 여름)이고 경도가 한국이거나 없을 때만 서머타임으로 본다 — "
+                    "그 밖에는 그 지역 표준시(경도 필요). 국외 출생은 --zone이 정확하다")
     ap.add_argument("--eot", action="store_true", help="균시차까지 반영한 진태양시(LAT). 기본은 경도 보정만 하는 지방평균시(LMT)")
     ap.add_argument("--no-solar-correction", action="store_true",
                     help="경도 보정 끄기 — 표준시 그대로 시주를 뽑는다 (서머타임분은 제거)")

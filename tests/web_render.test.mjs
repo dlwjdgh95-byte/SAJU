@@ -44,6 +44,24 @@ test("렌더 — 경고 목록은 '확인' 칸에 나온다", () => {
   assert.ok(els.structKv.innerHTML.includes("<dt>확인</dt>") && els.structKv.innerHTML.includes("절입일 출생"));
 });
 
+test("렌더 — 일간 뿌리가 없으면 4기둥은 무근, 3기둥은 '연·월·일지에 뿌리 없음'", () => {
+  boot({ name: "", date: "1990-01-09", time: "12:00", timeKnown: true, gender: "M" });     // 己巳 丁丑 甲戌 庚午
+  assert.ok(els.structKv.innerHTML.includes("<b>무근(無根)</b>"), els.structKv.innerHTML);
+  boot({ name: "", date: "1990-01-09", timeKnown: false, gender: "M" });
+  assert.ok(els.structKv.innerHTML.includes("<b>연·월·일지에 뿌리 없음</b> (시지 미상)"), els.structKv.innerHTML);
+});
+
+test("주운 — 월요일에 시작한다", () => {
+  const t0 = Date.parse("2026-10-22T03:00:00Z");                    // 목요일 KST 정오
+  class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [t0])); } static now() { return t0; } }
+  const { computePeriods, buildNatal } = new Function("document", "window", "localStorage", "Date",
+    src + "; return { computePeriods, buildNatal };")(document, { scrollTo() {} }, localStorage, FixedDate);
+  const p = computePeriods(buildNatal({ date: "1995-10-29", time: "06:30", timeKnown: true, gender: "M" }));
+  assert.equal(p.week0.note, "10/19 월요일 → 10/25 일요일");
+  assert.equal(p.week1.note, "10/26 월요일 → 11/01 일요일");
+  assert.equal(p.week0.days.findIndex(d => d.isToday), 3);
+});
+
 test("아침 글 — 같은 날짜·시각이어도 시각을 모름으로 바꾸면 기본 명식 글을 붙이지 않는다", () => {
   const block = src.slice(src.indexOf("const DAILY"));
   const day = block.match(/for: "(\d{4}-\d{2}-\d{2})"/)[1], title = block.match(/title: "([^"]+)"/)[1];

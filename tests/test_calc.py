@@ -484,6 +484,37 @@ def test_shared_outputs():                                  # web_parity.test.mj
     assert d["tonggn"]["일간丙"] == ["일지午(록왕)", "시지戌(묘고)"]
 
 
+def test_shinsal_individual_entries():                    # 금여·홍염·지망·괴강(시주·포함 견해)·고신·과숙·삼재(년지 기준) — web_parity '개별 신살'과 같은 명조
+    d = json.loads(run_cli("--birth", "1977-07-07 08:30", "--gender", "M", "--json"))
+    assert d["pillars"] == ["丁巳", "丙午", "乙丑", "庚辰"]
+    ind = d["신살"]["개별 신살"]
+    assert (ind["금여(C)"], ind["홍염살(C~D)"], ind["지망(C)"], ind["괴강(B)"], ind["고신·과숙(C)"]) == \
+           (["巳 @ 년지"], ["午 @ 월지"], ["辰巳 동시 존재"], ["시주 庚辰"], ["과숙 辰"])
+    assert d["신살"]["삼재(B~C)"] == "巳酉丑생 → 삼재 해당 년지: 亥子丑"
+    d = json.loads(run_cli("--birth", "1980-11-14 20:30", "--gender", "F", "--json"))
+    assert d["pillars"] == ["庚申", "丁亥", "辛卯", "戊戌"]
+    ind = d["신살"]["개별 신살"]
+    assert (ind["금여(C)"], ind["괴강(B)"], ind["고신·과숙(C)"], ind["천라(C)"]) == (["亥 @ 월지"], ["시주 戊戌(포함 견해)"], ["고신 亥"], ["戌亥 동시 존재"])
+    assert d["신살"]["삼재(B~C)"] == "申子辰생 → 삼재 해당 년지: 寅卯辰"          # 일지 卯(亥卯未)가 아니라 년지 申 기준
+
+
+def test_small_outputs():                                  # 이중 입묘·격위·학파 차이·윤달 안내 — 다른 테스트가 지나가지 않는 출력
+    assert {g: [S.ijung_ipmyo(g, z) for z in "辰戌丑未"] for g in "甲丙庚"} == \
+           {"甲": [[], ["편재"], ["정재"], []], "丙": [[], ["식신"], ["상관"], []], "庚": [[], ["편인"], ["정인"], []]}   # 墓이면서 그 지지 장간인 십성만
+    assert S.stem_relations([("년간", "甲"), ("월간", "丙"), ("일간", "己")]) == {"년간甲—일간己": ["천간합(土)", "격위(사이에 다른 천간 — 합력 약화, 22 §1-3)"]}
+    g = json.loads(run_cli("--pillars", "甲子 丁卯 丙寅 甲午", "--json"))["격 후보"]
+    assert g["학파 차이"].startswith("월률분야 기준이면 卯 여기 甲(편인)도 투출로 본다")
+    d = json.loads(run_cli("--birth", "2023-02-10 12:00", "--gender", "M", "--lunar", "--json"))
+    assert "그해 2월은 윤달이 있다 — 윤2월 출생이면 --leap: 양력 2023-03-31" in d["입력"]["입력 시각"]
+
+
+def test_quadrant_matches_doc():                           # 32번 §5-2 4분면 표 = saju_calc.QUADRANT
+    sec = open(os.path.join(ROOT, "references/32_injong.md"), encoding="utf-8").read().split("### 5-2.")[1].split("\n\n```")[0]
+    rows = [[c.strip().replace("**", "") for c in l.strip().strip("|").split("|")] for l in sec.splitlines() if l.startswith("| **")]
+    got = {(r[0], st): cell for r in rows for st, cell in zip(("활", "전", "장"), r[1:])}
+    assert got == S.QUADRANT
+
+
 def test_gongmang_same_branch_twice():                     # 같은 공망 지지가 두 자리에 있으면 둘 다 (웹과 같다)
     d = json.loads(run_cli("--birth", "1971-06-15 23:10", "--gender", "F", "--json"))
     assert d["pillars"] == ["辛亥", "甲午", "辛未", "己亥"] and d["신살"]["개별 신살"]["공망(A~B)"] == ["공망지 戌亥", "년지亥", "시지亥"]
@@ -501,18 +532,46 @@ def test_cli_warnings():
         assert "±24시간 이내" in w and pz in w, (b, w)
 
 
-def test_cli_korean_dst_offset_as_tz():                   # 한국 서머타임 오프셋(UTC+10·+9:30)은 --tz로 줘도 서머타임으로 받는다 (errata #43)
-    for b, tz in [("1987-07-01 12:00", "10"), ("1958-07-01 12:00", "9.5")]:
-        auto = json.loads(run_cli("--birth", b, "--gender", "M", "--json"))
-        fixed = json.loads(run_cli("--birth", b, "--gender", "M", "--tz", tz, "--json"))
-        assert (fixed["pillars"], fixed["입력"]["시각 보정(분)"], fixed["대운"]["start_date"]) == \
-               (auto["pillars"], auto["입력"]["시각 보정(분)"], auto["대운"]["start_date"])
+def test_cli_korean_dst_offset_as_tz():                   # 한국 서머타임 기간의 --tz 10·9.5는 서머타임으로 받는다 (errata #43·#44)
+    same = lambda d: (d["pillars"], d["입력"]["시각 보정(분)"], d["절기"]["월 구간"], d["대운"]["start_date"], d["대운"]["ref"],
+                      [x["start"] for x in d["대운"]["list"]])
+    for b, tz, g in [("1987-07-01 12:00", "10", "M"), ("1958-07-01 12:00", "9.5", "M"), ("1987-07-01 07:28", "10", "F"),
+                     ("1987-05-16 12:35", "10", "F"), ("1958-06-30 12:37", "9.5", "M")]:   # 절입·대운 날짜도 그날의 한국 시계로 적는다
+        auto = json.loads(run_cli("--birth", b, "--gender", g, "--json"))
+        fixed = json.loads(run_cli("--birth", b, "--gender", g, "--tz", tz, "--json"))
+        assert same(fixed) == same(auto), b
+        assert fixed["입력"]["시간대"].startswith(f"UTC+{tz}(고정, 서머타임)")
         std = "9" if tz == "10" else "8.5"
         assert all(any(f"이미 표준시라면 --tz {std}로 다시 계산" in w for w in r["경고"]) for r in (auto, fixed))
+        assert any("UTC+8:30" in w for w in auto["경고"]) == (tz == "9.5") and not any("UTC+8:30" in w for w in fixed["경고"])
     gap = " ".join(json.loads(run_cli("--birth", "1987-05-10 02:30", "--gender", "M", "--json"))["경고"])
     assert "전환 뒤 시계로 읽으면 丁卯 乙巳 己未 甲子" in gap
     d = json.loads(run_cli("--birth", "1987-05-10 02:30", "--gender", "M", "--tz", "10", "--json"))    # 경고가 알려 준 '전환 뒤' 값을 그대로 다시 낸다
     assert d["pillars"] == ["丁卯", "乙巳", "己未", "甲子"]
+
+
+def test_cli_dst_offset_outside_korean_dst():              # 한국 서머타임 기간이 아니거나 경도가 한국 밖이면 --tz 10·9.5는 그 지역 표준시 (errata #44)
+    with pytest.raises(SystemExit) as e:
+        run_cli("--birth", "2000-07-01 14:00", "--gender", "M", "--tz", "10")
+    assert "한국 밖 시간대(UTC+10)에는 출생지 경도가 필요하다" in str(e.value.code) and "서머타임 기간" in str(e.value.code)
+    key = lambda d: (d["pillars"], d["입력"]["표준시"], d["입력"]["보정 후"], d.get("경고", []), d["대운"]["start_date"])
+    for b, tz, lon, zone, extra, hour in [("2000-07-01 12:50", "10", "151.21", "Australia/Sydney", [], "壬午"),
+                                          ("2000-07-01 14:00", "10", "151.21", "Australia/Sydney", [], "癸未"),
+                                          ("2000-07-01 13:10", "9.5", "130.84", "Australia/Darwin", ["--no-solar-correction"], "癸未"),
+                                          ("2000-07-01 13:10", "9.5", "130.84", "Australia/Darwin", [], "壬午"),
+                                          ("1958-07-01 12:00", "9.5", "138.6", "Australia/Adelaide", [], "庚午")]:   # 1958 한국 서머타임 기간이지만 경도가 한국 밖
+        fixed = json.loads(run_cli("--birth", b, "--gender", "M", "--tz", tz, "--longitude", lon, *extra, "--json"))
+        auto = json.loads(run_cli("--birth", b, "--gender", "M", "--zone", zone, "--longitude", lon, *extra, "--json"))
+        assert key(fixed) == key(auto) and fixed["pillars"][3] == hour, (b, zone)
+        assert fixed["입력"]["시간대"] == f"UTC+{tz}(고정) " + auto["입력"]["시간대"].split(" ", 1)[1]
+
+
+def test_dst_advice_particle():                            # 「--tz N으로/로」 — 영·삼·육·십은 으로 (errata #44)
+    for b, zone, lon, want in [("2000-07-15 12:00", "Europe/London", "-0.12", "--tz 0으로"), ("2000-07-15 12:00", "Europe/Moscow", "37.62", "--tz 3으로"),
+                               ("2000-01-15 12:00", "Australia/Sydney", "151.21", "--tz 10으로"), ("2000-01-15 12:00", "America/Sao_Paulo", "-46.63", "--tz -3으로"),
+                               ("1987-07-01 12:00", "Asia/Seoul", "126.98", "--tz 9로")]:
+        d = json.loads(run_cli("--birth", b, "--gender", "M", "--zone", zone, "--longitude", lon, "--json"))
+        assert any(f"이미 표준시라면 {want} 다시 계산" in w for w in d["경고"]), (zone, d["경고"])
 
 
 def test_cli_correction_boundary_warning():              # errata #30
