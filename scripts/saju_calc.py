@@ -73,11 +73,12 @@ JANGGAN_DEFAULT = "jangan_ga"
 JANGGAN = dict(JANGGAN_SCHOOLS[JANGGAN_DEFAULT])      # 현재 학파 표 (set_janggan_school로 교체)
 BONGI = {z: JANGGAN[z][-1] for z in ZHI}              # 본기는 두 학파가 같다
 
-# 십이운성 기반 통근 등급용: 각 천간 오행의 록/왕/생지
+# 십이운성 기반 통근 등급용: 각 천간 오행의 록/왕/생지 (양포태 — 음간도 같은 오행 양간으로 본다)
+# 土는 화토동법(戊=丙): 巳·午가 건록·제왕(ROK·자평진전 「建禄」과 같다), 寅이 장생. 辰戌丑未는 본기 土라 록왕으로 친다
 ROOT_GRADE = {  # 오행 → {지지: 등급}
     "木": {"寅":"록왕","卯":"록왕","亥":"생지","辰":"여기","未":"묘고"},
     "火": {"巳":"록왕","午":"록왕","寅":"생지","未":"여기","戌":"묘고"},
-    "土": {"辰":"록왕","戌":"록왕","丑":"록왕","未":"록왕","巳":"생지","午":"생지"},
+    "土": {"辰":"록왕","戌":"록왕","丑":"록왕","未":"록왕","巳":"록왕","午":"록왕","寅":"생지"},
     "金": {"申":"록왕","酉":"록왕","巳":"생지","戌":"여기","丑":"묘고"},
     "水": {"亥":"록왕","子":"록왕","申":"생지","丑":"여기","辰":"묘고"},
 }
@@ -186,6 +187,16 @@ PLACES = {
     "함흥": (127.536, "Asia/Pyongyang"), "청진": (129.776, "Asia/Pyongyang"), "신의주": (124.398, "Asia/Pyongyang"),
 }
 DEFAULT_PLACE = "서울"
+# 38선 이남·이북이 바뀐 출생지 — zoneinfo는 지금의 나라로 나뉘어 1948~50년 남한 서머타임 적용이 거꾸로 나온다
+PLACE_ZONE_BEFORE = {"개성": (datetime(1950, 6, 25), "Asia/Seoul"),        # 그 전엔 38선 이남(미군정·대한민국)
+                     "속초": (datetime(1950, 10, 1), "Asia/Pyongyang")}    # 그 전엔 38선 이북
+WAR_SPAN = (datetime(1950, 6, 25), datetime(1953, 7, 27))                  # 관할이 오간 기간 — 두 시간대가 갈리면 경고
+
+
+def place_zone(place, wall):
+    """출생지의 그 시각 시간대. 개성·속초는 1950년 관할 변경 전후로 다르다."""
+    cut = PLACE_ZONE_BEFORE.get(place)
+    return cut[1] if cut and wall < cut[0] else PLACES[place][1]
 YEAR_MIN, YEAR_MAX = 1583, 2100      # 그레고리력 이후 — ephem(율리우스력 입력)과 일주 계산의 달력이 같아지는 구간
 
 
@@ -1031,8 +1042,15 @@ def combo_report(pillars, spec):
 # ⚠️ 길흉 점수가 아니다. 28_scoring.md 점수 모델과 무관하며 어떤 축에도 합산하지 않는다.
 # ⚠️ 사람을 판정·배제하는 용도로 쓰지 않는다. 상대 명조 없이 단정하지 않는다.
 
-_NEG_REL = {"충","형","자형","파","지지육해","원진","귀문","격각","복음(같은 글자)"}
+# 33번 §4-1 ⓑ·§3-1의 목록 — 격각·복음은 22번 §6-3의 뉘앙스 층위라 세지 않는다
+_NEG_REL = {"충","형","자형","파","지지육해","원진","귀문"}
 _POS_REL = {"육합","반합(왕지 포함)","반합(왕지 미포함)","방합 일부(2자)"}
+
+
+def _neg_count(rels):
+    """한 지지 쌍의 부정 관계 수. 원진·귀문이 겹치는 짝은 같은 사실이라 한 번만 센다 (22번 §6-3)."""
+    n = sum(1 for r in rels if r in _NEG_REL)
+    return n - 1 if "원진" in rels and "귀문" in rels else n
 
 # 土 용신의 역할별 습토·조토 유효성 (33_inyeon.md §6-2, 25_byeongyak.md)
 TO_ROLE = {
@@ -1054,7 +1072,7 @@ def baeuja_gung(pillars):
         "배우자궁": f"일지 {dz} — 본기 {BONGI[dz]}({sipsin(day, BONGI[dz])})",
         "지장간": {c: sipsin(day, c) for c in JANGGAN[dz]},
         "원국 내 간섭": inner or {"—": ["없음"]},
-        "간섭 강도": f"부정 관계 {sum(1 for v in inner.values() for r in v if r in _NEG_REL)}건"
+        "간섭 강도": f"부정 관계 {sum(_neg_count(v) for v in inner.values())}건"
                     + (" (시지 미상 — 일지 옆 시지와의 관계는 빠졌다)" if len(zhis) == 3 else ""),
         "⚠️": "배우자궁은 등급 B(궁위론)다. 재성=배우자 매핑은 고전의 전제이며 궁위·용신 축과 함께 읽는다",
     }
@@ -1073,7 +1091,7 @@ def inyeon_fit(pillars, yongsin_oheng=None, to_role=None):
         for i in range(len(zhis)):
             r = zhi_relations(zhis[i], z)
             if r: rel[f"{labels[i]}지{zhis[i]}"] = r
-        neg = sum(1 for v in rel.values() for r in v if r in _NEG_REL)
+        neg = sum(_neg_count(v) for v in rel.values())
         pos = sum(1 for v in rel.values() for r in v if r in _POS_REL)
         ilji = zhi_relations(dz, z) or []
         oh = OHENG_Z[z]
@@ -1100,20 +1118,24 @@ def inyeon_fit(pillars, yongsin_oheng=None, to_role=None):
     return out
 
 def _inyeon_signals(day_gan, gz, zhis):
-    """한 간지(세운·대운)의 인연 층위 신호 목록. 길흉이 아니라 '발동 여부'다."""
+    """한 간지(세운·대운)의 인연 층위 신호 — ⓐ 일간합 · ⓑ 배우자궁 · ⓒ 재성 세 가지를 하나씩 센다 (33번 §4-1).
+    한 자리(일지)의 관계 여럿, 재성 슬롯과 운 천간 재성은 각각 한 신호로 묶는다. 길흉이 아니라 '발동 여부'다."""
     g, z = gz[0], gz[1]
     dz = zhis[2]
     sig = []
     if frozenset((day_gan, g)) in CHEONGAN_HAP:
         sig.append(f"일간 천간합({day_gan}{g}합) — 일간이 직접 묶인다. 길흉은 화신·방어간으로 따로 판정")
-    for r in (zhi_relations(dz, z) or []):
-        if r in _POS_REL:   sig.append(f"배우자궁 {r}")
-        elif r in _NEG_REL: sig.append(f"배우자궁 {r}")
+    rel = [r for r in (zhi_relations(dz, z) or []) if r in _POS_REL or r in _NEG_REL]
+    if rel:
+        sig.append(f"배우자궁 {'·'.join(rel)}")
     pr = injong_pairs(day_gan, z)
+    jae = []
     if pr["재성"]["슬롯"] in ("최고조","갈림"):
-        sig.append(f"재성 {pr['재성']['슬롯']}({'·'.join(pr['재성']['십성'].values())})")
+        jae.append(f"재성 {pr['재성']['슬롯']}({'·'.join(pr['재성']['십성'].values())})")
     if sipsin(day_gan, g) in ("편재","정재"):
-        sig.append(f"운 천간이 재성({sipsin(day_gan, g)})")
+        jae.append(f"운 천간이 재성({sipsin(day_gan, g)})")
+    if jae:
+        sig.append(" · ".join(jae))
     return sig
 
 def _inyeon_capacity(day_gan, z):
@@ -1145,9 +1167,13 @@ def _inyeon_activity(day_gan, z, year_zhi):
                                   "성적 함의는 민간 확장이며 단독 근거로 쓰지 않는다 (33_inyeon.md §5-2)"))
     if z == HONGYEOM[day_gan]:
         sig.append(("C~D", "홍염 — ⚠️ 등급 C~D. 단독 문장으로 쓰지 않는다"))
-    strong = any(gr.startswith("A") and "식상 최고조" in t for gr, t in sig)
-    support = any("도화" in t for _, t in sig) or UNSEONG_STATE[u] == "활"
-    lvl = "강" if (strong and support) else ("중" if sig else "약")
+    if UNSEONG_STATE[u] == "활":
+        sig.append(("A", f"일간 {u}(활) — 체력이 받쳐준다"))
+    # 33번 §5-4: 강 = ⓐ 식상 최고조 + (ⓑ 왕지 도화 또는 ⓒ 일간 활) · 중 = 둘 중 하나 · 약 = 없음.
+    # 식상 갈림·목욕·홍염은 참고 신호로만 적고 등급에 넣지 않는다 (§5-2 목욕은 보조, 홍염은 단독 금지)
+    a = sik == "최고조"
+    bc = z in "子午卯酉" or UNSEONG_STATE[u] == "활"
+    lvl = "강" if (a and bc) else ("중" if (a or bc) else "약")
     return {"활동": lvl, "신호": [f"[{gr}] {t}" for gr, t in sig] or ["없음"],
             "⚠️": ("활동 강 ≠ 좋은 해가 아니다. 식상 최고조는 설기(洩氣)이기도 하다. "
                   "일간이 약하거나 재다신약인 명조에서는 소모가 커지는 구간일 수 있으므로 "
@@ -1388,7 +1414,7 @@ def _birth_block(a):
         sys.exit(f"--birth 연도는 {YEAR_MIN}~{YEAR_MAX}년만 지원한다 (그레고리력 이전·먼 미래는 절기·일주 계산의 달력이 맞지 않는다)")
     place = _check_place(a.place)
     lon = a.longitude if a.longitude is not None else PLACES[place][0]
-    zone = _check_zone(a.zone or PLACES[place][1])
+    zone = _check_zone(a.zone or place_zone(place, wall))
     solar = "none" if a.no_solar_correction else ("lat" if a.eot else "lmt")
     korean = zone in KOREA_ZONES and (a.tz is None or a.tz in (8.5, 9) or korean_dst_tz(wall, zone, a.tz))    # --zone Asia/Tokyo --tz 9도 한국 밖
     if a.longitude is None and a.place is None and not korean:
@@ -1404,7 +1430,8 @@ def _birth_block(a):
     pillars, minfo = four_pillars(t["utc"], t["local"], a.zasi)
     if not known:
         pillars = pillars[:3]
-    disp_tz = None if a.tz is not None and t["dst_min"] else a.tz     # --tz로 준 한국 서머타임 — 절입·대운 날짜는 그날의 한국 시계(이력)로 적는다
+    disp_tz = None if korean else a.tz     # --tz로 준 한국 오프셋(8.5·9·서머타임) — 절입·대운·월운 날짜는 그날의 한국 시계(이력)로 적는다
+    a.year_tz = disp_tz                    # --injong-year 월운 절입도 같은 기준 (출생 시각용 --tz를 그해에 쓰지 않는다)
     wall_fn = lambda u: utc_to_wall(u, zone, disp_tz)
 
     warn = []
@@ -1413,6 +1440,10 @@ def _birth_block(a):
         warn.append(f"⚠️ 서머타임 기간({t['tzname']}) — 입력 시각에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다. "
                     f"기록된 시각이 이미 표준시라면 --tz {std}{'으로' if std[-1] in '036' else '로'} 다시 계산할 것" if known else
                     f"⚠️ 서머타임 기간({t['tzname']}) — 기준 시각(정오)에서 {int(t['dst_min'])}분을 빼 표준시로 환산했다")
+    if (a.zone is None and a.tz is None and place in PLACE_ZONE_BEFORE and WAR_SPAN[0] <= wall < WAR_SPAN[1] and ZoneInfo
+            and wall.replace(tzinfo=ZoneInfo("Asia/Seoul")).utcoffset() != wall.replace(tzinfo=ZoneInfo("Asia/Pyongyang")).utcoffset()):
+        warn.append(f"⚠️ {place}{'은' if (ord(place[-1]) - 0xAC00) % 28 else '는'} 6·25 전쟁 중 관할이 오간 곳이라 이날 남한 서머타임이 쓰였는지 불확실하다 — {t['tzname']}로 계산했다. "
+                    "서머타임이었으면 --tz 10, 아니었으면 --tz 9로 비교할 것")
     if a.tz is None and zone == "Asia/Seoul" and t["offset_min"] - t["dst_min"] == 510:
         warn.append("ℹ️ 당시 한국 표준시는 UTC+8:30 (1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했다")
     if a.longitude is not None and abs(t["lon_corr_min"]) > 60:
@@ -1613,7 +1644,7 @@ def main(argv=None):
         except ValueError as e:
             sys.exit(str(e))
     if a.injong: res["십성 인종"] = injong_report(ps[2][0], a.injong[-1], pillars=ps, context=[a.injong[-1]])
-    if a.injong_year is not None: res["연간 인종"] = injong_year(ps, a.injong_year, a.tz, zone)
+    if a.injong_year is not None: res["연간 인종"] = injong_year(ps, a.injong_year, getattr(a, "year_tz", a.tz), zone)
     res.update(_inyeon_cli(a, ps))
     if warn: res["경고"] = warn
     _emit(res, a)

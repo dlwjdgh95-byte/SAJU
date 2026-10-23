@@ -550,7 +550,37 @@ function unseong(gan, zhi, mode) {
   const d = (((ZHI.indexOf(zhi) - ZHI.indexOf(JANGSAENG[g])) * step) % 12 + 12) % 12;
   return UNSEONG[d];
 }
-const UN_POWER = { 장생:2, 목욕:1, 관대:2, 건록:3, 제왕:3, 쇠:1, 병:-1, 사:-2, 묘:-1, 절:-2, 태:-1, 양:0 };
+/* ── 십성 인종 (references/32) — 음포태 3상태·슬롯 쌍·원국 교차. 세력 점수로 바꾸지 않는다 (§1·§3-1) ── */
+const UN_STATE = { 장생:"활", 관대:"활", 건록:"활", 제왕:"활", 목욕:"전", 쇠:"전", 병:"전", 사:"전", 묘:"장", 절:"장", 태:"장", 양:"장" };
+const SLOT_PAIR = Object.fromEntries([["건록","제왕","최고조"], ["장생","사","갈림"], ["목욕","병","전환"],
+  ["태","절","최저"], ["관대","쇠","관리"], ["묘","양","창고"]].map(([a, b, n]) => [[a, b].sort().join("·"), n]));
+const GROUP_ORDER = ["비겁", "식상", "재성", "관성", "인성"];
+const QUADRANT = { 투간활: "실질 발현", 투간전: "기능 전환", 투간장: "공회전",
+                   지장간활: "점화 대기", 지장간전: "부분 작동", 지장간장: "무효",
+                   무활: "허상", 무전: "무효", 무장: "무효" };
+const GOJI_KEY = { 辰: "申子", 戌: "寅午", 丑: "巳酉", 未: "亥卯" };
+const GOJI_CHUNG = { 辰: "戌", 戌: "辰", 丑: "未", 未: "丑" };
+function injongRead(natal, z, context = []) {
+  const others = natal.pillars.filter((p, i) => p && i !== 2).map(p => p[0]);   // 일간 자신은 비견 판정에서 뺀다 (§5-1)
+  const jang = natal.zhis.filter(Boolean).map(x => JANGGAN[x]).join("");
+  const row = {};
+  for (const x of GAN) {
+    const un = unseong(x, z, "eum"), st = UN_STATE[un];
+    const hold = others.includes(x) ? "투간" : jang.includes(x) ? "지장간" : "무";
+    row[sipsin(natal.dayGan, x)] = { gan: x, un, st, hold, quad: QUADRANT[hold + st] };
+  }
+  const groups = GROUP_ORDER.map(grp => {
+    const mem = Object.keys(row).filter(s => SIPSIN_GROUP[s] === grp);
+    return { grp, mem, slot: SLOT_PAIR[mem.map(s => row[s].un).sort().join("·")] || "혼합" };
+  });
+  const out = { row, groups, timeKnown: natal.timeKnown, kind: "子午卯酉".includes(z) ? "왕지" : "寅申巳亥".includes(z) ? "생지" : "사고지" };
+  if (out.kind === "사고지") {                       // §4 개폐 — 충개고가 먼저, 삼합 짝은 작용 강화(학파 이견)
+    const ctx = [...context, ...natal.zhis.filter(Boolean)];
+    out.gaego = ctx.includes(GOJI_CHUNG[z]) ? "충개고" : ctx.some(x => GOJI_KEY[z].includes(x)) ? "합국" : "폐고";
+    out.ijung = Object.keys(row).filter(s => row[s].un === "묘" && JANGGAN[z].includes(row[s].gan));
+  }
+  return out;
+}
 
 /* ── 지지 관계 (references/22) ────────────────── */
 const P = a => a.map(s => s.split("").sort().join(""));
@@ -935,14 +965,11 @@ function readPeriod(natal, ganzhi, startMin, endMin, meta) {
   const unYang = unseong(natal.dayGan, z, "yang");
   const rels = relationsTo(natal, z);
 
-  // 십신 인종
-  const incho = GAN.split("").map(x => ({ s: sipsin(natal.dayGan, x), gan: x, un: unseong(x, z, "eum") }));
-  const alive = incho.filter(x => UN_POWER[x.un] >= 2);
-  const down  = incho.filter(x => UN_POWER[x.un] <= -1);
-  const groups = a => [...new Set(a.map(x => SIPSIN_GROUP[x.s]))];
+  // 십성 인종 — 월운은 그해 세운 지지까지 대조해 사고지 개폐를 본다 (Python injong_year와 같다)
+  const ctx = meta && meta.kind === "month" ? [yearPillar(meta.slot.jieYear)[1]] : [];
+  const injong = injongRead(natal, z, ctx);
 
-  return { ganzhi, g, z, gO, zO, gzRel, s12y, s12d, unY, unYang, rels,
-           incho, alive, down, aliveG: groups(alive), downG: groups(down),
+  return { ganzhi, g, z, gO, zO, gzRel, s12y, s12d, unY, unYang, rels, injong,
            startMin, endMin, meta,
            gongmang: natal.gongmangZhi.includes(z) };
 }
@@ -998,6 +1025,41 @@ function computePeriods(natal) {
                  note: `${fmtMD(mon)} 월요일 → ${fmtMD(mon + 6 * 1440)} 일요일` };
   });
   return out;
+}
+
+// 32번 §6 출력 규범 — 오행 5조로 묶고, 4분면 '무효' 십성은 말하지 않고, 길흉은 선언하지 않는다
+function injongProse(rd) {
+  const ij = rd.injong, R = ij.row;
+  const told = s => R[s].quad !== "무효";
+  const say = s => `${s}(${R[s].un} · 원국 ${R[s].hold} — ${R[s].quad})`;
+  const by = slot => ij.groups.filter(x => x.slot === slot);
+  const ps = [];
+  const fake = Object.keys(R).filter(s => R[s].quad === "허상");
+  if (ij.kind !== "사고지") {
+    for (const x of by("최고조"))
+      ps.push(`<b>주무대</b> — ${x.grp}(${GROUP_DESC[x.grp]}): ${x.mem.map(say).join(", ")}. 건록·제왕 자리라 이 영역이 이번 기간 스스로 굴러갑니다.`);
+    for (const x of by("최저")) {
+      const m = x.mem.filter(told);
+      if (m.length) ps.push(`<b>기대 밖</b> — ${x.grp}: ${m.map(say).join(", ")}. 태·절 자리라 가지고 있어도 이 기간엔 굴러가지 않습니다.`);
+    }
+    for (const x of by("갈림")) {
+      const on = x.mem.find(s => R[s].un === "장생"), off = x.mem.find(s => R[s].un === "사");
+      const part = [told(on) && `${say(on)}은 개화`, told(off) && `${say(off)}은 머리가 몸보다 앞섭니다`].filter(Boolean);
+      if (part.length) ps.push(`<b>갈림</b> — ${x.grp}: ${part.join(", ")}.`);
+    }
+  } else {
+    const shut = { 충개고: "충으로 창고 문이 열립니다(개방과 손상이 함께 옵니다)", 합국: "삼합 짝이 있어 작용이 커집니다 — 여는지 묶는지는 학파 이견", 폐고: "여닫는 글자가 없어 닫혀 있습니다" }[ij.gaego];
+    ps.push(`<b>창고</b> — ${rd.z}는 사고지라 강약이 아니라 여닫음으로 읽습니다. ${shut}. ` +
+            (ij.ijung.length ? `이중 입묘는 ${ij.ijung.join("·")} — 이 달 개폐의 주체입니다.` : `이중 입묘는 없습니다 — 창고보다 전환·관리 국면입니다.`) +
+            (!ij.timeKnown && ij.gaego !== "충개고" ? ` 시지에 따라 개폐가 바뀔 수 있습니다(시각 모름).` : ""));
+    for (const x of by("관리")) {
+      const m = x.mem.filter(told);
+      if (m.length) ps.push(`<b>관리</b> — ${x.grp}: ${m.map(say).join(", ")}. 진입 준비이거나 유지하는 쪽입니다.`);
+    }
+  }
+  if (fake.length) ps.push(`⚠️ ${fake.join("·")}은 원국에 없는 십성이라 운에서 켜져도 허상일 수 있습니다 — 기회로 단정하지 않습니다.`);
+  ps.push(`<span style="color:var(--ink-dim)">십성 인종은 음포태 기준 서술용입니다. 통근·강약이 아니고, 길흉은 격국이 정합니다.</span>`);
+  return ps.map(t => `<p>${t}</p>`).join("");
 }
 
 function render() {
@@ -1086,9 +1148,13 @@ function render() {
   if (p.kind === "week") row("배경", `월운 <b>${p.monthGz}</b><span class="sub">주(週)는 명리 고유 단위가 아니라, 일진 7개를 묶어 본 배치입니다.</span>`);
   row("12신살", `<span class="tag hit">${rd.s12y}</span><span class="sub">년지 ${n.yearZhi} · ${n.guk}(${GUK_NAME[n.guk]}) 기준 — ${SINSAL_DESC[rd.s12y].tag}</span>` +
       (rd.s12d !== rd.s12y ? `<span class="sub">일지 ${n.dayZhi} 기준으로는 <b>${rd.s12d}</b> — 두 기준이 갈립니다</span>` : ""));
-  row("십이운성", `<span class="tag ${UN_POWER[rd.unY] >= 2 ? "wang" : UN_POWER[rd.unY] <= -1 ? "swe" : ""}">${rd.unY}</span><span class="sub">일간 ${n.dayGan} 기준 · 음포태. 양포태로는 ${rd.unYang}</span>`);
-  row("십신", (rd.alive.length ? `살아있는 쪽 ${rd.alive.map(x => `<span class="tag wang">${x.s}·${x.un}</span>`).join("")}` : "두드러지게 살아있는 십신 없음") +
-      (rd.down.length ? `<span class="sub" style="margin-top:5px">눌린 쪽 ${rd.down.map(x => `<span class="tag swe">${x.s}·${x.un}</span>`).join("")}</span>` : ""));
+  const stTag = st => st === "활" ? "wang" : st === "장" ? "swe" : "";
+  row("십이운성", `<span class="tag ${stTag(UN_STATE[rd.unY])}">${rd.unY}·${UN_STATE[rd.unY]}</span><span class="sub">일간 ${n.dayGan} 기준 · 음포태. 양포태로는 ${rd.unYang}</span>`);
+  const ij = rd.injong, IR = ij.row;
+  const shown = ij.groups.filter(x => ["최고조", "최저", "갈림"].includes(x.slot) || (ij.kind === "사고지" && x.slot !== "혼합"));
+  row("십성 인종", shown.map(x => `<span class="sub">${x.slot} — ${x.grp} ${x.mem.map(s => `<span class="tag ${stTag(IR[s].st)}">${s}·${IR[s].un}</span>`).join("")}</span>`).join("") +
+      (ij.kind === "사고지" ? `<span class="sub">사고지 개폐: <b>${ij.gaego}</b> · 이중 입묘: ${ij.ijung.join("·") || "없음"}</span>` : "") +
+      `<span class="sub">음포태 기준 · 서술 전용 — 통근·강약이 아니다 (32번)</span>`);
   row("관계", rd.rels.length
     ? `<ul class="rels" style="margin:0">${rd.rels.map(r => `<li><span class="who">${r.pos}지 ${r.zhi}</span><span class="what"><b>${r.rel.join(" · ")}</b> <span>${GUNG[r.pos].short}</span></span></li>`).join("")}</ul>`
     : "원국 지지와 직접 걸리는 관계 없음 — 조용한 구간");
@@ -1111,8 +1177,7 @@ function render() {
 
   html += `<h3>나에게 — 일간 ${n.dayGan}</h3>`;
   html += `<p>${n.dayGan} 일간에게 ${rd.z}는 <b>${rd.unY}</b>의 자리입니다. ${UN_DESC[rd.unY]}</p>`;
-  if (rd.aliveG.length) html += `<p><b>쓸 수 있는 카드</b> — ${rd.aliveG.map(g => `${g}(${GROUP_DESC[g]})`).join(", ")}. ${rd.alive.slice(0, 3).map(x => `${x.s}가 ${x.un}`).join(", ")}에 들어 이쪽으로 손을 대면 붙습니다.</p>`;
-  if (rd.downG.length) html += `<p><b>기대를 낮출 영역</b> — ${rd.downG.map(g => `${g}`).join(", ")}. ${rd.down.slice(0, 3).map(x => `${x.s}가 ${x.un}`).join(", ")}이라 힘을 실어도 되돌아오는 게 적습니다.</p>`;
+  html += injongProse(rd);
 
   html += `<h3>나에게 — 12신살 ${rd.s12y}</h3>`;
   html += `<p>년지 ${n.yearZhi}(${ANIMAL[ZHI.indexOf(n.yearZhi)]}띠)는 ${n.guk} ${GUK_NAME[n.guk]}에 속합니다. 그 기준으로 ${rd.z}는 <b>${rd.s12y}</b> 자리입니다.</p>`;

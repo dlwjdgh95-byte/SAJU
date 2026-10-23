@@ -134,6 +134,35 @@ def corpus():
     return rows
 
 
+def injong_expect(pillars):
+    """십성 인종 — 웹 injongRead와 대조한다(32번 §3-2 슬롯 쌍·§4 사고지 개폐·이중 입묘·§5 원국 교차). 개폐는 원국 지지만 대조."""
+    day = pillars[2][0]
+    hold = S.wongug_hold(pillars, day)
+    zhis = [p[1] for p in pillars]
+    out = {}
+    for z in S.ZHI:
+        row = S.injong(day, z)
+        e = {"quad": " ".join(f"{s}:{hold[s]}{S.UNSEONG_STATE[row[s]]}" for s in S.SIPSEONG_ORDER),
+             "slot": " ".join(f"{g}:{v['슬롯']}" for g, v in S.injong_pairs(day, z).items())}
+        if z in S.GOJI_KEY:
+            e["gaego"] = S.gaego(z, zhis)["판정"].split("(")[0].split(" ")[0]
+            e["ijung"] = S.ijung_ipmyo(day, z)
+        out[z] = e
+    return out
+
+
+def injong_cases():
+    """앞 12명조 + 시각 모름 3명조(시주 없이 원국 보유도·개폐)."""
+    rows = []
+    for date, time, gender, _ in CASES[:12]:
+        rows.append({"date": date, "time": time, "gender": gender,
+                     "expect": injong_expect(compute(date, time, gender)["pillars"])})
+    for date, gender, _ in UNKNOWN_CASES[:3]:
+        rows.append({"date": date, "time": None, "gender": gender,
+                     "expect": injong_expect(compute_unknown(date, gender)["pillars"])})
+    return rows
+
+
 def build():
     rows = []
     for date, time, gender, memo in CASES:
@@ -142,7 +171,7 @@ def build():
     unknown = [{"date": date, "gender": gender, "memo": memo, "expect": compute_unknown(date, gender)}
                for date, gender, memo in UNKNOWN_CASES]
     return {"_note": "saju_calc.py 기본 옵션(Asia/Seoul·서울 경도·LMT·자시 정설) 기준. tests/build_fixtures.py로 생성",
-            "cases": rows, "unknown": unknown, "corpus": corpus()}
+            "cases": rows, "unknown": unknown, "corpus": corpus(), "injong": injong_cases()}
 
 
 def _checker():

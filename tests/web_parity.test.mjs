@@ -8,7 +8,7 @@ const root = new URL("..", import.meta.url);
 const html = readFileSync(new URL("web/unui-sigantable.html", root), "utf8");
 // 페이지의 const 선언은 eval로는 밖으로 새지 않는다. new Function으로 감싸 필요한 것만 돌려받는다.
 const src = html.slice(html.indexOf("<script>") + 8, html.indexOf("/* ══ 렌더"));
-const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, currentDaewoonIdx, relationsTo, T};")();
+const E = new Function(src + "; return {buildNatal, gyeokCandidates, sinsal12, unseong, gongmang, dayPillar, hourPillar, jieSlot, kmin, currentDaewoonIdx, relationsTo, injongRead, T};")();
 const fx = JSON.parse(readFileSync(new URL("tests/fixtures/natal_cases.json", root), "utf8"));
 assert.ok(fx.cases.length >= 38, `픽스처 명조 ${fx.cases.length}개 — 38개 이상이어야 한다 (pytest가 build_fixtures.CASES와 대조)`);
 
@@ -49,6 +49,22 @@ for (const c of fx.unknown) {
     assert.deepEqual(n.dw.list.map(d => d.gz), x.daewoon.list, "대운 간지");
   });
 }
+
+test("십성 인종 — 원국 보유도·3상태·슬롯 쌍·사고지 개폐·이중 입묘가 Python과 같다 (32번 §3~§5)", () => {
+  const ORDER = ["비견", "겁재", "식신", "상관", "편재", "정재", "편관", "정관", "편인", "정인"];
+  assert.ok(fx.injong.length >= 15);
+  for (const c of fx.injong) {
+    const n = E.buildNatal(c.time ? { date: c.date, time: c.time, timeKnown: true, gender: c.gender }
+                                  : { date: c.date, timeKnown: false, gender: c.gender });
+    for (const z of E.T.ZHI) {
+      const r = E.injongRead(n, z), x = c.expect[z], tag = `${c.date} ${c.time || "시각 모름"} @${z}`;
+      assert.equal(ORDER.map(s => `${s}:${r.row[s].hold}${r.row[s].st}`).join(" "), x.quad, `${tag} 4분면`);
+      assert.equal(r.groups.map(g => `${g.grp}:${g.slot}`).join(" "), x.slot, `${tag} 슬롯`);
+      assert.equal(r.gaego, x.gaego, `${tag} 개폐`);
+      assert.deepEqual(r.ijung ? [...r.ijung].sort() : undefined, x.ijung && [...x.ijung].sort(), `${tag} 이중 입묘`);
+    }
+  }
+});
 
 test("격 후보 — 24번 원전 명조 전부 Python과 같다 (errata #20)", () => {
   assert.ok(fx.corpus.length >= 86);

@@ -317,6 +317,7 @@ def test_fixtures_unchanged():
     for c in fx["cases"]:
         assert F.compute(c["date"], c["time"], c["gender"]) == c["expect"], (c["date"], c["time"], c["memo"])
     assert F.corpus() == fx["corpus"]
+    assert F.injong_cases() == fx["injong"]
     assert [(c["date"], c["gender"]) for c in fx["unknown"]] == [c[:2] for c in F.UNKNOWN_CASES]
     for c in fx["unknown"]:
         assert F.compute_unknown(c["date"], c["gender"]) == c["expect"], (c["date"], c["memo"])
@@ -711,3 +712,46 @@ def test_johu_quotes_pinned():
     got = F.johu_quotes()
     diff = [f"{g}{z}" for g in S.GAN for z in S.MONTH_ZHI if got[g][z] != pinned[g][z]]
     assert not diff, f"인용이 고정 파일과 다른 달: {' '.join(diff)}"
+
+
+def test_root_grade_earth():                               # 土는 화토동법 — 巳·午 록왕(건록격과 같다), 寅 장생 (errata #45)
+    d = json.loads(run_cli("--pillars", "甲子 己巳 戊寅 壬子", "--json"))
+    assert d["tonggn"]["일간戊"] == ["월지巳(록왕)", "일지寅(생지)"]
+    assert d["격 후보"]["후보"][0]["격"].startswith("건록")
+    assert json.loads(run_cli("--pillars", "甲子 庚午 己丑 甲子", "--json"))["tonggn"]["일간己"] == ["월지午(록왕)", "일지丑(록왕)"]
+
+
+def test_place_zone_38th_parallel():                       # 개성·속초 — 1948~50년 남한 서머타임은 그때의 관할로 (errata #45)
+    kae = json.loads(run_cli("--birth", "1949-07-01 10:10", "--place", "개성", "--gender", "M", "--json"))
+    ref = json.loads(run_cli("--birth", "1949-07-01 10:10", "--longitude", "126.555", "--zone", "Asia/Seoul", "--gender", "M", "--json"))
+    assert kae["pillars"] == ref["pillars"] and kae["입력"]["시간대"].startswith("KDT")
+    sok = json.loads(run_cli("--birth", "1949-07-01 10:10", "--place", "속초", "--gender", "M", "--json"))
+    assert sok["pillars"][3] == "乙巳" and not any("서머타임" in w for w in sok.get("경고", []))
+    war = json.loads(run_cli("--birth", "1950-07-01 10:10", "--place", "개성", "--gender", "M", "--json"))
+    assert any("개성은 6·25 전쟁 중 관할이 오간 곳" in w for w in war["경고"])
+    assert not json.loads(run_cli("--birth", "1960-07-01 10:10", "--place", "개성", "--gender", "M", "--json")).get("경고")
+
+
+def test_injong_year_tz_is_birth_only():                   # 출생 시각용 --tz(한국 오프셋)를 그해 월운 절입에 쓰지 않는다 (errata #45)
+    def jie(*extra):
+        d = json.loads(run_cli(*extra, "--gender", "M", "--injong-year", "2026", "--json"))
+        return [r["절입"] for r in d["연간 인종"]["월운 12"]]
+    auto = jie("--birth", "1987-07-15 10:00")
+    assert auto[0] == "입춘 2026-02-04 05:02" and auto[7] == "백로 2026-09-07 23:41"
+    for b, tz in [("1987-07-15 10:00", "10"), ("1957-07-01 10:00", "8.5"), ("1958-07-01 12:00", "9.5"), ("1970-07-01 12:00", "9")]:
+        assert jie("--birth", b, "--tz", tz) == auto, (b, tz)
+    for b, tz, same_instant in [("1965-01-01 12:00", "8.5", "1965-01-01 12:30"), ("1958-01-15 12:00", "9", "1958-01-15 11:30")]:
+        fixed = json.loads(run_cli("--birth", b, "--tz", tz, "--gender", "M", "--json"))["대운"]      # 대운 날짜도 그날의 한국 시계로
+        auto = json.loads(run_cli("--birth", same_instant, "--gender", "M", "--json"))["대운"]
+        assert (fixed["ref"], fixed["start_date"]) == (auto["ref"], auto["start_date"]), b
+
+
+def test_inyeon_counts_by_doc():                            # 33번 §4-1·§5-4 — 세 가지를 하나씩, 격각·복음 제외, 활동은 식상 최고조 + 도화/일간 활 (errata #45)
+    scan = lambda p, y, *x: json.loads(run_cli("--pillars", p, "--inyeon-scan", f"{y}:{y}", *x, "--json"))["인연 스캔"]["연도"][0]
+    r = scan("庚午 辛巳 庚午 丙子", 2033)
+    assert r["발동"] == "약" and r["신호"] == ["배우자궁 지지육해·원진·귀문"]
+    assert scan("庚子 戊寅 庚子 丙子", 2032)["발동"] == "무"                    # 복음만
+    assert scan("乙亥 丙戌 癸巳 乙卯", 2035)["발동"] == "무"                     # 격각만
+    assert scan("甲子 丙寅 甲子 丙寅", 2033, "--inyeon-activity")["활동"]["활동"] == "중"   # 일간 관대(활)만
+    assert scan("庚子 戊寅 庚子 丙子", 2030, "--inyeon-activity")["활동"]["활동"] == "약"   # 홍염만
+    assert S.baeuja_gung([("甲","午"), ("甲","子"), ("甲","丑"), ("甲","子")])["간섭 강도"].startswith("부정 관계 2건")   # 丑午 해·원진·귀문 = 2

@@ -74,3 +74,16 @@ test("아침 글 — 같은 날짜·시각이어도 시각을 모름으로 바�
   b({ name: "", date, time, timeKnown: false, gender });
   assert.ok(!els.daily.innerHTML.includes(title), "시각 모름이면 계산값");
 });
+
+test("십성 인종 — 세력 점수가 아니라 32번 규범(슬롯·원국 교차·사고지 개폐)으로 쓴다", () => {
+  const t0 = Date.parse("2026-10-23T03:00:00Z");                    // 戊戌월
+  class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [t0])); } static now() { return t0; } }
+  const { boot: b } = new Function("document", "window", "localStorage", "Date", src + "; return { boot };")(document, { scrollTo() {} }, localStorage, FixedDate);
+  b({ name: "", date: "1990-05-15", time: "09:30", timeKnown: true, gender: "M" });   // 庚午 辛巳 庚辰 庚辰
+  const pr = els.prose.innerHTML;
+  assert.ok(!pr.includes("쓸 수 있는 카드") && !pr.includes("기대를 낮출 영역"), pr);
+  assert.ok(pr.includes("<b>창고</b>") && pr.includes("충으로 창고 문이 열립니다"), "辰戌충 — 충개고 (Python --injong 戊戌과 같다)");
+  assert.ok(pr.includes("이중 입묘는 편인"), "戌 지장간 戊 = 편인이 墓");
+  assert.ok(pr.includes("식신") && pr.includes("허상"), "원국에 없는 壬(식신)이 관대 — 허상");
+  assert.ok(els.ledger.children.some(c => c.innerHTML.includes("사고지 개폐: <b>충개고</b>")), "원장 줄");
+});
