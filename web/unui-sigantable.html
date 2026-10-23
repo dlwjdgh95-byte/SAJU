@@ -419,7 +419,7 @@
       <button type="submit">적용</button>
       <button type="button" class="ghost" id="resetBtn">되돌리기</button>
       <p class="note">
-        한국 표준시(KST) 기준으로 계산하고, 서울 경도에 맞춘 진태양시 보정(−32분)을 적용합니다.
+        태어난 날 그때 시계가 가리킨 시각을 넣으면 됩니다. 1908~1911·1954~1961년의 UTC+8:30 표준시와 서머타임 연도는 자동으로 반영하고, 서울 경도 보정(지방평균시, 지금 표준시 기준 −32분)은 시주와 23시 일주 경계에만 적용하고, 연주·월주(절입)는 출생 순간 그대로 봅니다.
         입력한 정보는 이 브라우저에만 저장되며 어디로도 전송되지 않습니다.
       </p>
     </form>
@@ -434,34 +434,53 @@
    근거: dlwjdgh95-byte/SAJU · references 22 / 26 / 29 / 30 / 31
    ══════════════════════════════════════════════════════════════ */
 
-const GAN = "甲乙丙丁戊己庚辛壬癸";
-const ZHI = "子丑寅卯辰巳午未申酉戌亥";
+/* ══ GENERATED:TABLES — scripts/build_web_tables.py가 saju_calc.py에서 생성. 손으로 고치지 말 것 ══ */
+const T = {"GAN":"甲乙丙丁戊己庚辛壬癸","ZHI":"子丑寅卯辰巳午未申酉戌亥","OG":["木","木","火","火","土","土","金","金","水","水"],"OZ":["水","土","木","木","土","火","火","土","金","金","土","水"],"JANGGAN":{"子":"癸","丑":"癸辛己","寅":"戊丙甲","卯":"乙","辰":"乙癸戊","巳":"戊庚丙","午":"己丁","未":"丁乙己","申":"戊壬庚","酉":"辛","戌":"辛丁戊","亥":"甲壬"},"SHENG":{"木":"火","火":"土","土":"金","金":"水","水":"木"},"KE":{"木":"土","土":"水","水":"火","火":"金","金":"木"},"MONTH_ZHI":"寅卯辰巳午未申酉戌亥子丑","JIE":["입춘","경칩","청명","입하","망종","소서","입추","백로","한로","입동","대설","소한"],"ROK":{"甲":"寅","乙":"卯","丙":"巳","丁":"午","戊":"巳","己":"午","庚":"申","辛":"酉","壬":"亥","癸":"子"},"YANGIN":{"甲":"卯","丙":"午","戊":"午","庚":"酉","壬":"子"},"SAMHAP":["申子辰","亥卯未","寅午戌","巳酉丑"],"MYO":{"申子辰":"辰","亥卯未":"未","寅午戌":"戌","巳酉丑":"丑"},"KU_OHENG":{"辰":"水","戌":"火","丑":"金","未":"木"},"SINSAL12":["겁살","재살","천살","지살","년살","월살","망신살","장성살","반안살","역마살","육해살","화개살"],"UNSEONG":["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"],"JANGSAENG":{"甲":"亥","乙":"午","丙":"寅","丁":"酉","戊":"寅","己":"酉","庚":"巳","辛":"子","壬":"申","癸":"卯"},"CHEONGAN_HAP":{"甲己":"土","乙庚":"金","丙辛":"水","丁壬":"木","戊癸":"火"},"CHEONGAN_CHUNG":["丁癸","丙壬","乙辛","甲庚"],"YUKHAP":["午未","卯戌","子丑","寅亥","巳申","辰酉"],"CHUNG":["丑未","卯酉","子午","寅申","巳亥","辰戌"],"PA":["丑辰","卯午","子酉","寅亥","巳申","未戌"],"HAE":["丑午","卯辰","子未","寅巳","申亥","酉戌"],"WONJIN":["丑午","卯申","子未","寅酉","巳戌","辰亥"],"GWIMUN":["丑午","卯申","子酉","寅未","巳戌","辰亥"],"HYEONG":["丑戌","丑未","子卯","寅巳","寅申","巳申","未戌"],"JAHYEONG":"辰午酉亥","BANGHAP":["寅卯辰","巳午未","申酉戌","亥子丑"],"SAMHYEONG":["寅巳申","丑戌未"],"MUNCHANG":{"甲":"巳","乙":"午","丙":"申","丁":"酉","戊":"申","己":"酉","庚":"亥","辛":"子","壬":"寅","癸":"卯"},"GEUMYEO":{"甲":"辰","乙":"巳","丙":"未","丁":"申","戊":"未","己":"申","庚":"戌","辛":"亥","壬":"丑","癸":"寅"},"HONGYEOM":{"甲":"午","乙":"午","丙":"寅","丁":"未","戊":"辰","己":"辰","庚":"戌","辛":"酉","壬":"子","癸":"申"},"CHEONEUL":{"甲":"丑未","戊":"丑未","庚":"丑未","乙":"子申","己":"子申","丙":"亥酉","丁":"亥酉","壬":"巳卯","癸":"巳卯","辛":"午寅"},"BAEKHO":["甲辰","乙未","丙戌","丁丑","戊辰","壬戌","癸丑"],"GWAEGANG":["庚辰","庚戌","壬辰","壬戌"],"SAMJAE":{"申子辰":"寅卯辰","亥卯未":"巳午未","寅午戌":"申酉戌","巳酉丑":"亥子丑"}};
+const SEOUL_LON = 126.978;
+const TZ_SEOUL0 = [507.8666666666667, 0.0];      // 1900년 이전~첫 전환: [UTC 오프셋(분), 서머타임(분)]
+const TZ_SEOUL = [[4337282.133333,510.0,0.0],[6310110.0,540.0,0.0],[25463580.0,600.0,60.0],[25613280.0,540.0,0.0],[25904220.0,600.0,60.0],[26136000.0,540.0,0.0],[26426940.0,600.0,60.0],[26660160.0,540.0,0.0],[27002940.0,600.0,60.0],[27184320.0,540.0,0.0],[28514880.0,510.0,0.0],[29105340.0,570.0,60.0],[29288160.0,510.0,0.0],[29653980.0,570.0,60.0],[29845440.0,510.0,0.0],[30157980.0,570.0,60.0],[30359520.0,510.0,0.0],[30682140.0,570.0,60.0],[30883680.0,510.0,0.0],[31206300.0,570.0,60.0],[31407840.0,510.0,0.0],[31730460.0,570.0,60.0],[31932000.0,510.0,0.0],[32401470.0,540.0,0.0],[45943380.0,600.0,60.0],[46165140.0,540.0,0.0],[46467540.0,600.0,60.0],[46689300.0,540.0,0.0]];
+const TERM_Y0 = 1900;
+const TERMS_HEX = "b24871e0,9950fef2,9badba17,9e5df091,a0a8f275,a1e70c71,a1b884e7,a02aca64,9db37517,9b04ef32,98d60e9a,97b26924,97df3e1b,9951a2eb,9bb027d5,9e61229a,a0ab15f7,a1e6f859,a1b6c43f,a0290fad,9db335b8,9b063d90,98d7e105,97b3ac42,97df5c22,99502441,9bacea7e,9e5cd9ba,a0a67206,a1e2c486,a1b463ff,a0290dd3,9db587bc,9b0a71b3,98dc9306,97b71b7f,97e03b50,994e8383,9baa4474,9e5b218b,a0a723c3,a1e5757c,a1b7627e,a02b3f86,9db61fb0,9b0991fa,98db562c,97b63de8,97dfcda4,994e707a,9baa674b,9e5b5dab,a0a7bec2,a1e69a41,a1b841c1,a02adbe8,9db47c43,9b0782de,98d9f070,97b649c9,97e148e6,99507c62,9babf17a,9e5b3cfc,a0a5150d,a1e2a6f2,a1b5561d,a029b14a,9db4b064,9b0831bb,98da8824,97b71dbe,97e2dd87,9952baf4,9bae1262,9e5cb6fc,a0a5ebe4,a1e298ec,a1b4bc86,a0298209,9db57bcd,9b09e752,98dbe267,97b679b2,97e01784,994f2090,9baadecb,9e5a88aa,a0a4ef49,a1e2778c,a1b5345a,a02ad12e,9db742a0,9b0b5610,98dc7e15,97b63390,97deea12,994d5ed0,9ba97ef5,9e5a4944,a0a6302b,a1e4f91f,a1b6f52b,a02a5d6e,9db55ea9,9b0923b5,98db09dd,97b61e0d,97e00066,994f1fc4,9babb722,9e5ce3a4,a0a865ba,a1e5f415,a1b6c237,a0290a16,9db38771,9b07fc7e,98db30ff,97b781d8,97e1f537,994fef52,9ba9b452,9e584a9a,a0a2cd47,a1e110bd,a1b49377,a029e093,9db5b4d6,9b0a23fd,98dcc6c2,97b8508f,97e1ec32,994f635e,9ba90656,9e57bb00,a0a351b6,a1e33e46,a1b7a654,a02d5e22,9db83148,9b09f56f,98da19ae,97b49762,97ded6fe,994e6045,9baa7a08,9e5a891e,a0a5f58c,a1e535ea,a1b8924c,a02d023d,9db7a00f,9b09cf3d,98d9d421,97b3c0b9,97dda31c,994d5376,9baa2896,9e5a85f9,a0a46840,a1e1c493,a1b54b70,a02b4811,9db7d810,9b0bc27d,98dca4db,97b65724,97df2ba1,994d8867,9ba95a77,9e59fc60,a0a573da,a1e370cf,a1b647bf,a02be1aa,9db8cfd1,9b0dc780,98df2248,97b7928a,97de0379,994a2498,9ba4b9bb,9e55ad5a,a0a324fe,a1e3bfd1,a1b80f01,a02ddf06,9dba2b94,9b0e3e90,98df4f05,97b8381b,97defcba,994aa42f,9ba4412e,9e543ff9,a0a1c94d,a1e3ff0c,a1b960c3,a02e7470,9db94ba1,9b0c196d,98dd2c49,97b7ad8f,97e0b6dc,994e323a,9ba87949,9e57c556,a0a34163,a1e3353e,a1b80505,a02db7a5,9db93f82,9b0c65b2,98dd51eb,97b7cb9e,97e14830,994eb967,9ba7be04,9e553047,a09eef1f,a1ddd8ae,a1b3ca14,a02c9a46,9dbb1fb3,9b0fe871,98e09377,97b93677,97e0900f,994d1f43,9ba6c958,9e557a7e,a0a09e97,a1e05db2,a1b5d215,a02e0c7b,9dbbe24e,9b0f8bb5,98df58a3,97b76665,97de78b3,994bc00f,9ba7609e,9e585075,a0a4b900,a1e451db,a1b7c77f,a02cd944,9db914dc,9b0d5476,98de7f48,97b7bedb,97df42bf,994c1285,9ba71a8e,9e5797f6,a0a2efa2,a1e17a5e,a1b53a83,a02aef53,9db78c53,9b0c8eae,98df0990,97b9ad10,97e1fa8c,994e582a,9ba7ac66,9e56e789,a0a32f56,a1e35cf1,a1b7d361,a02da56e,9db984db,9b0d5ac4,98de8b85,97b7bcbd,97df0f1a,994b589a,9ba50fa5,9e54bd8a,a0a1f320,a1e3fde7,a1ba3304,a030d741,9dbc5fbb,9b0e6f76,98dd75ff,97b5923b,97dcfa0a,9949fca6,9ba4ace8,9e54c9aa,a0a1c11a,a1e3f77e,a1bab972,a0316ce0,9dbcc391,9b0e7958,98dd0c1f,97b4e5e2,97dc8901,994a5d25,9ba638f0,9e5768a1,a0a437ae,a1e495b7,a1ba1b70,a0311ddd,9dbd660a,9b102414,98df2534,97b684b2,97dcf06e,9948d418,9ba28bc5,9e527fe1,a09f6847,a1e06d46,a1b6dc52,a02fe93c,9dbee4d1,9b13cead,98e3a4bf,97ba1f6a,97de451c,9947c459,9b9fffb0,9e4fa8f5,a09deed4,a1e18ac2,a1b9784d,a0321bf8,9dbf894b,9b12dc17,98e22e8a,97b91e8b,97de0de7,99485e44,9ba156b1,9e517dea,a09fbdf8,a1e34d1c,a1bb1876,a0324f09,9dbe19eb,9b10e262,98e0b519,97b8fc26,97df6faa,994a860a,9ba329d3,9e51a226,a09cd737,a1dd8c38,a1b5671b,a02f32d7,9dbd8469,9b1197dc,98e1c981,97ba4484,97e1297a,994c8943,9ba493ac,9e521b97,a09d5c17,a1de4cf9,a1b5a5ed,a02faf63,9dbeff49,9b13b5dd,98e3184e,97b9393b,97ddf00e,9948e59a,9ba2422e,9e51afd3,a09e64e3,a1e04ad3,a1b78241,a0309a99,9dbf6d5e,9b13edea,98e31df9,97b9145f,97dd3a1d,994786f3,9ba11389,9e516362,a09ec500,a1e0e9d1,a1b7b6f4,a02f5bba,9dbce15b,9b1141cf,98e18db3,97b9367e,97deb950,99498085,9ba2f8de,9e539b85,a0a1841d,a1e32a99,a1b94065,a0302f85,9dbc8f2c,9b105e18,98e108c3,97b999e6,97dfd833,994a0639,9ba15e4d,9e4fc6a3,a09cf7a1,a1df9492,a1b7690f,a030afdd,9dbeccbb,9b12c4a7,98e29777,97b9f885,97df2143,9948e8b5,9ba04faa,9e4e834a,a09bfb78,a1e06a7b,a1ba35c0,a034275f,9dc14b1f,9b12e8f6,98e0453b,97b647f4,97dbbaa7,994769b1,9ba1a2ba,9e523b78,a0a0379d,a1e3c2a0,a1bc96a4,a035394e,9dc18b02,9b133978,98e08429,97b6093c,97daf906,99467ed2,9ba10d76,9e51bba2,a09e723f,a1dfa12f,a1b79654,a0321b75,9dc1400a,9b153077,98e3ae34,97b919bf,97dcca61,99466f5e,9b9f227b,9e4f4801,a09dbf4b,a1e11e9d,a1b956b0,a03365b7,9dc2d513,9b178c6a,98e610d3,97ba11c5,97dbad0e,9943a57d,9b9bc4b6,9e4ca5fe,a09ce994,a1e2e670,a1bcd669,a0364588,9dc40759,9b1786ce,98e5f214,97bac00d,97dcd686,9944481d,9b9b3b3f,9e4ade93,a09a58ef,a1e06881,a1bb5077,a03577ca,9dc2bbde,9b15414d,98e3c2cd,97ba30fa,97de9f29,9947d74c,9b9f1c58,9e4dcf54,a09bd373,a1e05335,a1baa9d1,a035ae9b,9dc3e2b9,9b1691b0,98e47e31,97ba7308,97df0379,994841cf,9b9ecb93,9e4c0ef2,a09873fe,a1dc1635,a1b6c43e,a033bbc6,9dc4f52b,9b19d948,98e7ebd0,97bc0536,97de1c39,994622fa,9b9d18f5,9e4b4760,a0985b15,a1dca83f,a1b7d529,a03487f3,9dc4c070,9b18bc42,98e67c5a,97ba8822,97dca88f,994544ea,9b9de55d,9e4e96d6,a09d75b8,a1e17928,a1bab006,a0348f03,9dc2c500,9b16a64c,98e57988,97badf69,97ddd174,994648ed,9b9e25a6,9e4db644,a09b476b,a1de04c0,a1b692e9,a0313ae7,9dc0c302,9b15cf5d,98e5ef9b,97bc9857,97e03ae9,9948389b,9b9e3d36,9e4bfca2,a099dab7,a1deb8c5,a1b8d6ca,a033bffa,9dc2ed7a,9b170b45,98e5821f,97ba4e8a,97dcf910,99455678,9b9cad38,9e4be46e,a09ac386,a1e10014,a1bcc060,a037bfef,9dc588c6,9b17b7a0,98e46a2d,97b85523,97daeca0,9943c715,9b9c0055,9e4bf1c8,a09aabfa,a1dfa8bc,a1bab3c9,a03652e4,9dc4af4f,9b16f89a,98e3c1e2,97b7e06b,97dad915,99444978,9b9d19d0,9e4d8dfe,a09ca0e8,a1e12610,a1bb2e74,a036d416,9dc62415,9b19374a,98e612cb,97b9891f,97db2b97,9942aa2c,9b99bfbe,9e4982d7,a0990a2b,a1dee226,a1b9e002,a0362968,9dc72606,9b1c3e3b,98ea0696,97bca603,97dc1d34,99415c01,9b96f598,9e4633c2,a096427a,a1ddf80f,a1bb6739,a0383de6,9dc75d35,9b1a8c82,98e7f879,97bb77a4,97dc2e95,99426c02,9b9896fb,9e4862ee,a0990469,a1e0bfa1,a1bdeae3,a03a0fa6,9dc7cc53,9b1996d0,98e66912,97ba99e1,97dcd231,994465e4,9b9ad967,9e490661,a096aca6,a1dbb2a9,a1b7d3d2,a035d808,9dc6e341,9b1adacf,98e8470b,97bc437a,97de403a,9945935d,9b9b3e51,9e485fb1,a095ae69,a1db4fd8,a1b808a6,a0366d83,9dc876c3,9b1d5ddf,98ea0285,97bb6bd2,97dae3ab,99417682,9b989f0c,9e489ad9,a09839b7,a1df025e,a1bbf3fa,a03922ec,9dc958f2,9b1d23d1,98e9b873,97bb84fb,97dacd50,9940b72c,9b97a7f9,9e4837c8,a098963c,a1dec7ec,a1ba21ed,a03661ef,9dc63f4a,9b1a62c8,98e86b4a,97bc41fb,97dd2598,99436944,9b99755e,9e48ea6e,a09913d3,a1dfea76,a1bbaf62,a037b3ac,9dc6f0db,9b1a66ef,98e82c3f,97bc61f7,97ddbc41,994396b2,9b985469,9e466595,a095ffa4,a1ddeac0,a1bb9376,a0391054,9dc948b4,9b1ce075,98e9cf81,97bca447,97dcd785,99427130,9b976946,9e4557ae,a0947746,a1dc982a,a1bbfd65,a03b0fce,9dcabada,9b1c6c53,98e78940,97b965d2,97d9eef6,99411d12,9b985123,9e486411,a098b9e7,a1e0873c,a1bea09b,a03cbacd,9dcc0168,9b1d6d07,98e7f8ec,97b91e7a,97d9234b,99406ede,9b985a98,9e4885f8,a09793aa,a1dd5439,a1b9b48d,a0385424,9dca953a,9b1f3136,98eba2cf,97bcee18,97db82ee,99406032,9b95d99d,9e44efc5,a094dcb5,a1dca3fd,a1ba8007,a0391c0a,9dcb58b4,9b20c62f,98ed7673,97bda42f,97da7fda,993ddf5c,9b92ddb4,9e432ba3,a0957929,a1dfad96,a1bf43ad,a03d7689,9dcd07e2,9b1ff1fe,98ec298f,97bd90e3,97dbaeaa,993f6305,9b93a81e,9e42995f,a093dcd0,a1dd1f3f,a1bbd1be,a03a9890,9dcae9ad,9b1da674,98ea0597,97bcd051,97dd1748,994287ae,9b971030,9e448ffd,a093c0d2,a1dc17a7,a1bb15a3,a03a8f47,9dcc05a8,9b1f4fd1,98eafd40,97bcc231,97dc75cd,9941a25a,9b962fe4,9e43c5bb,a0927588,a1da643b,a1b9f0a1,a03a5ff1,9dcd4906,9b222db8,98ee3329,97be5539,97db95e5,993f5edd,9b940e24,9e42a424,a0923774,a1da0d03,a1b98d88,a03a2deb,9dcc2bd5,9b200713,98ebfa5c,97bca211,97da6c06,993ebe42,9b945f68,9e449d0c,a0963eaf,a1df1f67,a1bd396d,a03b6dfa,9dcbbb12,9b1eda94,98eaf49b,97bc7ce3,97db31dd,993ff215,9b956d8d,9e44a514,a094cfb8,a1dcd019,a1ba7adf,a038c12a,9dca27fa,9b1ea358,98ebe063,97be293d,97dd0191,9940e533,9b94825b,9e4206b1,a091d211,a1db390b,a1bb60df,a03b098e,9dcc5d50,9b200359,98eb8544,97bbcb61,97d998e1,993dc426,9b92a983,9e421d9f,a093e09c,a1ded583,a1c07363,a040ba31,9dd0a044,9b21b8df,98eb18b3,97ba477d,97d7d0b8,993c75d9,9b923e89,9e4245ba,a093f473,a1dd9589,a1bd40b2,a03da048,9dcf1d47,9b2158ed,98eb4b68,97bab2b8,97d8422d,993ce7db,9b92b012,9e427729,a093a70a,a1dd3d62,a1bd1b7f,a03d9761,9dd03070,9b23e7a9,98ee7369,97bd6557,97d968ba,993ba989,9b8f9457,9e3f20f5,a0913465,a1dc4161,a1bdb136,a03ecbdb,9dd1c680,9b268fdb,98f1fbd9,97c073fd,97dad9c2,993b4770,9b8d9113,9e3c30e8,a08e8293,a1da607c,a1bd27fc,a03f420c,9dd10d15,9b240438,98ef275d,97beec43,97db3816,993d27fa,9b8ff9d8,9e3e49ae,a090558d,a1dc6cf1,a1befb04,a04096bb,9dd20349,9b23fe3d,98ee123e,97bdeb7d,97db75a1,993f11f2,9b92f8e1,9e4063dc,a08f9e44,a1d8f8f9,a1ba4070,a03c8c38,9dd093ec,9b253d59,98f07997,97c002ba,97dcbcae,993f839a,9b928dfb,9e3f6e07,a08e421f,a1d727d8,a1b8c778,a03bdf2b,9dd0c8bb,9b266211,98f16882,97bf36fa,97d9fd07,993bf3d3,9b8ff8fd,9e3f7348,a09165e6,a1dc3fd9,a1bde044,a03fae4d,9dd26a3b,9b26070c,98f08065,97becaf8,97d9d2d3,993bb2fc,9b8fe32a,9e3ff134,a0928a7f,a1dcf2f8,a1bc5328,a03c104f,9dce51b1,9b229bb0,98eeae58,97bf111c,97dbd10d,993e2669,9b916eab,9e3fee3a,a09144b2,a1dc0d4d,a1bcf865,a03d1ace,9dcec9ff,9b2290a3,98ee6f64,97bf0dd0,97dbeeb3,993d972a,9b8fc297,9e3db32d,a08f7901,a1db9398,a1beb045,a040a99c,9dd29034,9b254db9,98ef8bc6,97be6527,97da3cbc,993c1cc0,9b8ee2fd,9e3ceaca,a08e883c,a1da8037,a1bdfe85,a0411ef0,9dd316f6,9b248351,98ed430f,97bb41d6,97d75f54,993aa4c6,9b8f5d44,9e3ee96d,a0911b19,a1dd3807,a1c02555,a042849d,9dd4af8a,9b2635fc,98ee353b,97bb19a2,97d647ea,993968a9,9b8ef739,9e3f3775,a090d988,a1db8f04,a1bd4fc5,a03f905d,9dd38d6b,9b28084d,98f234ef,97bf614a,97d8fd7f,99394b26,9b8bfa95,9e3b161d,a08d895a,a1d97bfa,a1bc9735,a03fcc17,9dd41893,9b290d04,98f357a6,97bfbd3d,97d816bb,99370a21,9b88ccdb,9e3851ac,a08d2a08,a1dc82ad,a1c1cf78,a0452b6d,9dd739b3,9b2906a2,98f1e7c3,97befe60,97d8af8e,9938aa7b,9b8aab48,9e3968b8,a08cf92a,a1daf650,a1bed52f,a041dc76,9dd4e8c4,9b278fc2,98f1003a,97bf266e,97da6ec2,993ba2bd,9b8d9ed9,9e3aad6d,a08b45f6,a1d778cd,a1bc3138,a040ba14,9dd54a16,9b2931c5,98f2b28a,97bff1a1,97da0051,993a1518,9b8ba5f8,9e394bab,a08add48,a1d77707,a1bcc3e5,a0427b81,9dd7ef1a,9b2c5ebc,98f5b211,97c17431,97d9949f,9938c34e,9b8a9687,9e38ff02,a08b5eed,a1d7e5c5,a1bc0571,a040d3b8,9dd59f77,9b29a828,98f3632e,97c01836,97d91321,9938c44d,9b8b1d17,9e3a3db4,a08d6b40,a1dadc2a,a1bea6ba,a04196a9,9dd5067d,9b289eb3,98f27cd0,97bff504,97d9dd92,993a2aa0,9b8c99a1,9e3b2777,a08d4784,a1d9dd1d,a1bd8af7,a0408bd7,9dd43475,9b288fda,98f37c2a,97c1c222,97dbe2c8,993b6e4c,9b8c1cf8,9e391578,a08ac8b6,a1d7bef1,a1bcb35f,a0416566,9dd5c9e0,9b297f09,98f293fd,97bee774,97d83217,993834c2,9b8a3432,9e38c3e8,a08c4667,a1db6d76,a1c1f906,a046f9de,9dda0bf3,9b2b2ef3,98f1ffa9,97bd12c1,97d60ec6,9936de28,9b8a8717,9e3aa56f,a08e72ad,a1dc0c1c,a1c02a9d,a044057e,9dd7f321,9b2ab495,98f2b9c6,97be3bd1,97d700b8,99373ab3,9b8a4d67,9e39e9e8,a08ce557,a1d9e507,a1be77a7,a04303e7,9dd7f4d2,9b2c3064,98f54b03,97c0d6b1,97d81db0,99359924,9b863e8c,9e355f78,a08a3fb8,a1da1168,a1c0bd0e,a0464869,9ddb284c,9b2f1508,98f7ff2c,97c2e7f4,97d939a9,9935da47,9b858952,9e33b108,a0885ac4,a1d8f2f3,a1c07eeb,a0461b7b,9dd9d50b,9b2c3584,98f4b255,97c0bca3,97d90425,99375768,9b87bec7,9e355ac7,a08899e0,a1d885c2,a1c06658,a04661b9,9dda71e7,9b2c8891,98f41f1a,97bfda7d,97d8e4f7,99389fd0,9b8a1711,9e376ca1,a088f051,a1d678e2,a1bd44c7,a044344b,9dda43ba,9b2e5ee3,98f6e2bb,97c20c3d,97d9d7cd,99386796,9b8903d3,9e3617e4,a087c867,a1d4ed6e,a1bafb3d,a0424bc5,9dd9bb78,9b2ef012,98f747fa,97c10737,97d7228d,9934d6c8,9b862690,9e352d74,a0895ad3,a1d9091b,a1c009c8,a0462cab,9ddb9bfd,9b2f1175,98f6d747,97c0e921,97d72c6f,9934bb4f,9b863cd1,9e3637ea,a08b4322,a1da7fbf,a1bfbf3e,a043bef0,9dd7fff1,9b2bfba0,98f57160,97c186c2,97d95846,99372db5,9b8783fe,9e35b0bc,a0893282,a1d7ed4f,a1be59fc,a043bbb4,9dd837a2,9b2be0ac,98f54bf7,97c1bb2c,97d98cfb,99368430,9b857791,9e3296bd,a086b7e8,a1d7be38,a1c0ad86,a04838b7,9ddd743d,9b2fd893,98f6dc12,97c0de72,97d785ae,99350e73,9b854a2f,9e331a8b,a0870bde,a1d7de5c,a1c0d9c2,a04843c0,9ddd27ea,9b2ef46a,98f52026,97be7cdd,97d53edb,9933c993,9b85a718,9e34ca06,a088890a,a1d84c7c,a1c0a6f4,a047ff3a,9ddd99df,9b3047e8,98f6a3f9,97bf7d7c,97d55512,99332de4,9b84e8b9,9e3453a2,a0887769,a1d7afd4,a1bf1cb7,a0469e44,9ddd8c6a,9b325603,98fa89fc,97c3d24a,97d8751d,9933dce3,9b82f83a,9e311812,a085db1f,a1d6606e,a1be488f,a045c755,9ddcf931,9b3226c5,98fa77cb,97c38a4c,97d7c18a,9932848e,9b810760,9e2f0161,a084b404,a1d7e54f,a1c29438,a04a94cd,9ddfbff6,9b3204cf,98f8cf63,97c25021,97d7e270,99340369,9b83600b,9e319552,a0869d5c,a1d80ec0,a1c11cfd,a048781c,9dddc9d0,9b3089ce,98f7cda2,97c22005,97d918e9,993689e7,9b862abd,9e331609,a085a42c,a1d4cac7,a1bd6443,a046196f,9ddd5a9b,9b319f01,98f95768,97c2fa2b,97d86e63,993452ba,9b833956,9e306496,a08439be,a1d539c2,a1bf3216,a048e7f6,9de0dc0d,9b350f7d,98fbda6a,97c3b5b3,97d76883,9932b237,9b82579d,9e31019b,a0860b0e,a1d75b1d,a1c07f7c,a0483568,9dde4c6d,9b31f864,98f96181,97c267aa,97d72bd1,9932f6a0,9b82d300,9e31d6fc,a0870106,a1d8121b,a1c0f8b3,a0481af4,9ddd65ce,9b309ac1,98f83505,97c20c9c,97d7bf55,993407d3,9b836770,9e314361,a08605a1,a1d75e54,a1c0a00f,a0489989,9dde889b,9b31da9b,98f97e60,97c3672c,97d9147f,9934f35a,9b8368ae,9e303474,a0845f35,a1d61eff,a1c03165,a048fa07,9ddfe5b9,9b331753,98f8e602,97c09b5e,97d510e2,99310d20,9b80bf33,9e2f0e51,a0843dec,a1d76679,a1c39811,a04d5d13,9de35352,9b34aacc,98f8d44e,97bf50b2,97d3175a,992f5aac,9b805ee3,9e30c9bf,a0875d12,a1d92656,a1c2d6ed,a04b9064,9de1f299,9b349d02,98fa2c0b,97c163af,97d50f31,99308fc8,9b808039,9e2fbdd5,a08569c8,a1d6b59a,a1bfe9a7,a048ef3e,9de0e5b7,9b35901d,98fcaa34,97c43674,97d64f7b,992ed22f,9b7bf638,9e29ea9c,a080c569,a1d5a70e,a1c25921,a04cc46c,9de49da0,9b389521,98fee9f1,97c5ac03,97d73902,992f7609,9b7c4354,9e29e8d0,a0808ff6,a1d5c015,a1c34f34,a04d6187,9de36b65,9b35ceb0,98fbcfce,97c3b277,97d74144,99314192,9b7ec03a,9e2bd001,a080bd33,a1d3c57d,a1c0920e,a04bcc66,9de33393,9b35e7af,98fb6e33,97c31198,97d73033,99325462,9b805fd1,9e2c9a56,a0804b2c,a1d23c86,a1be26f5,a04a3041,9de3c60f,9b387003,98feb8dc,97c5a8ca,97d85ec8,99325d95,9b801c2a,9e2cb020,a0809441,a1d2567f,a1bd6c18,a048896f,9de2a86c,9b385ac0,98fea54c,97c49899,97d5f47b,992f0f6c,9b7d5551,9e2bbb6a,a08178ef,a1d4c8db,a1c0ff3f,a04b65fe,9de33b4e,9b3733ca,98fd6641,97c42b7c,97d62cc5,992f614f,9b7da209,9e2d03d3,a0846730,a1d7938a,a1c20bfc,a04ac7d2,9de126b4,9b34ae35,98fbd976,97c46f26,97d840cb,993254ac,9b7fe7aa,9e2d4c08,a082ef4e,a1d5d788,a1c0ada6,a04a05a5,9de1085f,9b348f3c,98fb8291,97c4032c,97d75f04,993083b3,9b7d1648,9e298e77,a07f42a1,a1d48939,a1c2fb0e,a04ee836,9de6aebb,9b38fc6a,98fd36aa,97c2dfdc,97d4e28d,992e919f,9b7cbf75,9e2af0ea,a08162c5,a1d68013,a1c50b3a,a05084fe,9de704b8,9b3843b5,98fbaf41,97c0be79,97d2c1fe,992d3f6a,9b7cced3,9e2c454c,a082d94e,a1d64b03,a1c2ef52,a04e9f92,9de6c2be,9b395fb8,98fd5b8c,97c22e9f,97d3504c,992cc91c,9b7b53f6,9e29e0ff,a0809d39,a1d5088f,a1c200e1,a04e1751,9de7bb4b,9b3c5afc,9901be5f,97c6958c,97d63bf9,992d363e,9b798c5f,9e275be7,a07eab30,a1d48294,a1c29c28,a04e5814,9de75d00,9b3bd090,99011a87,97c5ec10,97d58458,992c289e,9b781125,9e25b0be,a07d2b2e,a1d3edad,a1c42bae,a051590a,9de93bfc,9b3b76b9,98ffba7c,97c51a29,97d60619,992dd9ff,9b7a1bc8,9e278e7e,a07ebc0f,a1d42201,a1c281f7,a04f6ea4,9de8251a,9b3b0329,98ff78df,97c52b1a,97d71392,99303eef,9b7d384d,9e29ad43,a07e8583,a1d21468,a1bf5eb4,a04c2b44,9de68507,9b3b8ccc,990132be,97c67e6c,97d687b5,992da29f,9b79ae41,9e264cf2,a07bd2e6,a1d0ca5a,a1c02bab,a04e6d4f,9de94ead,9b3e51a8,990349ce,97c73691,97d5dd0f,992c35dd,9b788bec,9e26db8b,a07e7a59,a1d43ad6,a1c31482,a04f53cb,9de76c9d,9b3af650,99003f5a,97c5972a,97d5e392,992d4ff4,9b79f607,9e283483,a07fb610,a1d4bcd6,a1c20646,a04d9577,9de5c1e6,9b3946e1,98feeb85,97c53563,97d6921c,992e8ff5,9b7a6189,9e267375,a07c93bc,a1d27af2,a1c17172,a04e598e,9de79672,9b3b6ed1,9900ab08,97c65dc7,97d73b18,992ec763,9b7a7613,9e26b2e5,a07cb01a,a1d2c58e,a1c2afae,a04ff94e,9de9232e,9b3c460c,98ffaf36,97c36a4f,97d34d9d,992b2f00,9b784eda,9e265726,a07d5493,a1d356df,a1c3f3a0,a05285e3,9deb618e,9b3d394f,98ff9ea1,97c283d3,97d1c382,99299e3b,9b776652,9e26e4ac,a07f9290,a1d5664a,a1c3baf4,a0511ef7,9deaabe6,9b3dc776,99012fb3,97c48672,97d39ab4,992ae891,9b781681,9e26bce3,a07ea05f,a1d49fe1,a1c2beff,a04f28ce,9de933a7,9b3e3dcb,99037fd6,97c7580f,97d4cdbb,99290e0c,9b73728a,9e20c681,a079327a,a1d1dc0a,a1c40f63,a052f845,9decd30c,9b40995f,9904c140,97c7f2a9";
+/* ══ END GENERATED:TABLES ══ */
+
+const GAN = T.GAN;
+const ZHI = T.ZHI;
 const GAN_KO = ["갑","을","병","정","무","기","경","신","임","계"];
 const ZHI_KO = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
 const ANIMAL = ["쥐","소","호랑이","토끼","용","뱀","말","양","원숭이","닭","개","돼지"];
-const OG = ["木","木","火","火","土","土","金","金","水","水"];
-const OZ = ["水","土","木","木","土","火","火","土","金","金","土","水"];
+const OG = T.OG;
+const OZ = T.OZ;
 const YIN = i => i % 2 === 1;
-const JANGGAN = {子:"壬癸",丑:"辛癸己",寅:"戊丙甲",卯:"乙",辰:"癸乙戊",巳:"戊庚丙",
-                 午:"己丁",未:"乙丁己",申:"戊壬庚",酉:"辛",戌:"丁辛戊",亥:"甲壬"};
-const SHENG = {木:"火",火:"土",土:"金",金:"水",水:"木"};
-const KE    = {木:"土",土:"水",水:"火",火:"金",金:"木"};
-const MONTH_ZHI = "寅卯辰巳午未申酉戌亥子丑";
-const JIE = ["입춘","경칩","청명","입하","망종","소서","입추","백로","한로","입동","대설","소한"];
+const JANGGAN = T.JANGGAN;          // 지장간가(地支藏干歌) — 문자열 순서 여기→중기→본기
+const SHENG = T.SHENG;
+const KE    = T.KE;
+const MONTH_ZHI = T.MONTH_ZHI;
+const JIE = T.JIE;
 
-/* 절기표 — 태양 겉보기 황경 315°+30°k 통과 시각(KST).
-   1900 입춘 ~ 2046 소한. delta·base16 인코딩. pyephem 실계산값.  */
-const TERMS_HEX = "c2bb,a776,aa0b,acfb,af7c,b0d7,b0a4,aef2,ac41,a952,a6f0,a5b2,a5e2,a777,aa0e,acfe,af7e,b0d7,b0a3,aef0,ac40,a954,a6f2,a5b3,a5e3,a775,aa0a,acf9,af7a,b0d2,b0a0,aef0,ac43,a958,a6f7,a5b7,a5e4,a773,aa08,acf7,af7a,b0d5,b0a4,aef2,ac43,a958,a6f6,a5b5,a5e4,a773,aa07,acf8,af7b,b0d6,b0a5,aef2,ac41,a955,a6f5,a5b6,a5e4,a776,aa09,acf8,af77,b0d3,b0a1,aef0,ac42,a956,a6f5,a5b7,a5e6,a779,aa0b,acf9,af79,b0d2,b0a0,aef1,ac42,a958,a6f7,a5b6,a5e3,a775,aa07,acf7,af78,b0d2,b0a1,aef2,ac44,a95a,a6f7,a5b6,a5e2,a772,aa06,acf7,af79,b0d5,b0a2,aef2,ac42,a958,a6f5,a5b6,a5e3,a774,aa09,acf9,af7c,b0d6,b0a2,aef0,ac41,a956,a6f5,a5b7,a5e6,a775,aa07,acf4,af75,b0d1,b0a0,aef1,ac43,a958,a6f7,a5b8,a5e6,a774,aa06,acf4,af76,b0d3,b0a3,aef5,ac45,a959,a6f4,a5b4,a5e2,a774,aa07,acf7,af78,b0d5,b0a5,aef4,ac45,a958,a6f4,a5b3,a5e1,a772,aa07,acf7,af77,b0d2,b0a1,aef2,ac45,a95a,a6f7,a5b6,a5e3,a772,aa06,acf7,af78,b0d3,b0a2,aef3,ac46,a95d,a6fa,a5b7,a5e1,a76f,aa01,acf1,af76,b0d3,b0a4,aef6,ac47,a95d,a6fa,a5b8,a5e2,a770,aa00,acf0,af74,b0d4,b0a6,aef6,ac46,a95b,a6f8,a5b7,a5e4,a773,aa05,acf4,af76,b0d3,b0a4,aef5,ac47,a95a,a6f8,a5b8,a5e5,a773,aa05,acf1,af71,b0cd,b09f,aef4,ac49,a95e,a6fc,a5b9,a5e4,a772,aa03,acf2,af72,b0d0,b0a2,aef5,ac4a,a95e,a6fa,a5b7,a5e2,a771,aa04,acf4,af77,b0d4,b0a4,aef4,ac47,a95b,a6fa,a5b7,a5e3,a771,aa03,acf4,af75,b0d1,b0a1,aef2,ac45,a95b,a6fa,a5b9,a5e6,a773,aa05,acf3,af75,b0d3,b0a4,aef5,ac47,a95c,a6f9,a5b7,a5e3,a770,aa01,acf1,af74,b0d4,b0a6,aef9,ac4a,a95d,a6f8,a5b5,a5e0,a76f,aa01,acf0,af74,b0d4,b0a7,aef9,ac4b,a95d,a6f7,a5b5,a5df,a76f,aa03,acf4,af76,b0d5,b0a6,aef9,ac4b,a95f,a6fa,a5b6,a5e0,a76d,a9ff,acee,af71,b0d0,b0a3,aef8,ac4c,a963,a6ff,a5ba,a5e1,a76d,a9fc,aceb,af6f,b0d2,b0a5,aefa,ac4e,a961,a6fe,a5b9,a5e1,a76d,a9fd,aced,af72,b0d3,b0a7,aefa,ac4c,a960,a6fc,a5b8,a5e3,a76f,aa00,aced,af6f,b0cc,b0a1,aef7,ac4c,a960,a6fd,a5ba,a5e5,a771,aa01,acee,af6f,b0cd,b0a2,aef7,ac4d,a963,a6fe,a5b9,a5e1,a76e,a9fe,aced,af70,b0d0,b0a4,aef8,ac4d,a963,a6ff,a5b8,a5e1,a76c,a9fd,aced,af70,b0d1,b0a4,aef6,ac4b,a960,a6fd,a5b9,a5e2,a76e,a9ff,acef,af74,b0d3,b0a5,aef8,ac4a,a95f,a6fd,a5b9,a5e3,a76f,a9fd,aceb,af6f,b0cf,b0a3,aef9,ac4d,a961,a6fe,a5ba,a5e2,a76e,a9fc,acea,af6d,b0d0,b0a7,aefc,ac4f,a962,a6fb,a5b6,a5df,a76c,a9fd,acee,af72,b0d4,b0a9,aefd,ac50,a962,a6fc,a5b5,a5de,a76b,a9fd,aced,af71,b0cf,b0a3,aefa,ac4f,a965,a6ff,a5b9,a5df,a76b,a9fb,aceb,af6f,b0d1,b0a5,aefc,ac51,a967,a701,a5ba,a5df,a768,a9f7,ace8,af6e,b0d3,b0a9,aeff,ac52,a967,a701,a5bb,a5e0,a768,a9f7,ace6,af6c,b0d0,b0a7,aefe,ac51,a964,a6ff,a5ba,a5e2,a76d,a9fa,ace9,af6e,b0d0,b0a7,aefd,ac53,a966,a6ff,a5bb,a5e2,a76d,a9fa,ace7,af6a,b0cc,b0a2,aefc,ac53,a96a,a703,a5bc,a5e2,a76a,a9f9,ace6,af6a,b0cc,b0a3,aefd,ac53,a968,a702,a5bb,a5df,a76a,a9fa,ace9,af70,b0d1,b0a7,aefc,ac51,a966,a701,a5bb,a5e1,a76a,a9fa,ace9,af6d,b0cd,b0a3,aef9,ac4f,a965,a701,a5bd,a5e3,a76d,a9fa,ace7,af6b,b0cf,b0a4,aefc,ac51,a967,a701,a5ba,a5e0,a769,a9f9,ace7,af6c,b0d1,b0a9,af00,ac54,a967,a700,a5b8,a5dd,a768,a9f8,ace7,af6c,b0cf,b0a7,aeff,ac53,a966,a6ff,a5b8,a5dd,a769,a9f8,ace9,af6f,b0d0,b0a8,aeff,ac55,a968,a702,a5b9,a5de,a767,a9f5,ace4,af6b,b0ce,b0a6,aefe,ac56,a96c,a706,a5bd,a5df,a765,a9f2,ace1,af67,b0ce,b0a7,af01,ac56,a96a,a704,a5bb,a5df,a767,a9f4,ace3,af6a,b0d0,b0ab,af02,ac57,a969,a702,a5ba,a5e0,a769,a9f6,ace4,af68,b0cb,b0a3,aefe,ac56,a96a,a704,a5bd,a5e1,a76a,a9f7,ace3,af67,b0ca,b0a4,aefe,ac58,a96d,a706,a5bb,a5de,a765,a9f4,ace4,af69,b0cf,b0a8,af01,ac59,a96d,a705,a5bc,a5dd,a765,a9f3,ace3,af6a,b0ce,b0a6,aeff,ac54,a96a,a705,a5bc,a5e0,a768,a9f4,ace4,af6a,b0d0,b0a8,af00,ac56,a969,a704,a5bd,a5e1,a767,a9f4,ace1,af67,b0cd,b0a8,af01,ac59,a96c,a706,a5bd,a5e0,a766,a9f3,acdf,af66,b0cc,b0a8,af04,ac59,a96d,a703,a5b9,a5dd,a765,a9f3,ace3,af6a,b0d0,b0ab,af06,ac5b,a96d,a704,a5b9,a5dc,a764,a9f4,ace3,af69,b0cc,b0a6,af01,ac59,a970,a707,a5bd,a5df,a764,a9f1,acdf,af66,b0cc,b0a6,af02,ac5a,a971,a70a,a5be,a5dd,a762,a9ed,acde,af66,b0cf,b0ac,af06,ac5d,a970,a708,a5be,a5de,a763,a9ef,acdd,af64,b0cd,b0a8,af03,ac5a,a96e,a705,a5bd,a5e1,a766,a9f2,acdf,af65,b0cb,b0a7,af03,ac5c,a96f,a707,a5bd,a5df,a766,a9f1,acde,af63,b0ca,b0a6,af03,ac5c,a973,a70a,a5bf,a5de,a763,a9ef,acdd,af63,b0c9,b0a6,af02,ac5c,a970,a708,a5bd,a5dd,a762,a9ef,acdf,af68,b0ce,b0aa,af04,ac5b,a96f,a707,a5bc,a5de,a764,a9f0,acdf,af66,b0cc,b0a7,af01,ac59,a96f,a708,a5be,a5e0,a765,a9ef,acdc,af63,b0ca,b0a8,af03,ac5c,a970,a708,a5bc,a5dc,a761,a9ee,acdc,af65,b0ce,b0ad,af0a,ac60,a972,a707,a5ba,a5db,a760,a9ec,acdd,af65,b0cd,b0a9,af07,ac5e,a972,a707,a5bb,a5db,a760,a9ed,acdd,af65,b0cc,b0a9,af07,ac60,a974,a70b,a5bd,a5dc,a760,a9ea,acd8,af62,b0cc,b0aa,af08,ac61,a977,a70f,a5c1,a5de,a75e,a9e8,acd6,af5f,b0c9,b0aa,af08,ac61,a974,a70c,a5bf,a5de,a761,a9ea,acd8,af61,b0cc,b0ab,af0a,ac62,a974,a70a,a5be,a5df,a763,a9ed,acdb,af60,b0c8,b0a6,af05,ac60,a976,a70d,a5c1,a5df,a764,a9ed,acd9,af5f,b0c6,b0a4,af05,ac60,a977,a70e,a5c0,a5dd,a75f,a9ea,acda,af62,b0cb,b0ab,af08,ac63,a976,a70d,a5bf,a5dd,a75f,a9ea,acda,af63,b0cd,b0a8,af05,ac5e,a973,a70b,a5bf,a5df,a762,a9ec,acd9,af62,b0cc,b0a9,af06,ac5e,a973,a70b,a5bf,a5df,a761,a9ea,acd8,af60,b0ca,b0ab,af0a,ac63,a976,a70b,a5bf,a5dd,a760,a9e9,acd6,af5f,b0ca,b0aa,af0b,ac63,a975,a709,a5bb,a5da,a75e,a9ea,acd9,af61,b0cd,b0ad,af0b,ac65,a977,a70a,a5bb,a5d9,a75d,a9e9,acd9,af62,b0ca,b0aa,af09,ac63,a979,a70f,a5bf,a5dc,a75d,a9e6,acd4,af5e,b0c8,b0a9,af09,ac64,a97a,a710,a5c0,a5db,a75a,a9e3,acd1,af5e,b0cb,b0af,af0f,ac67,a97a,a70f,a5bf,a5db,a75c,a9e5,acd2,af5e,b0ca,b0ab,af0b,ac65,a978,a70e,a5bf,a5de,a75f,a9e7,acd5,af5b,b0c6,b0a9,af09,ac66,a97a,a70f,a5c1,a5dc,a75e,a9e5,acd3,af5b,b0c6,b0a9,af0c,ac68,a97e,a713,a5c2,a5dc,a75c,a9e4,acd3,af5b,b0c7,b0a8,af0a,ac66,a97a,a710,a5c1,a5dc,a75c,a9e5,acd3,af5e,b0ca,b0ab,af0b,ac65,a979,a710,a5c0,a5dd,a75d,a9e7,acd4,af5e,b0c9,b0aa,af09,ac65,a979,a710,a5c2,a5df,a75f,a9e6,acd3,af5b,b0c6,b0a9,af0b,ac66,a97a,a70f,a5bf,a5db,a75c,a9e4,acd2,af5c,b0cb,b0ae,af11,ac6b,a97c,a70f,a5bd,a5d8,a75a,a9e5,acd4,af5e,b0cc,b0ac,af0e,ac68,a97c,a70f,a5bf,a5d9,a75b,a9e4,acd3,af5d,b0c9,b0ab,af0c,ac69,a97d,a712,a5c2,a5da,a759,a9df,accf,af5a,b0c9,b0ad,af10,ac6c,a981,a715,a5c3,a5dc,a759,a9df,accd,af58,b0c8,b0ad,af10,ac6a,a97d,a712,a5c1,a5dc,a75a,a9e1,accf,af58,b0c8,b0ad,af10,ac6b,a97d,a711,a5c1,a5db,a75c,a9e4,acd0,af59,b0c5,b0aa,af0e,ac6b,a97f,a714,a5c3,a5dc,a75c,a9e3,accf,af57,b0c4,b0a7,af0c,ac6a,a980,a715,a5c1,a5da,a757,a9e0,acce,af59,b0c8,b0ad,af10,ac6c,a981,a714,a5c1,a5da,a757,a9e0,accf,af5b,b0ca,b0ac,af0d,ac69,a97d,a712,a5c2,a5dc,a75b,a9e1,acce,af5a,b0c6,b0ab,af0d,ac69,a97d,a712,a5c2,a5dd,a759,a9df,accb,af57,b0c6,b0ad,af13,ac6e,a981,a714,a5c1,a5db,a757,a9df,accc,af57,b0c6,b0ae,af12,ac6e,a980,a712,a5bf,a5d8,a756,a9df,acce,af58,b0c7,b0ae,af12,ac6e,a982,a714,a5bf,a5d8,a756,a9de,accd,af59,b0c6,b0ac,af10,ac6f,a984,a718,a5c4,a5db,a757,a9dc,acca,af55,b0c5,b0ab,af0f,ac6e,a984,a718,a5c4,a5da,a755,a9da,acc8,af54,b0c7,b0af,af15,ac71,a983,a716,a5c3,a5db,a756,a9dd,acca,af57,b0c6,b0ae,af13,ac6e,a982,a715,a5c3,a5dc,a759,a9e0,accc,af55,b0c3,b0aa,af10,ac6e,a983,a717,a5c4,a5db,a757,a9dc,acc9,af54,b0c3,b0ac,af13,ac72,a987,a719,a5c5,a5da,a755,a9dc,acc9,af56,b0c6,b0ad,af12,ac6f,a984,a717,a5c3,a5d9,a756,a9dc,acca,af57,b0c7,b0ae,af12,ac6e,a982,a715,a5c3,a5da,a757,a9dd,acca,af55,b0c6,b0ae,af12,ac70,a983,a717,a5c4,a5dc,a758,a9dc,acc9,af54,b0c5,b0ac,af13,ac71,a985,a716,a5c1,a5d8,a753,a9da,acc7,af54,b0c6,b0b1,af17,ac75,a987,a716,a5bf,a5d6,a751,a9da,acc9,af57,b0c8,b0b0,af16,ac73,a986,a718,a5c2,a5d7,a753,a9da,acc8,af55,b0c5,b0ad,af12,ac72,a988,a71a,a5c5,a5d9,a751,a9d5,acc1,af50,b0c5,b0af,af17,ac76,a98b,a71d,a5c6,a5da,a752,a9d4,acc2,af50,b0c4,b0b0,af18,ac75,a988,a719,a5c5,a5d9,a754,a9d8,acc4,af4f,b0c3,b0ad,af16,ac74,a988,a719,a5c4,a5da,a755,a9d9,acc5,af4f,b0c1,b0aa,af14,ac76,a98a,a71d,a5c6,a5db,a755,a9d9,acc5,af50,b0c0,b0aa,af13,ac74,a98a,a71d,a5c5,a5d9,a751,a9d6,acc4,af50,b0c4,b0ad,af16,ac74,a98a,a71b,a5c5,a5d8,a752,a9d6,acc6,af53,b0c7,b0af,af15,ac72,a987,a719,a5c5,a5db,a755,a9d9,acc5,af52,b0c5,b0ad,af14,ac72,a987,a719,a5c5,a5da,a753,a9d5,acc2,af4e,b0c3,b0b0,af19,ac79,a98b,a71b,a5c3,a5d8,a750,a9d6,acc3,af50,b0c5,b0b2,af1c,ac78,a98b,a719,a5c1,a5d5,a74f,a9d6,acc4,af52,b0c5,b0b0,af19,ac79,a98b,a71c,a5c2,a5d6,a74f,a9d3,acc2,af50,b0c3,b0af,af19,ac79,a98f,a720,a5c8,a5d8,a750,a9d1,acbf,af4e,b0c3,b0af,af19,ac79,a98f,a71f,a5c7,a5d8,a74e,a9d0,acbd,af4c,b0c3,b0b1,af1c,ac7b,a98e,a71e,a5c6,a5d8,a750,a9d2,acc0,af4d,b0c3,b0af,af1a,ac7a,a98e,a71d,a5c6,a5da,a752,a9d6,acc2,af4d,b0c0,b0ac,af17,ac78,a98e,a71f,a5c8,a5d9,a750,a9d2,acbd,af4b,b0bf,b0ad,af19,ac7b,a991,a721,a5c9,a5d8,a74e,a9d1,acbe,af4e,b0c2,b0b0,af1a,ac79,a98e,a71e,a5c7,a5d8,a74f,a9d3,acc0,af4e,b0c4,b0ae,af18,ac78,a98b,a71d,a5c6,a5d9,a751,a9d3,acbe,af4b,b0c1,b0ae,af19,ac79,a98e,a71f,a5c7,a5da,a751,a9d3,acbe,af4b,b0c2,b0af,af1b,ac7b,a98f,a71d,a5c4,a5d6,a74d,a9d0,acbe,af4c,b0c2,b0b1,af1d,ac7e,a990,a71d,a5c3,a5d4,a74c,a9cf,acbf,af4e,b0c4,b0b1,af1c,ac7c,a991,a71f,a5c5,a5d6,a74d,a9d0,acbf,af4d,b0c3,b0b0,af1a,ac7b,a991,a721,a5c9";
+/* 절기표 — 태양 겉보기 황경 315°+30°k 통과 시각(KST 눈금).
+   1900 입춘 ~ 2046 소한. 밀리초(올림) delta·base16 → 분(소수) 배열. pyephem 실계산값.  */
 const TERM_MIN = (() => {
   const parts = TERMS_HEX.split(","); const out = new Array(parts.length); let c = 0;
-  for (let i = 0; i < parts.length; i++) { c += parseInt(parts[i], 16); out[i] = c; }
+  for (let i = 0; i < parts.length; i++) { c += parseInt(parts[i], 16); out[i] = c / 60000; }
   return out;
 })();
-const TERM_Y0 = 1900;
 const K_EPOCH = Date.UTC(1900, 0, 1);            // KST 벽시계를 UTC 필드로 담는 기준
 const kd  = min => new Date(K_EPOCH + min * 60000);       // 분 → 가상 Date (UTC 필드 = KST)
 const kmin = d => Math.floor((d.getTime() - K_EPOCH) / 60000);
 const nowKd = () => new Date(Date.now() + 9 * 3600e3);
+/** 벽시계(분) → [UTC 오프셋(분), 서머타임(분)] — Asia/Seoul 이력. Python zoneinfo(fold=0)와 같은 선택. */
+function seoulOffset(wallMin) {
+  let cur = TZ_SEOUL0;
+  for (const t of TZ_SEOUL) { if (t[0] <= wallMin) cur = [t[1], t[2]]; else break; }
+  return cur;
+}
+
+/** 순간(KST 눈금 분) → 서울 벽시계(분). 오프셋은 벽시계로 찾으므로 두 번 맞춘다. */
+function instToWall(inst) {
+  let w = inst;
+  for (let i = 0; i < 2; i++) w = inst + seoulOffset(w)[0] - 540;
+  return w;
+}
 
 function termAt(y, k) { return TERM_MIN[(y - TERM_Y0) * 12 + k]; }
 /** 주어진 시각(분)이 속한 절 구간 → {k, jieYear, start, end} */
@@ -483,17 +502,21 @@ function monthGan(yGan, mZhi) {
   const start = { 甲:"丙",己:"丙",乙:"戊",庚:"戊",丙:"庚",辛:"庚",丁:"壬",壬:"壬",戊:"甲",癸:"甲" }[yGan];
   return GAN[(GAN.indexOf(start) + MONTH_ZHI.indexOf(mZhi)) % 10];
 }
-/** 일주 — 1900-01-01(KST) = 甲戌(index 10). 23:00 초과는 익일. */
+/** 일주 — 1900-01-01(KST) = 甲戌(index 10). 23:00 초과는 익일. 야자시설(zasiNext=false)은 00:00 정각까지 당일 (saju_calc.day_pillar와 같다) */
 function dayPillar(min, zasiNext = true) {
   let d = kd(min);
-  if (zasiNext && (d.getUTCHours() * 60 + d.getUTCMinutes()) > 23 * 60) d = new Date(d.getTime() + 864e5);
+  const mm = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (zasiNext && mm > 23 * 60) d = new Date(d.getTime() + 864e5);
+  else if (!zasiNext && mm === 0) d = new Date(d.getTime() - 864e5);
   const days = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - K_EPOCH) / 864e5);
   return gz((10 + days) % 60);
 }
-function hourPillar(dayGan, min) {
+/** 시주 — 정각은 이전 시지. nextDayGan: 야자시설(일주 당일 유지)에서 23:01~00:00(정각 포함)이면 익일 일간으로 시두법. */
+function hourPillar(dayGan, min, nextDayGan) {
   const d = kd(min), mm = d.getUTCHours() * 60 + d.getUTCMinutes();
   const zi = Math.floor((((mm - 1 + 1440) % 1440) + 60) / 120) % 12;
-  const start = { 甲:"甲",己:"甲",乙:"丙",庚:"丙",丙:"戊",辛:"戊",丁:"庚",壬:"庚",戊:"壬",癸:"壬" }[dayGan];
+  const base = nextDayGan && (mm > 23 * 60 || mm === 0) ? nextDayGan : dayGan;
+  const start = { 甲:"甲",己:"甲",乙:"丙",庚:"丙",丙:"戊",辛:"戊",丁:"庚",壬:"庚",戊:"壬",癸:"壬" }[base];
   return GAN[(GAN.indexOf(start) + zi) % 10] + ZHI[zi];
 }
 function sipsin(dayGan, other) {
@@ -507,11 +530,10 @@ function sipsin(dayGan, other) {
 }
 
 /* ── 12신살 (references/29) ───────────────────── */
-const SAMHAP = ["申子辰", "亥卯未", "寅午戌", "巳酉丑"];
+const SAMHAP = T.SAMHAP;
 const GUK_NAME = { "申子辰":"수국", "亥卯未":"목국", "寅午戌":"화국", "巳酉丑":"금국" };
-const GUK_TTI = { "申子辰":"원숭이·쥐·용", "亥卯未":"돼지·토끼·양", "寅午戌":"호랑이·말·개", "巳酉丑":"뱀·닭·소" };
-const MYO = { "申子辰":"辰", "亥卯未":"未", "寅午戌":"戌", "巳酉丑":"丑" };
-const SINSAL12 = ["겁살","재살","천살","지살","년살","월살","망신살","장성살","반안살","역마살","육해살","화개살"];
+const MYO = T.MYO;
+const SINSAL12 = T.SINSAL12;
 const gukOf = z => SAMHAP.find(s => s.includes(z));
 function sinsal12(baseZhi, targetZhi) {
   const guk = gukOf(baseZhi), start = (ZHI.indexOf(MYO[guk]) + 1) % 12;
@@ -519,8 +541,8 @@ function sinsal12(baseZhi, targetZhi) {
 }
 
 /* ── 십이운성 (references/30, 음포태) ─────────── */
-const UNSEONG = ["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"];
-const JANGSAENG = { 甲:"亥",乙:"午",丙:"寅",丁:"酉",戊:"寅",己:"酉",庚:"巳",辛:"子",壬:"申",癸:"卯" };
+const UNSEONG = T.UNSEONG;
+const JANGSAENG = T.JANGSAENG;
 function unseong(gan, zhi, mode) {
   let g = gan, step = 1;
   if (mode === "yang") g = ({ 乙:"甲",丁:"丙",己:"戊",辛:"庚",癸:"壬" })[gan] || gan;
@@ -528,19 +550,49 @@ function unseong(gan, zhi, mode) {
   const d = (((ZHI.indexOf(zhi) - ZHI.indexOf(JANGSAENG[g])) * step) % 12 + 12) % 12;
   return UNSEONG[d];
 }
-const UN_POWER = { 장생:2, 목욕:1, 관대:2, 건록:3, 제왕:3, 쇠:1, 병:-1, 사:-2, 묘:-1, 절:-2, 태:-1, 양:0 };
+/* ── 십성 인종 (references/32) — 음포태 3상태·슬롯 쌍·원국 교차. 세력 점수로 바꾸지 않는다 (§1·§3-1) ── */
+const UN_STATE = { 장생:"활", 관대:"활", 건록:"활", 제왕:"활", 목욕:"전", 쇠:"전", 병:"전", 사:"전", 묘:"장", 절:"장", 태:"장", 양:"장" };
+const SLOT_PAIR = Object.fromEntries([["건록","제왕","최고조"], ["장생","사","갈림"], ["목욕","병","전환"],
+  ["태","절","최저"], ["관대","쇠","관리"], ["묘","양","창고"]].map(([a, b, n]) => [[a, b].sort().join("·"), n]));
+const GROUP_ORDER = ["비겁", "식상", "재성", "관성", "인성"];
+const QUADRANT = { 투간활: "실질 발현", 투간전: "기능 전환", 투간장: "공회전",
+                   지장간활: "점화 대기", 지장간전: "부분 작동", 지장간장: "무효",
+                   무활: "허상", 무전: "무효", 무장: "무효" };
+const GOJI_KEY = { 辰: "申子", 戌: "寅午", 丑: "巳酉", 未: "亥卯" };
+const GOJI_CHUNG = { 辰: "戌", 戌: "辰", 丑: "未", 未: "丑" };
+function injongRead(natal, z, context = []) {
+  const others = natal.pillars.filter((p, i) => p && i !== 2).map(p => p[0]);   // 일간 자신은 비견 판정에서 뺀다 (§5-1)
+  const jang = natal.zhis.filter(Boolean).map(x => JANGGAN[x]).join("");
+  const row = {};
+  for (const x of GAN) {
+    const un = unseong(x, z, "eum"), st = UN_STATE[un];
+    const hold = others.includes(x) ? "투간" : jang.includes(x) ? "지장간" : "무";
+    row[sipsin(natal.dayGan, x)] = { gan: x, un, st, hold, quad: QUADRANT[hold + st] };
+  }
+  const groups = GROUP_ORDER.map(grp => {
+    const mem = Object.keys(row).filter(s => SIPSIN_GROUP[s] === grp);
+    return { grp, mem, slot: SLOT_PAIR[mem.map(s => row[s].un).sort().join("·")] || "혼합" };
+  });
+  const out = { row, groups, ctx: context, timeKnown: natal.timeKnown, kind: "子午卯酉".includes(z) ? "왕지" : "寅申巳亥".includes(z) ? "생지" : "사고지" };
+  if (out.kind === "사고지") {                       // §4 개폐 — 충개고가 먼저, 삼합 짝은 작용 강화(학파 이견)
+    const ctx = [...context, ...natal.zhis.filter(Boolean)];
+    out.gaego = ctx.includes(GOJI_CHUNG[z]) ? "충개고" : ctx.some(x => GOJI_KEY[z].includes(x)) ? "합국" : "폐고";
+    out.ijung = Object.keys(row).filter(s => row[s].un === "묘" && JANGGAN[z].includes(row[s].gan));
+  }
+  return out;
+}
 
 /* ── 지지 관계 (references/22) ────────────────── */
 const P = a => a.map(s => s.split("").sort().join(""));
-const YUKHAP = P(["子丑","寅亥","卯戌","辰酉","巳申","午未"]);
-const CHUNG  = P(["子午","丑未","寅申","卯酉","辰戌","巳亥"]);
-const PA     = P(["子酉","丑辰","寅亥","卯午","巳申","未戌"]);
-const HAE    = P(["子未","丑午","寅巳","卯辰","申亥","酉戌"]);
-const WONJIN = P(["子未","丑午","寅酉","卯申","辰亥","巳戌"]);
-const GWIMUN = P(["子酉","丑午","寅未","卯申","辰亥","巳戌"]);
-const HYEONG = P(["寅巳","巳申","寅申","丑戌","戌未","丑未","子卯"]);
-const JAHYEONG = "辰午酉亥";
-const BANGHAP = ["寅卯辰","巳午未","申酉戌","亥子丑"];
+const YUKHAP = P(T.YUKHAP);
+const CHUNG  = P(T.CHUNG);
+const PA     = P(T.PA);
+const HAE    = P(T.HAE);
+const WONJIN = P(T.WONJIN);
+const GWIMUN = P(T.GWIMUN);
+const HYEONG = P(T.HYEONG);
+const JAHYEONG = T.JAHYEONG;
+const BANGHAP = T.BANGHAP;
 function zhiRel(a, b) {
   const out = [], key = [a, b].sort().join("");
   if (a === b) return [JAHYEONG.includes(a) ? "자형" : "복음"];
@@ -579,15 +631,15 @@ const GUNG = {
 };
 
 /* ── 개별 신살 (references/30) ────────────────── */
-const YANGIN = { 甲:"卯",丙:"午",戊:"午",庚:"酉",壬:"子" };
-const MUNCHANG = { 甲:"巳",乙:"午",丙:"申",丁:"酉",戊:"申",己:"酉",庚:"亥",辛:"子",壬:"寅",癸:"卯" };
+const YANGIN = T.YANGIN;
+const MUNCHANG = T.MUNCHANG;
 const HAKDANG = JANGSAENG;
-const GEUMYEO = { 甲:"辰",乙:"巳",丙:"未",丁:"申",戊:"未",己:"申",庚:"戌",辛:"亥",壬:"丑",癸:"寅" };
-const HONGYEOM = { 甲:"午",乙:"午",丙:"寅",丁:"未",戊:"辰",己:"辰",庚:"戌",辛:"酉",壬:"子",癸:"申" };
-const CHEONEUL = { 甲:"丑未",戊:"丑未",庚:"丑未",乙:"子申",己:"子申",丙:"亥酉",丁:"亥酉",壬:"巳卯",癸:"巳卯",辛:"午寅" };
-const BAEKHO = ["甲辰","乙未","丙戌","丁丑","戊辰","壬戌","癸丑"];
-const GWAEGANG = ["庚辰","庚戌","壬辰","壬戌"];
-const SAMJAE = { "申子辰":"寅卯辰", "亥卯未":"巳午未", "寅午戌":"申酉戌", "巳酉丑":"亥子丑" };
+const GEUMYEO = T.GEUMYEO;
+const HONGYEOM = T.HONGYEOM;
+const CHEONEUL = T.CHEONEUL;
+const BAEKHO = T.BAEKHO;
+const GWAEGANG = T.GWAEGANG;
+const SAMJAE = T.SAMJAE;
 function gongmang(dayGz) {
   const i = gzIndex(dayGz), head = i - (i % 10);
   const z = ZHI.indexOf(gz(head)[1]);
@@ -678,15 +730,81 @@ function buildNatal(profile) {
   const [Y, M, D] = profile.date.split("-").map(Number);
   const known = profile.timeKnown;
   const [hh, mi] = (known ? profile.time : "12:00").split(":").map(Number);
-  const stdMin = kmin(new Date(Date.UTC(Y, M - 1, D, hh, mi)));
-  const corrected = stdMin + (profile.solar === false ? 0 : -32);   // 진태양시 보정
-  const slot = jieSlot(corrected);
+  const wallMin = kmin(new Date(Date.UTC(Y, M - 1, D, hh, mi)));   // 입력 = 그때 시계가 가리킨 시각
+  const [off, dst] = seoulOffset(wallMin);                          // 1908~11·1954~61 UTC+8:30, 서머타임 연도 자동
+  const instMin = wallMin - (off - 540);                            // 출생 순간(KST 눈금) — 절입 비교·대운수용
+  const stdMin = wallMin - dst;                                     // 표준시 (서머타임분 제거)
+  // 경도 보정(지방평균시) — 시주·자시 판정에만 쓴다. 절입 비교에 섞지 않는다 (errata #18)
+  const corr = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (off - dst) + 0.5);
+  const corrected = stdMin + corr;
+  const slot = jieSlot(instMin);
   const yp = yearPillar(slot.jieYear);
   const mz = MONTH_ZHI[slot.k];
   const mp = monthGan(yp[0], mz) + mz;
   const dp = dayPillar(corrected);
   const hp = known ? hourPillar(dp[0], corrected) : null;
   const pillars = [yp, mp, dp, hp];
+
+  // 확인할 점 — saju_calc.py 경고의 웹판(--longitude·--tz 같은 CLI 옵션 경고는 없다)
+  const warn = [], dayAlt = [], ambAlt = [];  // dayAlt: 시각 모름일 때 일주가 정오와 다른 [시작분, 끝분, 일주], ambAlt: 전환 구간을 전환 뒤 시계로 읽으면 일주가 달라지는 구간
+  const pm = i => { const s = jieSlot(i), y = yearPillar(s.jieYear), z = MONTH_ZHI[s.k]; return y + "년 " + monthGan(y[0], z) + z + "월"; };
+  if (!known) {
+    const d0 = kmin(new Date(Date.UTC(Y, M - 1, D, 0, 0))), d1 = d0 + 1439;
+    const i0 = d0 - (seoulOffset(d0)[0] - 540), i1 = d1 - (seoulOffset(d1)[0] - 540);
+    if (jieSlot(i0).i !== jieSlot(i1).i)
+      warn.push(`절입일 출생 — 시각을 모르면 ${yearPillar(jieSlot(i0).jieYear) === yearPillar(jieSlot(i1).jieYear) ? "월주가" : "연주·월주가"} 정해지지 않습니다(00:00이면 ${pm(i0)}, 23:59이면 ${pm(i1)}). 아래는 정오 기준입니다.`);
+    // 일주가 정오와 달라지는 새벽·밤 구간 — 보정 후 23:01부터 익일 일주(자시 정설). 서머타임 연도는 새벽 출생이 전날 亥시가 된다
+    const hm = m => `${String(m / 60 | 0).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const lmt = o => profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - o + 0.5);
+    const [o0, s0] = seoulOffset(d0), [o1, s1] = seoulOffset(d1);
+    const c0 = lmt(o0 - s0), c1 = lmt(o1 - s1);
+    const early = dayPillar(d0 - s0 + c0), last = s0 - c0 - 60;           // 벽시계 00:00~last가 전날 일주
+    const late = dayPillar(d1 - s1 + c1), cut = 23 * 60 + 1 + s1 - c1;     // 벽시계 cut 이후가 익일 일주
+    if (early !== dp && last >= 0) dayAlt.push([0, last, early]);
+    if (late !== dp && cut < 1440) dayAlt.push([cut, 1439, late]);
+    if (dayAlt.length)
+      warn.push(`시각을 몰라 일주는 정오 기준입니다. ${dayAlt.map(([a, b, gz]) => `${a === b ? hm(a) : b < 1439 ? `${hm(a)}~${hm(b)}` : `${hm(a)} 이후`} 출생이면 ${gz}일`).join(", ")}입니다(자시 정설·경도 보정${s0 || s1 ? "·서머타임" : ""}).`);
+    // 그날 안에 같은 시계 시각이 두 번 있거나(시계를 뒤로) 없는(앞으로) 구간 — 위 경계는 전환 전 오프셋 기준이고,
+    // 전환 뒤 오프셋으로 읽으면 일주가 달라지는 구간을 따로 알린다 (saju_calc.unknown_time_scan의 amb·gap·amb_alt)
+    const amb = TZ_SEOUL.map((t, i) => { const prev = i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0];
+        return [Math.ceil(t[0] - Math.abs(t[1] - prev)), Math.ceil(t[0]) - 1, t[1] > prev, t[1], t[2]]; })
+      .find(([a, b]) => b >= a && a <= d1 && b >= d0);
+    if (amb) {
+      for (let w = Math.max(amb[0], d0); w <= Math.min(amb[1], d1); w++) {
+        const [oa, sa] = seoulOffset(w);
+        const p1 = dayPillar(w - amb[4] + lmt(amb[3] - amb[4]));
+        if (p1 === dayPillar(w - sa + lmt(oa - sa))) continue;
+        const x = w - d0, r = ambAlt[ambAlt.length - 1];
+        if (r && r[1] === x - 1 && r[2] === p1) r[1] = x; else ambAlt.push([x, x, p1]);
+      }
+      warn.push(`이날은 표준시·서머타임 전환이 있어 ${hm(Math.max(amb[0], d0) - d0)}~${hm(Math.min(amb[1], d1) - d0)}의 시계 시각이 ${amb[2] ? "없습니다(시계를 앞으로 돌림)" : "두 번 있습니다(시계를 뒤로 돌림)"} — 그 사이 시각은 전환 전 시계로 계산했습니다. ` +
+                (ambAlt.length ? `전환 뒤 시계로 읽으면 ${ambAlt.map(([a, b, gz]) => `${a === b ? hm(a) : `${hm(a)}~${hm(b)}`} 출생은 ${gz}일`).join(", ")}입니다. ` : "전환 뒤 시계로 읽어도 일주는 같습니다. ") +
+                "그 사이 출생 기록이면 원 기록을 확인하세요.");
+    }
+    warn.push("시각을 몰라 대운수·대운 교체 연월은 정오 출생으로 어림한 값입니다.");
+    warn.push("시각을 몰라 시주 없이 3기둥으로 분석했습니다 — 격 후보(시간 투출·시지 회국)·오행 분포·일간 뿌리·원국 관계·신살(양인·공망 등)은 시주에 따라 달라질 수 있습니다.");
+  } else {
+    const gap = Math.min(Math.abs(instMin - slot.start), Math.abs(slot.end - instMin));
+    const pz = (instMin - slot.start <= slot.end - instMin ? slot.k : (slot.k + 1) % 12) === 0 ? "연주·월주" : "월주";   // 입춘은 연주와 대운 순역까지 가른다
+    if (gap < 2) warn.push(`절입 2분 이내 출생 — 계산 절입 시각은 천문연 발표값과 1분 다를 수 있습니다. 천문연 역서로 ${pz}를 확인하세요.`);
+    else if (gap < 1440) warn.push(`절입 ±24시간 이내 출생 — 출생 시각 기록의 정확도가 ${pz}를 가릅니다.`);
+    if (corr) {
+      const dStd = dayPillar(stdMin), hStd = hourPillar(dStd[0], stdMin);
+      if (dStd !== dp || hStd !== hp)
+        warn.push(`시각 보정 경계 출생 — 보정하면 ${dp}일 ${hp}시, 표준시 그대로면 ${dStd}일 ${hStd}시로 갈립니다.`);
+    }
+  }
+  if (dst) warn.push(known ? `서머타임 기간 — 입력 시각에서 ${dst}분을 빼 표준시로 환산했습니다.`
+                            : `서머타임 기간 — 기준 시각(정오)에서 ${dst}분을 빼 표준시로 환산했습니다.`);
+  if (off - dst === 510) warn.push("당시 한국 표준시는 UTC+8:30입니다(1908-04~1911-12, 1954-03-21~1961-08-09) — 자동 적용했습니다.");
+  const tr = known && TZ_SEOUL.find((t, i) => { const d = Math.abs(t[1] - (i ? TZ_SEOUL[i - 1][1] : TZ_SEOUL0[0])); return wallMin >= t[0] - d && wallMin < t[0]; });
+  if (tr) {                                    // 전환 뒤 오프셋(Python fold=1)으로 다시 계산해 갈리면 알린다
+    const c2 = profile.solar === false ? 0 : Math.floor(SEOUL_LON * 4 - (tr[1] - tr[2]) + 0.5), m2 = wallMin - tr[2] + c2;
+    const s2 = jieSlot(wallMin - (tr[1] - 540)), y2 = yearPillar(s2.jieYear), z2 = MONTH_ZHI[s2.k], d2 = dayPillar(m2);
+    const alt = [y2, monthGan(y2[0], z2) + z2, d2, hourPillar(d2[0], m2)].join(" ");
+    warn.push(`표준시·서머타임 전환 시각이라 이 시계 시각이 ${tr[1] > off ? "없습니다(시계를 앞으로 돌림)" : "두 번 있습니다(시계를 뒤로 돌림)"} — 전환 전 시계로 계산했습니다. ` +
+              (alt === pillars.join(" ") ? "전환 뒤 시계로 읽어도 사주는 같습니다. " : `전환 뒤 시계로 읽으면 ${alt}입니다. `) + "원 기록을 확인하세요.");
+  }
   const zhis = [yp[1], mp[1], dp[1], hp ? hp[1] : null];
   const dayGan = dp[0];
 
@@ -701,11 +819,12 @@ function buildNatal(profile) {
     if (JANGGAN[zhis[i]].split("").some(g => OG[GAN.indexOf(g)] === OG[GAN.indexOf(dayGan)])) roots.push(lab + "지 " + zhis[i]);
   });
 
-  // 월지 투출 → 격 1차 후보
-  const tuchul = JANGGAN[mz].split("").filter(g => [yp[0], mp[0], hp ? hp[0] : ""].includes(g));
-  const gyeok = tuchul.length
-    ? tuchul.map(g => `${g}(${sipsin(dayGan, g)})`).join("·") + " 투출"
-    : `미투출 → 본기 ${JANGGAN[mz].slice(-1)}(${sipsin(dayGan, JANGGAN[mz].slice(-1))})`;
+  // 격 1차 후보 — saju_calc.gyeok_candidates()와 같은 순서 (errata #20)
+  const tuchul = JANGGAN[mz].split("").reverse().filter(g => [yp[0], mp[0], hp ? hp[0] : ""].includes(g));
+  const gyeokList = gyeokCandidates(pillars);
+  const gyeok = gyeokList.join(" / ") + " — 월지 " + mz + (tuchul.length
+    ? ` 투출 ${tuchul.map(g => `${g}(${sipsin(dayGan, g)})`).join("·")}`
+    : ` 본기 ${JANGGAN[mz].slice(-1)}(${sipsin(dayGan, JANGGAN[mz].slice(-1))})`);
 
   // 원국 신살
   const sinsal = [];
@@ -717,8 +836,8 @@ function buildNatal(profile) {
   const ce = zhis.filter(z => z && CHEONEUL[dayGan].includes(z));
   if (ce.length) push("천을귀인", "B", ce.join("·") + " — 결과가 아니라 통로");
   const gm = gongmang(dp);
-  const gmHit = zhis.filter(z => z && gm.includes(z));
-  push("공망", "A~B", `공망지 ${gm}` + (gmHit.length ? ` — ${gmHit.map(z => posOf(z)[0] + " " + z).join("·")}` : " — 원국에 없음"));
+  const gmHit = zhis.map((z, i) => z && gm.includes(z) ? ["년", "월", "일", "시"][i] + "지 " + z : null).filter(Boolean);   // 같은 지지가 두 자리에 있으면 둘 다
+  push("공망", "A~B", `공망지 ${gm}` + (gmHit.length ? ` — ${gmHit.join("·")}` : pillars[3] ? " — 원국에 없음" : " — 연·월·일지에 없음(시지 미상)"));
   const bh = pillars.filter(p => p && BAEKHO.includes(p));
   if (bh.length) push("백호대살", "B", bh.join("·"));
   const kg = pillars.filter(p => p && GWAEGANG.includes(p));
@@ -738,25 +857,84 @@ function buildNatal(profile) {
   }
 
   // 대운
-  const dw = daewoon(profile, yp[0], mp, corrected, slot);
+  const dw = daewoon(profile, yp[0], mp, instMin, slot);
 
   return { profile, pillars, zhis, dayGan, yearZhi: yp[1], dayZhi: dp[1],
-           slot, cnt, roots, gyeok, sinsal, inner, dw, gongmangZhi: gm,
-           guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: corrected };
+           slot, cnt, roots, gyeok, gyeokList, sinsal, inner, dw, gongmangZhi: gm, warn, dayAlt, ambAlt,
+           guk: gukOf(yp[1]), gukDay: gukOf(dp[1]), timeKnown: known, birthMin: instMin, solarMin: corrected,
+           tz: { off, dst, corr } };
+}
+
+const ROK = T.ROK;
+const GYEOK_NAME = { 정관: "정관격", 편관: "칠살격", 정인: "정인격", 편인: "편인격", 정재: "정재격", 편재: "편재격", 식신: "식신격", 상관: "상관격" };
+const GYEOK_GROUP = { 정관: "관살", 편관: "관살", 정인: "인수", 편인: "인수", 정재: "재", 편재: "재", 식신: "식상", 상관: "식상" };
+
+/** 격 1차 후보 이름 — ① 辰戌丑未 잡기 ② 건록 ③ 양인 ④ 월겁 ⑤ 본기 우선 + 변화 후보 (references/34·35, errata #20) */
+function gyeokCandidates(pillars) {
+  const day = pillars[2][0], mz = pillars[1][1];
+  const others = [pillars[0][0], pillars[1][0]].concat(pillars[3] ? [pillars[3][0]] : []);
+  const jang = JANGGAN[mz].split(""), bongi = jang[jang.length - 1];
+  const tou = jang.slice().reverse().filter(g => others.includes(g));      // 본기→중기→여기
+  const nm = g => GYEOK_NAME[sipsin(day, g)];
+  const ok = g => !!nm(g);                                                // 비겁은 격이 되지 않는다
+  const og = g => OG[GAN.indexOf(g)];
+  // 회국 오행의 격 이름 — 그 오행 천간이 한 가지만 투간했으면 그 십성, 아니면 무리 이름 (saju_calc._guk_gyeok와 같다)
+  const gukName = oh => {
+    const t = [...new Set(others.filter(g => og(g) === oh).map(g => sipsin(day, g)))];
+    return t.length === 1 ? GYEOK_NAME[t[0]] : GYEOK_GROUP[sipsin(day, [...GAN].find(g => og(g) === oh))] + "격";
+  };
+  const full = guk => [...guk].every(z => pillars.some(p => p && p[1] === z));
+  const out = [];
+  if ("辰戌丑未".includes(mz)) {
+    const useful = tou.filter(ok);
+    useful.forEach(g => out.push(`잡기 ${nm(g)}`));
+    const same = [...new Set(others.filter(o => !useful.includes(o) && ok(o) && og(o) === T.KU_OHENG[mz]))];   // 고(庫)의 오행만 (errata #30)
+    same.forEach(o => out.push(`잡기 ${nm(o)}(같은 오행 투간)`));
+    // 회지 — 월지가 낀 삼합이 다 모이면 국의 오행 (「如甲生辰月，逢申与子会局，则用水印」, saju_calc와 같은 규칙)
+    const guk = SAMHAP.find(k => k.includes(mz)), oh = T.KU_OHENG[mz];     // 고의 오행 = 그 고가 낀 삼합의 오행
+    if (full(guk) && oh !== og(day) && !useful.concat(same).some(g => og(g) === oh)) out.push(`잡기 ${gukName(oh)}(회지 후보)`);
+    if (ok(bongi) && !useful.includes(bongi)) out.push(`잡기 ${nm(bongi)}(본기·미투출)`);
+    if (!out.length) out.push("잡기 — 본기 비겁");
+    else if (tou.some(g => !ok(g))) out.push("잡기 비겁 투출(월겁 절차)");
+  } else if (ROK[day] === mz) out.push("건록격");
+  else if (YANGIN[day] === mz) out.push("양인격");
+  else if (sipsin(day, bongi) === "겁재") out.push("월겁격");
+  else {
+    out.push(nm(bongi));
+    // 본기가 불투할 때만 변한다 — 「不透甲而透丙」, 「丙生寅月，午戌会劫，而又或透甲…则仍为印而格不破」
+    const chg = others.includes(bongi) ? [] : tou.filter(g => g !== bongi && ok(g));
+    chg.forEach(g => out.push(nm(g) + "(변화 후보)"));
+    // 월지가 낀 삼합이 다 모이면 국의 오행도 변화 후보 — 「支全卯未，则化为印」(saju_calc.gyeok_candidates와 같은 규칙)
+    const guk = SAMHAP.find(k => k.includes(mz)), oh = { 申子辰: "水", 亥卯未: "木", 寅午戌: "火", 巳酉丑: "金" }[guk];
+    if (!others.includes(bongi) && full(guk) && oh !== og(day) && oh !== og(bongi) && !chg.some(g => og(g) === oh))
+      out.push(gukName(oh) + "(회국 변화 후보)");
+  }
+  return out;
 }
 
 function daewoon(profile, yearGan, monthGz, birthMin, slot) {
   const yangYear = !YIN(GAN.indexOf(yearGan));
   const forward = (yangYear && profile.gender === "M") || (!yangYear && profile.gender === "F");
   const days = forward ? (slot.end - birthMin) / 1440 : (birthMin - slot.start) / 1440;
-  let startAge = Math.floor(days / 3 + 0.5); if (startAge === 0) startAge = 1;
+  const ageExact = days / 3;                     // 3일 = 1년
+  let startAge = Math.floor(ageExact + 0.5); if (startAge === 0) startAge = 1;
   const m60 = gzIndex(monthGz);
   const list = [];
-  const birthYear = kd(birthMin).getUTCFullYear();
-  for (let n = 1; n <= 9; n++) {
-    list.push({ gz: gz(forward ? m60 + n : m60 - n), age: startAge + 10 * (n - 1), year: birthYear + startAge + 10 * (n - 1) });
+  for (let n = 1; n <= 10; n++) {                // saju_calc.daewoon()과 같은 10개
+    // 교체 순간 = 출생 순간 + (정밀 대운수 + 10(n−1))년 — saju_calc.daewoon()과 같은 식
+    const startMin = birthMin + (ageExact + 10 * (n - 1)) * 365.2425 * 1440;
+    const w = kd(instToWall(startMin));
+    list.push({ gz: gz(forward ? m60 + n : m60 - n), age: startAge + 10 * (n - 1), startMin,
+                year: w.getUTCFullYear(), ym: `${w.getUTCFullYear()}-${String(w.getUTCMonth() + 1).padStart(2, "0")}` });
   }
   return { forward, startAge, list, rule: `연간 ${yearGan}(${yangYear ? "양" : "음"}간) · ${profile.gender === "M" ? "남명" : "여명"} → ${forward ? "순행" : "역행"}` };
+}
+
+/** 현재 대운 = 시작 ≤ 지금 < 다음 시작. 마지막 대운(10번째)도 끝났으면 −1 */
+function currentDaewoonIdx(list, nowMin) {
+  const TEN_Y = 10 * 365.2425 * 1440;
+  return list.findIndex((d, i) => nowMin >= d.startMin &&
+    nowMin < (i + 1 < list.length ? list[i + 1].startMin : d.startMin + TEN_Y));
 }
 
 /* ══ 기간 판독 ══════════════════════════════════ */
@@ -787,22 +965,24 @@ function readPeriod(natal, ganzhi, startMin, endMin, meta) {
   const unYang = unseong(natal.dayGan, z, "yang");
   const rels = relationsTo(natal, z);
 
-  // 십신 인종
-  const incho = GAN.split("").map(x => ({ s: sipsin(natal.dayGan, x), gan: x, un: unseong(x, z, "eum") }));
-  const alive = incho.filter(x => UN_POWER[x.un] >= 2);
-  const down  = incho.filter(x => UN_POWER[x.un] <= -1);
-  const groups = a => [...new Set(a.map(x => SIPSIN_GROUP[x.s]))];
+  // 십성 인종 — 사고지 개폐는 원국 지지에 그 기간의 상위 층위(세운·대운) 지지까지 대조한다 (32번 §4-1)
+  const mid = startMin + Math.floor((endMin - startMin) / 2);
+  const ctx = [];
+  if (!meta || meta.kind !== "year") ctx.push(yearPillar(jieSlot(mid).jieYear)[1]);
+  const di = natal.dw ? currentDaewoonIdx(natal.dw.list, mid) : -1;
+  if (di >= 0) ctx.push(natal.dw.list[di].gz[1]);
+  const injong = injongRead(natal, z, ctx);
 
-  return { ganzhi, g, z, gO, zO, gzRel, s12y, s12d, unY, unYang, rels,
-           incho, alive, down, aliveG: groups(alive), downG: groups(down),
+  return { ganzhi, g, z, gO, zO, gzRel, s12y, s12d, unY, unYang, rels, injong,
            startMin, endMin, meta,
            gongmang: natal.gongmangZhi.includes(z) };
 }
 
 /* ══ 렌더 ═══════════════════════════════════════ */
-const fmtD  = m => { const d = kd(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
-const fmtDT = m => { const d = kd(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
-const fmtMD = m => { const d = kd(m); return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}`; };
+const kdr = m => kd(Math.floor(m + 0.5));                 // 절입 시각을 분으로 반올림해 표시
+const fmtD  = m => { const d = kdr(m); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`; };
+const fmtDT = m => { const d = kdr(m); return `${fmtD(m)} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
+const fmtMD = m => { const d = kdr(m); return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}`; };
 const gzKo  = s => GAN_KO[GAN.indexOf(s[0])] + ZHI_KO[ZHI.indexOf(s[1])];
 const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
 
@@ -851,12 +1031,50 @@ function computePeriods(natal) {
   return out;
 }
 
+// 32번 §6 출력 규범 — 오행 5조로 묶고, 4분면 '무효' 십성은 말하지 않고, 길흉은 선언하지 않는다
+function injongProse(rd) {
+  const ij = rd.injong, R = ij.row;
+  const told = s => R[s].quad !== "무효";
+  const say = s => `${s}(${R[s].un} · 원국 ${R[s].hold} — ${R[s].quad})`;
+  const by = slot => ij.groups.filter(x => x.slot === slot);
+  const ps = [];
+  const fake = Object.keys(R).filter(s => R[s].quad === "허상");
+  const span = { month: "이 달", year: "이 해", week: "이 주" }[rd.meta && rd.meta.kind] || "이 기간";
+  const josa = w => (w.charCodeAt(w.length - 1) - 0xAC00) % 28 ? "은" : "는";
+  if (ij.kind !== "사고지") {
+    for (const x of by("최고조"))
+      ps.push(`<b>주무대</b> — ${x.grp}(${GROUP_DESC[x.grp]}): ${x.mem.map(say).join(", ")}. 건록·제왕 자리라 이 영역이 이번 기간 스스로 굴러갑니다.`);
+    for (const x of by("최저")) {
+      const m = x.mem.filter(told);
+      if (m.length) ps.push(`<b>기대 밖</b> — ${x.grp}: ${m.map(say).join(", ")}. 태·절 자리라 가지고 있어도 이 기간엔 굴러가지 않습니다.`);
+    }
+    for (const x of by("갈림")) {
+      const on = x.mem.find(s => R[s].un === "장생"), off = x.mem.find(s => R[s].un === "사");
+      const part = [told(on) && `${say(on)}${josa(on)} 개화`, told(off) && `${say(off)}${josa(off)} 머리가 몸보다 앞섭니다`].filter(Boolean);
+      if (part.length) ps.push(`<b>갈림</b> — ${x.grp}: ${part.join(", ")}.`);
+    }
+  } else {
+    const shut = { 충개고: "충으로 창고 문이 열립니다(개방과 손상이 함께 옵니다)", 합국: "삼합 짝이 있어 작용이 커집니다 — 여는지 묶는지는 학파 이견", 폐고: "여닫는 글자가 없어 닫혀 있습니다" }[ij.gaego];
+    ps.push(`<b>창고</b> — ${rd.z}는 사고지라 강약이 아니라 여닫음으로 읽습니다. ${shut}. ` +
+            (ij.ijung.length ? `이중 입묘는 ${ij.ijung.join("·")} — ${span} 개폐의 주체입니다.` : `이중 입묘는 없습니다 — 창고보다 전환·관리 국면입니다.`) +
+            (!ij.timeKnown && ij.gaego !== "충개고" ? ` 시지에 따라 개폐가 바뀔 수 있습니다(시각 모름).` : ""));
+    for (const x of by("관리")) {
+      const m = x.mem.filter(told);
+      if (m.length) ps.push(`<b>관리</b> — ${x.grp}: ${m.map(say).join(", ")}. 진입 준비이거나 유지하는 쪽입니다.`);
+    }
+  }
+  if (fake.length) ps.push(`⚠️ ${fake.join("·")}${josa(fake[fake.length - 1])} 원국에 없는 십성이라 운에서 켜져도 허상일 수 있습니다 — 기회로 단정하지 않습니다.` +
+                           (ij.timeKnown ? "" : " (시주 미상 — 시주에 있으면 달라집니다)"));
+  ps.push(`<span style="color:var(--ink-dim)">십성 인종은 음포태 기준 서술용입니다. 통근·강약이 아니고, 길흉은 격국이 정합니다.</span>`);
+  return ps.map(t => `<p>${t}</p>`).join("");
+}
+
 function render() {
   const n = NATAL, p = PERIODS[CURRENT];
   const rd = readPeriod(n, p.ganzhi, p.start, p.end, p);
 
   /* 마스트헤드 */
-  const now = kmin(nowKd()), tgz = dayPillar(now), tslot = jieSlot(now);
+  const now = kmin(nowKd()), tgz = dayPillar(Math.floor(now / 1440) * 1440 + 720), tslot = jieSlot(now);   // 오늘 = 달력 날짜(정오 기준, 주간 표와 같은 기준)
   const td = kd(now);
   document.getElementById("todayDate").textContent =
     `${td.getUTCFullYear()}년 ${td.getUTCMonth() + 1}월 ${td.getUTCDate()}일 ${"일월화수목금토"[td.getUTCDay()]}요일`;
@@ -937,9 +1155,13 @@ function render() {
   if (p.kind === "week") row("배경", `월운 <b>${p.monthGz}</b><span class="sub">주(週)는 명리 고유 단위가 아니라, 일진 7개를 묶어 본 배치입니다.</span>`);
   row("12신살", `<span class="tag hit">${rd.s12y}</span><span class="sub">년지 ${n.yearZhi} · ${n.guk}(${GUK_NAME[n.guk]}) 기준 — ${SINSAL_DESC[rd.s12y].tag}</span>` +
       (rd.s12d !== rd.s12y ? `<span class="sub">일지 ${n.dayZhi} 기준으로는 <b>${rd.s12d}</b> — 두 기준이 갈립니다</span>` : ""));
-  row("십이운성", `<span class="tag ${UN_POWER[rd.unY] >= 2 ? "wang" : UN_POWER[rd.unY] <= -1 ? "swe" : ""}">${rd.unY}</span><span class="sub">일간 ${n.dayGan} 기준 · 음포태. 양포태로는 ${rd.unYang}</span>`);
-  row("십신", (rd.alive.length ? `살아있는 쪽 ${rd.alive.map(x => `<span class="tag wang">${x.s}·${x.un}</span>`).join("")}` : "두드러지게 살아있는 십신 없음") +
-      (rd.down.length ? `<span class="sub" style="margin-top:5px">눌린 쪽 ${rd.down.map(x => `<span class="tag swe">${x.s}·${x.un}</span>`).join("")}</span>` : ""));
+  const stTag = st => st === "활" ? "wang" : st === "장" ? "swe" : "";
+  row("십이운성", `<span class="tag ${stTag(UN_STATE[rd.unY])}">${rd.unY}·${UN_STATE[rd.unY]}</span><span class="sub">일간 ${n.dayGan} 기준 · 음포태. 양포태로는 ${rd.unYang}</span>`);
+  const ij = rd.injong, IR = ij.row;
+  const shown = ij.groups.filter(x => ["최고조", "최저", "갈림"].includes(x.slot) || (ij.kind === "사고지" && x.slot !== "혼합"));
+  row("십성 인종", shown.map(x => `<span class="sub">${x.slot} — ${x.grp} ${x.mem.map(s => `<span class="tag ${stTag(IR[s].st)}">${s}·${IR[s].un}</span>`).join("")}</span>`).join("") +
+      (ij.kind === "사고지" ? `<span class="sub">사고지 개폐: <b>${ij.gaego}</b> (원국${ij.ctx.length ? "·" + ij.ctx.join("·") : ""} 대조) · 이중 입묘: ${ij.ijung.join("·") || "없음"}</span>` : "") +
+      `<span class="sub">음포태 기준 · 서술 전용 — 통근·강약이 아니다 (32번)</span>`);
   row("관계", rd.rels.length
     ? `<ul class="rels" style="margin:0">${rd.rels.map(r => `<li><span class="who">${r.pos}지 ${r.zhi}</span><span class="what"><b>${r.rel.join(" · ")}</b> <span>${GUNG[r.pos].short}</span></span></li>`).join("")}</ul>`
     : "원국 지지와 직접 걸리는 관계 없음 — 조용한 구간");
@@ -962,8 +1184,7 @@ function render() {
 
   html += `<h3>나에게 — 일간 ${n.dayGan}</h3>`;
   html += `<p>${n.dayGan} 일간에게 ${rd.z}는 <b>${rd.unY}</b>의 자리입니다. ${UN_DESC[rd.unY]}</p>`;
-  if (rd.aliveG.length) html += `<p><b>쓸 수 있는 카드</b> — ${rd.aliveG.map(g => `${g}(${GROUP_DESC[g]})`).join(", ")}. ${rd.alive.slice(0, 3).map(x => `${x.s}가 ${x.un}`).join(", ")}에 들어 이쪽으로 손을 대면 붙습니다.</p>`;
-  if (rd.downG.length) html += `<p><b>기대를 낮출 영역</b> — ${rd.downG.map(g => `${g}`).join(", ")}. ${rd.down.slice(0, 3).map(x => `${x.s}가 ${x.un}`).join(", ")}이라 힘을 실어도 되돌아오는 게 적습니다.</p>`;
+  html += injongProse(rd);
 
   html += `<h3>나에게 — 12신살 ${rd.s12y}</h3>`;
   html += `<p>년지 ${n.yearZhi}(${ANIMAL[ZHI.indexOf(n.yearZhi)]}띠)는 ${n.guk} ${GUK_NAME[n.guk]}에 속합니다. 그 기준으로 ${rd.z}는 <b>${rd.s12y}</b> 자리입니다.</p>`;
@@ -1015,8 +1236,9 @@ function render() {
     bars.append(b);
   });
   const sk = document.getElementById("structKv");
-  sk.innerHTML = `<dt>격 후보</dt><dd>${n.gyeok}<br><span style="font-size:11px">월지 투출 기준 1차 후보입니다. 용신·격의 성패 판정은 별도 감명이 필요합니다.</span></dd>` +
-                 `<dt>일간 뿌리</dt><dd>${n.roots.length ? "<b>" + n.roots.join(" · ") + "</b>" : "<b>무근(無根)</b>"}</dd>`;
+  sk.innerHTML = `<dt>격 후보</dt><dd>${n.gyeok}<br><span style="font-size:11px">월령 본기 우선(건록·양인·잡기 별도)으로 뽑은 1차 후보입니다. 용신·격의 성패 판정은 별도 감명이 필요합니다.</span></dd>` +
+                 `<dt>일간 뿌리</dt><dd>${n.roots.length ? "<b>" + n.roots.join(" · ") + "</b>" : n.pillars[3] ? "<b>무근(無根)</b>" : "<b>연·월·일지에 뿌리 없음</b> (시지 미상)"}</dd>` +
+                 (n.warn.length ? `<dt>확인</dt><dd>${n.warn.join("<br>")}</dd>` : "");
 
   const ns = document.getElementById("natalSinsal");
   ns.innerHTML = n.sinsal.map(s => `<div style="padding:5px 0;border-bottom:1px dotted var(--rule-soft);font-size:12.5px"><b style="font-weight:500">${s.n}</b> <span class="tag">${s.g}</span><br><span style="color:var(--ink-dim);font-size:12px">${s.v}</span></div>`).join("") +
@@ -1025,12 +1247,10 @@ function render() {
 
   const dwBox = document.getElementById("daewoon");
   dwBox.innerHTML = "";
-  const curJieYear = jieSlot(kmin(nowKd())).jieYear;
-  let curIdx = -1;
-  n.dw.list.forEach((d, i) => { if (curJieYear >= d.year) curIdx = i; });
+  const curIdx = currentDaewoonIdx(n.dw.list, kmin(nowKd()));
   n.dw.list.forEach((d, i) => {
     const c = el("div", "dw" + (i === curIdx ? " on" : ""));
-    c.innerHTML = `<span class="a">${d.age}세</span><span class="g m${OZ[ZHI.indexOf(d.gz[1])]}">${d.gz}</span><span class="a">${d.year}</span>`;
+    c.innerHTML = `<span class="a">${d.age}세</span><span class="g m${OZ[ZHI.indexOf(d.gz[1])]}">${d.gz}</span><span class="a" title="${d.ym} 교체">${d.year}</span>`;
     dwBox.append(c);
   });
   const cur = curIdx >= 0 ? n.dw.list[curIdx] : null;
@@ -1040,7 +1260,7 @@ function render() {
 
   /* 콜로폰 */
   document.getElementById("colophon").innerHTML =
-    `<b>계산 기준</b> · 절기는 태양 겉보기 황경 315°+30°k 통과 시각(KST, 분 단위 실계산). 연주는 입춘, 월주는 절입 기준. 일주는 1900-01-01=甲戌 기준이며 23시 초과 출생은 익일로 넘깁니다. 진태양시 −32분(서울 경도) 적용.<br>` +
+    `<b>계산 기준</b> · 절기는 태양 겉보기 황경 315°+30°k 통과 시각(KST, 실계산·분 단위 반올림 표시). 연주는 입춘, 월주는 절입 기준이며 출생 순간과 절입 순간을 그대로 비교합니다. 일주는 1900-01-01=甲戌 기준이며 보정 후 23:01 이후 출생은 익일로 넘깁니다. 시주는 서울 경도 보정(지방평균시) 후 시각으로 뽑습니다.<br>` +
     `<b>이론 근거</b> · 십이신살은 년지 삼합국 기준(일지 기준 병기), 십이운성은 음포태(양포태 병기), 지지 관계는 합·충·형·파·해에 원진·귀문·격각을 더해 봅니다. 신살에는 신뢰도 등급(A~D)을 붙였고 C·D는 단독 판정에 쓰지 않습니다.<br>` +
     `<b>읽는 법</b> · 이 페이지는 <b>신살·십이운성·지지 관계</b> 층위를 그린 것입니다. 격국과 용신의 성패 판정은 담고 있지 않으므로, 여기 나온 길흉의 결은 참고이지 결론이 아닙니다. 운은 원국이라는 그릇 안의 변동이고, 층위 비중은 원국 55 · 대운 25 · 세운 12 · 월운 5 · 일운 3입니다.<br>` +
     `<b>마지막 갱신</b> · <span class="mono">${fmtDT(kmin(nowKd()))}</span>`;
@@ -1049,7 +1269,7 @@ function render() {
 /* ══════════════════════════════════════════════════════════════
    DAILY — 매일 아침 다시 쓰이는 구간. 이 블록만 갱신됩니다.
    for      : 이 글이 가리키는 날짜 (KST, YYYY-MM-DD)
-   profile  : 이 글을 쓴 기준 명식 "생년월일|시각|성별"
+   profile  : 이 글을 쓴 기준 명식 "생년월일|시각|성별" (시각을 모르면 "모름")
    ══════════════════════════════════════════════════════════════ */
 const DAILY = {
   for: "2026-09-06",
@@ -1063,12 +1283,12 @@ function renderDaily(natal) {
   const box = document.getElementById("daily");
   const now = kmin(nowKd());
   const todayKey = fmtD(now).replace(/\./g, "-");
-  const gzT = dayPillar(now);
+  const gzT = dayPillar(Math.floor(now / 1440) * 1440 + 720);      // 달력 날짜 기준
   const zT = gzT[1];
   const s12 = sinsal12(natal.yearZhi, zT);
   const un = unseong(natal.dayGan, zT, "eum");
   const rels = relationsTo(natal, zT);
-  const sameProfile = `${natal.profile.date}|${natal.profile.time}|${natal.profile.gender}` === DAILY.profile;
+  const sameProfile = `${natal.profile.date}|${natal.profile.timeKnown ? natal.profile.time : "모름"}|${natal.profile.gender}` === DAILY.profile;
   const fresh = DAILY.for === todayKey && sameProfile;
 
   const meta = `<div class="meta">` +
