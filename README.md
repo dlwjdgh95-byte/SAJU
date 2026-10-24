@@ -17,7 +17,7 @@
 ```
 /                       ← 방법 A: 이 루트 전체가 스킬
 ├── SKILL.md            (원본, 전체 로직)
-├── references/         (상세 자료 36개 + johu_wonmun.json)
+├── references/         (상세 자료 37개 + johu_wonmun.json)
 └── scripts/saju_calc.py
 ```
 

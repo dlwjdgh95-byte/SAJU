@@ -761,3 +761,22 @@ def test_inyeon_counts_by_doc():                            # 33번 §4-1·§5-4
     assert scan("甲子 丙寅 甲子 丙寅", 2033, "--inyeon-activity")["활동"]["활동"] == "중"   # 일간 관대(활)만
     assert scan("庚子 戊寅 庚子 丙子", 2030, "--inyeon-activity")["활동"]["활동"] == "약"   # 홍염만
     assert S.baeuja_gung([("甲","午"), ("甲","子"), ("甲","丑"), ("甲","子")])["간섭 강도"].startswith("부정 관계 2건")   # 丑午 해·원진·귀문 = 2
+
+
+def test_johu_lookup_points_to_month_section():
+    """조후 출력은 json 취용 순서와, 01~10번에서 그 달 절·요약 매트릭스만 읽을 줄 범위를 낸다 — 120개월 전부."""
+    with open(os.path.join(ROOT, "references", "johu_wonmun.json"), encoding="utf-8") as f:
+        table = json.load(f)["table"]
+    for g in S.GAN:
+        path = os.path.join(ROOT, "references", S.GUNGBOK_FILE[g])
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().split("\n")
+        for z in S.MONTH_ZHI:
+            j = S.johu_lookup(g, z)
+            assert j["취용 순서"].split(" → ")[0].startswith(table[g][z]["order"][0])
+            mon, mat = j["읽을 곳"]
+            a, b = map(int, re.search(r"(\d+)~(\d+)줄", mon).groups())
+            assert f"({z}月生)" in lines[a - 1] and lines[a - 1].startswith("###")
+            assert not any(ln.startswith("#") and "月生" in ln for ln in lines[a:b])   # 다음 달로 넘치지 않는다
+            a, _ = map(int, re.search(r"(\d+)~(\d+)줄", mat).groups())
+            assert "조후 요약 매트릭스" in lines[a - 1]
