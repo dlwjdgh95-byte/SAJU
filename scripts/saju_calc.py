@@ -32,7 +32,7 @@ saju_calc.py — 사주팔자 결정론적 계산 스크립트 (saju-expert skil
   - 시각 보정: 기본은 경도 보정만 하는 지방평균시(LMT, 서울 −32분). --eot를 주면 균시차까지 더한 진태양시(LAT).
 """
 
-import argparse, json, re, sys, math
+import argparse, json, os, re, sys, math
 from datetime import datetime, timedelta, timezone, date
 from functools import lru_cache
 
@@ -620,6 +620,49 @@ def gyeok_candidates(pillars):
     out["⚠️"] = "격 '후보'까지다. 성패·구응·변격·종격은 SKILL.md Step 4~6과 19·21번으로 판정한다"
     return out
 
+GUNGBOK_FILE = dict(zip("甲乙丙丁戊己庚辛壬癸",
+    ["01_gungbok_gapmok.md", "02_gungbok_eulmok.md", "03_gungbok_byunghwa.md", "04_gungbok_junghwa.md",
+     "05_gungbok_muto.md", "06_gungbok_gito.md", "07_gungbok_gyunggeum.md", "08_gungbok_singeum.md",
+     "09_gungbok_imsu.md", "10_gungbok_gyesu.md"]))
+REF_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
+
+def _section_lines(path, start_pat):
+    """문서에서 start_pat이 든 제목 줄부터 다음 같은·상위 제목 직전까지의 줄 범위(1부터). 없으면 None."""
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    for i, ln in enumerate(lines):
+        if ln.startswith("#") and start_pat in ln:
+            level = len(ln) - len(ln.lstrip("#"))
+            j = next((k for k in range(i + 1, len(lines))
+                      if lines[k].startswith("#") and len(lines[k]) - len(lines[k].lstrip("#")) <= level), len(lines))
+            while j > i + 1 and not lines[j - 1].strip():
+                j -= 1
+            return i + 1, j
+    return None
+
+def johu_lookup(day, mz):
+    """일간·월지의 궁통보감 취용 순서·원문(johu_wonmun.json)과 01~10번 문서에서 읽을 줄 범위.
+    조후 문서는 파일마다 12달이 다 들어 있어 길다 — 그 달 절과 요약 매트릭스만 읽게 한다."""
+    name = GUNGBOK_FILE[day]
+    out = {"일간·월령": f"{day}일간 {mz}월"}
+    try:
+        with open(os.path.join(REF_DIR, "johu_wonmun.json"), encoding="utf-8") as f:
+            e = json.load(f)["table"][day][mz]
+        out["취용 순서"] = " → ".join(f"{g}({sipsin(day, g)})" for g in e["order"])
+        out["원문"] = e["quote"]
+    except OSError:
+        out["취용 순서"] = f"references/johu_wonmun.json 없음 — {name}의 그 달 절에서 읽는다"
+    doc = os.path.join(REF_DIR, name)
+    try:
+        mon = _section_lines(doc, f"({mz}月生)")
+        mat = _section_lines(doc, "조후 요약 매트릭스")
+        out["읽을 곳"] = [f"{name} {mon[0]}~{mon[1]}줄 ({mz}月生 절)" if mon else f"{name}의 {mz}月生 절",
+                       f"{name} {mat[0]}~{mat[1]}줄 (조후 요약 매트릭스)" if mat else f"{name}의 조후 요약 매트릭스"]
+    except OSError:
+        out["읽을 곳"] = [f"{name}의 {mz}月生 절", f"{name}의 조후 요약 매트릭스"]
+    out["⚠️"] = "조후 파일은 이 두 범위만 읽는다. 격국 결과와의 겸용·불일치 판단은 SKILL.md Step 5"
+    return out
+
 def analyze_pillars(pillars):
     """4기둥(시각 모름이면 연·월·일 3기둥) → 십신·장간·오행·통근·관계·격 후보 분석 dict."""
     gans, zhis = [p[0] for p in pillars], [p[1] for p in pillars]
@@ -651,6 +694,7 @@ def analyze_pillars(pillars):
     res["wolji_tuchul"] = ("·".join(f"{g}({sipsin(day,g)})" for g in transparent)
                           if transparent else "미투출 (격은 '격 후보' 참조)")
     res["격 후보"] = gyeok_candidates(pillars)
+    res["조후"] = johu_lookup(day, mz)
     res["천간 관계"] = stem_relations(list(zip(gl, gans))) or {"—": ["없음"]}
     res["지지 3자 조합"] = combo_relations(list(zip(zl, zhis)))
     res["신살"] = analyze_shinsal(pillars)
