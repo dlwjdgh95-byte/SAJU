@@ -1,15 +1,20 @@
 id,title,published,duration,kind,caption,chars,sha256,status
+7bSXLNBKVPQ,[선운의 명리터] 재생관과 재다신약,2013-10-21,1540,video,auto,8556,a8c5c3132b7fde6cc74735b09af292216074b15746c4e058f9e91336aca51e47,fetched
 45jloW_Nnmk,갑오년 운세보기 1,2013-11-17,7059,video,auto,30793,e59e56d150df121af3e4617351f060f681698abf98d1e97efcab77be7da65931,fetched
 6V9J4Jd0ovQ,명리잡변,2014-08-29,5981,video,auto,25457,00fc758e3e9e822b24056f199deaabdfee71f2eabda3dd5abe06bb996f21c266,fetched
 72EpLPStztA,미생 캐릭터 분석 1,2014-12-29,9764,video,auto,42735,3d525a8e57f996206b866550d4393da4d9cd7f7ee49dfc91878abb9d4e4f1136,fetched
 370i2onNSD0,병신년 운세 10 일간별(己庚辛壬癸),2015-10-29,2701,video,auto,11071,cc3f9c740c6be61bb9ab6511c1b632127210af37b037f2f0818fd6af96e448cb,fetched
 1QEaKXfUUiw,[선운의 명리터] 사주로 연봉 보는 법 3,2016-05-15,3300,video,auto,15328,182d02fafbfad73d65834600c60f1eae5163493eb58477556ff8d3b69651668f,fetched
 5cIuosyD3oI,[선운의 명리터] 사주로 연봉 보는 법 4,2016-05-15,3321,video,auto,18196,be20c6c5ca39fe4f0a5de3abda31797c738e20bb174911c3f9b445af9d097b03,fetched
+80aOfqhUVvI,[선운의 명리터] 사주로 연봉 보는 법 5,2016-05-15,3300,video,auto,15963,97cae35b3769b54b108f672b549a1be62b05b792dc5092d6d92e045daec60014,fetched
+7IY4_P3AmMg,戊戌년 운세 1,2017-10-28,5519,video,auto,31662,62a5850e357fbaf734187e35bd17ac93a949b2ebc4ac2512c91fcffc84b115da,fetched
 4wpJr_jTcGA,[선운의 명리터] 성공하는 팔자는? 2,2018-06-02,3770,video,auto,18869,c30f06de9a16d53860d479b9dd0d54aeb14602edf74435dda82c25ef1cd2827c,fetched
 4UM9EOc-YJQ,재운이란 쌓아가는 운이다,2018-06-27,1968,video,auto,9609,5e2cdc9e39d595b2b7707a3cf940ad8a6772ad0e103b652a1f0b0dd8855862a2,fetched
 -jA2qnBiD0w,[선운의 명리터] 부부가 살아가는 법 3 (총 4강),2018-07-02,3440,video,auto,16531,5cb02a5c71771c0ce863b71567884e973d8f5190c1730051883ec3ab2a3aba42,fetched
 0Cd9Xb1eKxE,[선운의 명리터] 명리 질문 답변,2018-08-18,7386,live,auto,25671,1b9f82834223c7d928489400ad94c6d92d8672d474f0213bc9e3704af79d972d,fetched
 3o9ADpEhbRI,"[선운의 명리터] 격, 육신, 조후, 신강약의 개념 2",2018-09-09,2390,video,auto,11981,e5ca436c3ca0f67f3d5806db92e9f2e9b1f9d9903ea971c88f209e3053323d41,fetched
+84CoJHQVcFY,[선운의 명리터] 왜 사니?,2018-09-15,7224,live,auto,27923,86c521a866ec7ca2ec8c3c834a685bd10c65c70e6435cebc1dec121bfb5a8c6f,fetched
+6icH3-uksjE,"기해년 운세 3 - 을목, 병화, 정화 일간",2018-11-01,7372,video,auto,36565,feb53be8423ab901ea2001ce5db8f74e1d287c33b71472fc22c5f4f1b2e4ff26,fetched
 0w-rSIrfZ50,[선운의 명리터] 없는 것은 있는 것이고 있는 것은 없는것이다? 귀신 씨나락 까먹는 소리?,2018-12-23,1250,video,auto,6515,667fcfc6885963c2ecc2b83fbe217f165e9350a121b338699760b4b8c66f14e5,fetched
 4GHK10UAOdw,[선운의 명리터] 철학관 오픈을 어떻게 해야할까?,2019-02-03,4093,video,auto,22147,3ad533264a5620906db8c9ed9a16b8e4a296105e73a9715d22a5fb4de615c812,fetched
 3JQin8oDQ4E,[선운닷컴] 2차 이벤트 100명에게 3만원씩 적립해 드립니다(마감),2019-03-01,164,video,auto,909,0d7c7927901f11ea1e37be39139778900e6ce51223eb9cce059cf47be09eb98d,fetched
@@ -27,10 +32,12 @@ id,title,published,duration,kind,caption,chars,sha256,status
 4ND6ifNN7Sw,선운의 명리기초강좌 33 - 사주풀이,2020-09-11,2086,video,auto,8605,0cd9db7dc356bed53a6cf5ee82f54966e48bbabd56a6b6eef72aeca455f4c139,fetched
 1sc8cuggrmc,선운의 명리기초강좌 37 - 식신제살,2020-09-19,2255,video,auto,9194,e33d0367179adf4e03b2c90e9f31a4bbe4ff2c9bc53f1acc38bab49450fd929e,fetched
 1fZXXUWolyI,선운의 명리기초강좌 38 - 도식,2020-09-21,1700,video,auto,7799,2f017d0a8ab12808b2828c7fd90381cff4fc1d80c8e7ea318a1f59349c6f8ff5,fetched
+7w2sEwHL9qc,경자년 정해월(11월) 운세,2020-11-01,2041,video,auto,11566,1fce4f7d3ae143d5793f87a4923d65a0133b2cbd5255640fa1ade16612312dc2,fetched
 2o_WKe4JTO8,"신축년 운세 4 - 경, 신, 임, 계 일간",2020-12-02,7040,video,auto,36049,2b14047fa7b305bb3ff3710371a6bd63d2d2f148a742a690efc867621d547095,fetched
 4M9Nizhf6M4,좋은 사주란?,2020-12-13,2040,video,auto,10024,879a1d2f77efb542d904022d4a7eeffef73cf24910e901bf55fd354235e0957f,fetched
 -sDgLDcxKC0,신축년 경인월(2월) 일간별 운세,2021-01-30,4870,video,auto,24077,448e77ee27472340a0b14c841970c1bb119331e9183e99fdae29eae58e4d60d6,fetched
 1hrhYJroUBo,경신금과 임계수의 해석방법,2021-02-21,7040,live,auto,29485,076171acec918f7b80df0195a23b75583b0eb3a652e0ca9c02bfc2b8fba2f5ba,fetched
+7gU-1EDuZl0,"사랑에 대하여, 충 겁먹지마라, 종업원 다루기",2021-04-04,7370,live,auto,29890,d6fd0144fb861cd8b541bab0a0dbcf969eb99e2ff05831829e18226a90f076cf,fetched
 3pNgTsbJwRw,오행별 해석과 오너와 직원의 관계,2021-04-18,7674,live,auto,31141,3eb9e9ee00614bbe38843f34093e6b2f484e3f98b60e21988a65841fe682c175,fetched
 1Zj2Vojy4OI,남자의 역할 여자의 역할,2021-05-02,6773,live,auto,24749,10330c14842bb738bd44919e82b30a305e10698655bb6554afbdae59f022ca07,fetched
 1RbHtoeOklE,갑오월(6월) 일간별 운세,2021-05-30,3400,video,auto,21363,8d510232af513493f1bcdb29df4726cc13065d3d1b8cded3d7665c6c9f8f65b3,fetched
@@ -44,10 +51,12 @@ id,title,published,duration,kind,caption,chars,sha256,status
 5dWmlGXTefw,"도화, 역마, 화개란 무엇인가?",2023-04-03,5384,live,auto,21666,480774c513082cb770ff764d34c4124c790bc091f82edb3d273567a7f39cd98f,fetched
 -se0EY6HvH0,부족한 오행을 보완하는 방법은?,2023-05-15,6226,live,auto,26641,3b598a06dad1e3d379ddc8934c5231cf5dd879a9527e7dc1cd0d2f8e02171761,fetched
 2FWljXMeygk,목(木) 없는 사람과 살기가 너무 힘들다~,2023-05-27,2030,video,auto,10320,525477c185fa63f37cc8c745340ca6cbc1620945e31f2e1542b035835031892c,fetched
+7wrSZs325wg,내게 주어진 삶을 잘 살고있을까?,2023-06-19,5575,live,auto,21650,ae0dc2a024add83ad279e351ad3fc950d6228a532d098455e2e1e89ceab1f32d,fetched
 5XC78YQt-m4,계묘년 기미월(7월) 일간별 운세,2023-06-30,3349,video,auto,16575,ddcac91b2a622993be2340e0ab312fceca00616c40ab6dde423b1d15455bc649,fetched
 6i88yyudgn8,인신사해(寅申巳亥)가 살아가는 법,2023-07-17,6767,live,auto,38304,8b41878eb3093f09e220ec1eb89fa774757f2f7daca6cbb9d85ebb1b7fa3bbf8,fetched
 2KhojBsKRfg,편중된 사주가 살아가는 법 2 - 오행,2023-09-04,5554,live,auto,20763,94fedfd259b88bae568bf453078544061104ab234815ec59651b95a54b5634b7,fetched
 3gUU2GqgZJk,신강 신약에 따라 달라지는 사주,2023-10-09,6998,video,auto,37796,84f91b6741727ec8d2658f35413be7d34a2a69fc765475fb4e916f8395d9bacc,fetched
+7MNhqJcoMyM,나는 어떤 전략을 가지고 살아가고 대처해야 할까? 1 - 천간,2023-10-16,5600,live,auto,26898,250c57938fbd47551dbd79086f485e5ae42e059bd7419e4c904cb75d6af6abe9,fetched
 3lwbq4LJGSo,계묘년 계해월(11월) 일간별 운세,2023-10-30,3687,video,auto,20791,c6a716f633b0dce49cd5fcc632a56552a3f0c2907969e77b06471194c4c0f944,fetched
 6nK1P3Nttx4,"갑진년 운세 1 - 갑진년이란, 갑을 일간",2023-11-06,8851,video,auto,40839,15102ad1283fbaffd4081ae975ea42828788bf4020eb960a9f71762db271bf30,fetched
 6BBLfvkDwso,계묘년 갑자월(12월) 일간별 운세,2023-12-03,2481,video,auto,13049,8cf2209599a142815158c67407f1dfe5a0677db07b511f7faae311c414f72145,fetched
@@ -72,21 +81,12 @@ id,title,published,duration,kind,caption,chars,sha256,status
 55zzjVuU85g,궁합을 봐야하나?,2026-02-23,3815,live,auto,15339,c224ba59f30bb5e0aa9c70d08a47646c12f42a219284196ef6c05f40d976d51a,fetched
 6Mjz9jJD7so,일간이란 무엇인가?,2026-03-16,3870,live,auto,19357,8de220eab3aa87a747fa8f3907f49d74b02c5da6c32b252fe9682f36f97ba367,fetched
 3uyuk70jwjM,나는 어디에 의지하며 살아야 하나?,2026-04-13,4231,live,auto,18317,ff06bdf79d35f3cd0fda657c022b31e14c575b9db5b00783648d16ac16314bd4,fetched
+7-JsiSRvm4s,신왕 하다고 좋은 것도 신약 하다고 나쁜 것도 아니다,2026-07-25,843,video,auto,5692,e5111539f3a7df54507f8d53c2050ceb298ab4ff19d7117e7848ad2f9f2f8a13,fetched
 42WYpmJ--_w,일간별 조직의 적응 방식,2026-09-12,902,video,auto,6266,3c132637eb1ce4bf54b2dcdbd33beba84436768ea5148dd28cedab7dfe010ead,fetched
 2VjFoKu9bJo,"정미년 정계충, 축미충 절대 두려워 마라",2026-09-27,622,video,auto,4110,4f449e5ad0587f67f7131dc5440582337e16d82a559326e38c930fb020d9258e,fetched
 1txd48QVxX0,술토는 무토로 승부를 보고 기토로 간을 본다,2026-10-26,136,short,auto,1062,f6adee12b6abb3ffbfa83b95601208c9b012e67a6b371d5282ceb7b682b79590,fetched
-6icH3-uksjE,"기해년 운세 3 - 을목, 병화, 정화 일간",,7372,video,,,,pending
-7-JsiSRvm4s,신왕 하다고 좋은 것도 신약 하다고 나쁜 것도 아니다,,843,video,,,,pending
 7FfQZwwKmXk,戊戌년 운세 3,,5023,video,,,,pending
-7IY4_P3AmMg,戊戌년 운세 1,,5520,video,,,,pending
-7MNhqJcoMyM,나는 어떤 전략을 가지고 살아가고 대처해야 할까? 1 - 천간,,5601,live,,,,pending
-7bSXLNBKVPQ,[선운의 명리터] 재생관과 재다신약,,1540,video,,,,pending
-7gU-1EDuZl0,"사랑에 대하여, 충 겁먹지마라, 종업원 다루기",,7370,live,,,,pending
-7w2sEwHL9qc,경자년 정해월(11월) 운세,,2042,video,,,,pending
-7wrSZs325wg,내게 주어진 삶을 잘 살고있을까?,,5576,live,,,,pending
 8-r6WvKa2AI,신축년 계사월(5월) 운세,,2890,video,,,,pending
-80aOfqhUVvI,[선운의 명리터] 사주로 연봉 보는 법 5,,3301,video,,,,pending
-84CoJHQVcFY,[선운의 명리터] 왜 사니?,,7224,live,,,,pending
 86LblmmwMX8,제 14 차 공개특강 - 인간관계를 어떻게 할것인가?,,10389,video,,,,pending
 8EmhZ1V7DT8,선운의 명리기초 강좌 30 - 재생관살 2,,2842,video,,,,pending
 8TBGdvh4pNY,사유축으로 본 경자년 운세,,1018,video,,,,pending
