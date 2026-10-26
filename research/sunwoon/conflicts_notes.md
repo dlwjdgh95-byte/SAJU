@@ -36,3 +36,4 @@
 - 11 관살혼잡은 애초 탁이 아님 — 합·극 제거는 청 아님 (K04BSZhNRso); 17 식상=주장·변화, 표현은 겁재·편재 (9GNSN8sE-ns); 09 겨울 지지 火 > 천간 丙丁, 丙=기만 (MsQYsNdIOaE); 22 子午충=더 나은 조건 제안·유혹 (CtOdmPEzoEQ)
 - 22 巳申합 수 불화, 쟁합=공유 (BWvU2dGNxi4); 26 子에 壬癸 둘 다 (C-ChQTvQE8k); 33 결손 오행 인연은 그 운이 와야 만남; 34 비왕은 재관 놓아야 (MYkr-tpI7rc); 15 겁재≠지출 (ErHwy6FdrVM)
 - 33 결손 오행 채우는 배우자 고르기 비현실 (NMT5yxBY3vU, Foc845EYdmU); 22 子丑합=水 (NMT5yxBY3vU); 14 효신도식=몰입 (C_LmmYSU_TM)
+- 30 12운성·신살 명리 무관 (ZSA8Z59Kg00); 16 투기=정재, 편재=묻지마 투자 (ZgJw3H1SREQ); 31 인성 간여지동=업무 피로·휴식 (ZXsE_BWcNQs)
