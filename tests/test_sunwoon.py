@@ -221,3 +221,14 @@ def test_todo_batches_oldest_first(tmp_path):
 
 def test_quality_required(tmp_path):
     assert any("quality" in e for e in _lint(tmp_path, GOOD.replace("quality: good\n", "")))
+
+
+def test_digest_filters_by_tag_and_grep(tmp_path):
+    d = tmp_path / "cards"
+    d.mkdir()
+    (d / "v1.md").write_text(GOOD, encoding="utf-8")
+    (d / "v2.md").write_text(GOOD.replace("id: v1", "id: v2").replace("[지장간, 십성]", "[천간]"), encoding="utf-8")
+    out = K.digest("십성", cards=d)
+    assert "### v1" in out and "v2" not in out and "(카드 1장)" in out
+    assert "(카드 0장)" in K.digest("십성", grep="없는말", cards=d)
+    assert "무토가 드러나면" in K.digest("십성", grep="무토", cards=d)

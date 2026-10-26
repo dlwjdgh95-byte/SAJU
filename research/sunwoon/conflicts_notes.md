@@ -56,3 +56,6 @@
 - 33 결혼해라/하지 마라 처방 단정 (htgmgbvFzJA); 31 시지=지향하는 삶의 형태 (bkhKuDBQg4A); 11 상관견관 절대 흉 아님 (kk0aHmiz3_o); 14 도식=휴식의 달 (n8OEAQAPyX0)
 - 08 신금+무토 매금=안정 자산·늦게 익음 (jcIGh2By-ls, boba6XxINiY); 25 조후·억부·격국 순위 매기기 무의미 (fvbuC_S9oiU); 11 상관견관·충=위치 변경·관계 정리 (jcIGh2By-ls, k1rnIk-FNOk)
 - 25/12 강한 편중=최대 강점 (egRm039EKqI, v9-P61IO2gY), 식신제살=직업 불안정 (egRm039EKqI); 03/04 오행은 사라지지 않음 — 정화도 약해질 뿐 (qdy0-yaUTlo); 07 午월 庚 화극금=기술 인정 (hey5VQ3jmQc); 13 재극인=직관·컨설팅 구조 (cs7VGZafPcc); 30 공망 명리 무관 (hRPnhCvj7Mo); 22 丁壬합 목월 없이도 의미 (nq9s72u9ipw); 32 운의 결손 십성 등장=실제 사건 (nlsden-ZsE4)
+- 22 정임합 합목 안 됨, 합은 지향점만 (vh3m6dC_GHE, kKASfWFS7TU); 28 대운·세운 합쳐 5~10%·원국 90% vs 55/25/12/5 (nsc0mRRBKK0); 21 사주 세기·약하기는 길흉 근거 아님 (yFUEDY2G22o)
+- 22 辰戌충=이사 아닌 각성 (eZdXhYSv2Xc), 술월 무계=조건 없이 좋은 배치 (cnFN-aBGk9E); 14 도식=휴식·놓아주기 (fhCgzhDPaLA); 13 인성 강한 양일간의 결점 강조 (fJAO9d876PA)
+- 25/21 편중·왕한 십성=전문화·의존, 결함 아님 (y5n_-pveKt0, h4P4nEvArl8, _XGBhOHJpUw); 22/08 합해도 병화·신금 사용 가능, 연운 병신합=금소 (Y0ROwMppHcs); 28 공망 근거 없음 — 23 경시파와 일치 (tazTAaLOJTc)
