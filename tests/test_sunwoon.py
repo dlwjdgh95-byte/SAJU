@@ -232,3 +232,6 @@ def test_digest_filters_by_tag_and_grep(tmp_path):
     assert "### v1" in out and "v2" not in out and "(카드 1장)" in out
     assert "(카드 0장)" in K.digest("십성", grep="없는말", cards=d)
     assert "무토가 드러나면" in K.digest("십성", grep="무토", cards=d)
+
+    both = K.digest("십성", cards=d, part=(1, 2)) + K.digest("십성", cards=d, part=(2, 2))
+    assert both.count("### v1") == 1

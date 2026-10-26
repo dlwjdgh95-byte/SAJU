@@ -5,7 +5,7 @@ cards.py — 선운의 명리터 영상 카드 검사·작업 목록 (LLM 호출
   python3 scripts/sunwoon/cards.py lint [-- ID ...]   # 카드 검사 (인자 없으면 전부). 문제가 있으면 종료 코드 1
                                                       # id가 -로 시작할 수 있으니 -- 뒤에 둔다
   python3 scripts/sunwoon/cards.py lint --dir .cache/sunwoon/drafts -- ID  # 작성 중 초안 검사 (git 밖)
-  python3 scripts/sunwoon/cards.py digest 십성 [--grep "비견|겁재"]   # 주제 집대성용 요약(날짜순)
+  python3 scripts/sunwoon/cards.py digest 십성 [--grep "비견|겁재"] [--part 1/2]  # 주제 집대성용 요약(날짜순)
   python3 scripts/sunwoon/cards.py todo [--batch 10]  # 자막은 있는데 카드가 없는 편, 오래된 순으로 묶음 출력(JSON)
 
 카드 형식 (research/sunwoon/cards/<id>.md):
@@ -174,7 +174,7 @@ def todo(index: dict[str, dict[str, str]], cards: Path = CARDS, batch: int = 10)
     return [ids[i:i + batch] for i in range(0, len(ids), batch)]
 
 
-def digest(tag: str, grep: str | None = None, cards: Path = CARDS) -> str:
+def digest(tag: str, grep: str | None = None, cards: Path = CARDS, part: tuple[int, int] = (1, 1)) -> str:
     """주제 집대성용 요약 — 태그가 붙은 카드의 요지·주장·대조를 날짜순으로 모은다.
     grep을 주면 그 정규식에 걸리는 주장·대조 줄만 남기고, 걸리는 줄이 없는 카드는 뺀다."""
     pat = re.compile(grep) if grep else None
@@ -194,8 +194,12 @@ def digest(tag: str, grep: str | None = None, cards: Path = CARDS) -> str:
             if not claims and not refs:
                 continue
         rows.append((fm.get("date", ""), p.stem, fm, secs.get("요지", []) if not pat else [], claims, refs))
+    rows.sort()
+    k, n = part
+    size = -(-len(rows) // n)
+    rows = rows[(k - 1) * size:k * size]
     out = []
-    for date, vid, fm, gist, claims, refs in sorted(rows):
+    for date, vid, fm, gist, claims, refs in rows:
         out.append(f"### {vid} | {date} | {fm.get('kind')} | {fm.get('quality')} | {fm.get('title')}")
         out += gist + claims + refs + [""]
     return "\n".join(out) + f"\n(카드 {len(rows)}장)\n"
@@ -212,9 +216,11 @@ def main(argv: list[str] | None = None) -> int:
     dp = sub.add_parser("digest")
     dp.add_argument("tag")
     dp.add_argument("--grep", help="주장·대조 줄을 거를 정규식 (예: '비견|겁재')")
+    dp.add_argument("--part", default="1/1", help="날짜순으로 n등분한 k번째 묶음 (예: 2/3)")
     a = ap.parse_args(argv)
     if a.cmd == "digest":
-        print(digest(a.tag, a.grep), end="")
+        k, n = (int(x) for x in a.part.split("/"))
+        print(digest(a.tag, a.grep, part=(k, n)), end="")
         return 0
     index = C.load_index()
     if a.cmd == "todo":
