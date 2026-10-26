@@ -38,3 +38,4 @@
 - 33 결손 오행 채우는 배우자 고르기 비현실 (NMT5yxBY3vU, Foc845EYdmU); 22 子丑합=水 (NMT5yxBY3vU); 14 효신도식=몰입 (C_LmmYSU_TM)
 - 30 12운성·신살 명리 무관 (ZSA8Z59Kg00); 16 투기=정재, 편재=묻지마 투자 (ZgJw3H1SREQ); 31 인성 간여지동=업무 피로·휴식 (ZXsE_BWcNQs)
 - 07 술토 매금에 갑목=재앙 vs 갑목 소토로 구함 (7FfQZwwKmXk); 31 정유년 "아무것도 말고 기다려라" 직접 처방 vs 결정 대행 금지 (_kPeNUwEciE); 33 결혼·이혼 시기 피할 수 없음 vs 운=압력 방향 (XHkWP_55Rdg)
+- 30/34 양인은 양간 월지 겁재에만, 그 밖은 겁재 (ZHr3rb_fJuc); 11 여명 상관견관=편한 구조 (XQz_MZ0vEr4); 03 병화+계수 긍정 (aQDcL42uGNU); 32 월운 인종 생략 (_2R9H-se7p0)
