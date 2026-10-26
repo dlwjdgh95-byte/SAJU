@@ -2,7 +2,8 @@
 """
 cards.py — 선운의 명리터 영상 카드 검사·작업 목록 (LLM 호출 0)
 
-  python3 scripts/sunwoon/cards.py lint [ID ...]      # 카드 검사 (인자 없으면 전부). 문제가 있으면 종료 코드 1
+  python3 scripts/sunwoon/cards.py lint [-- ID ...]   # 카드 검사 (인자 없으면 전부). 문제가 있으면 종료 코드 1
+                                                      # id가 -로 시작할 수 있으니 -- 뒤에 둔다
   python3 scripts/sunwoon/cards.py todo [--batch 10]  # 자막은 있는데 카드가 없는 편, 오래된 순으로 묶음 출력(JSON)
 
 카드 형식 (research/sunwoon/cards/<id>.md):
@@ -13,6 +14,7 @@ cards.py — 선운의 명리터 영상 카드 검사·작업 목록 (LLM 호출
   date: YYYY-MM-DD          # index.csv published와 같아야 한다
   kind: video|short|live
   tags: [지장간, 십성]       # research/sunwoon/taxonomy.md 안에서만
+  quality: good|fair|poor   # 자막 판독 품질 — poor(옛 자동자막·기계번역 등)는 집대성에서 약한 근거로만 쓴다
   ---
   ## 요지                    # 내 말로 3~7줄 (- 로 시작)
   ## 주장                    # 1. 주장 … @m:ss  (번호 목록, 줄마다 출처 시각 1개 이상)
@@ -38,6 +40,7 @@ CARDS = C.ROOT / "research" / "sunwoon" / "cards"
 TAXONOMY = C.ROOT / "research" / "sunwoon" / "taxonomy.md"
 SECTIONS = ["요지", "주장", "사례", "저장소 대조"]
 KINDS = {"video", "short", "live"}
+QUALITIES = {"good", "fair", "poor"}
 QUOTE_MAX = 20
 VERBATIM_WINDOW = QUOTE_MAX + 1  # 허용 인용(20자)보다 한 자라도 길게 겹치면 복제로 본다
 VERDICTS = ("일치", "보강", "충돌", "신규")
@@ -119,6 +122,8 @@ def lint_card(path: Path, index: dict[str, dict[str, str]], tags: set[str],
         errs.append(f"{vid}: date {fm.get('date')} ≠ index {row['published']}")
     if fm.get("kind") not in KINDS:
         errs.append(f"{vid}: kind는 video|short|live")
+    if fm.get("quality") not in QUALITIES:
+        errs.append(f"{vid}: quality는 good|fair|poor")
     got = [t.strip() for t in fm.get("tags", "").strip("[]").split(",") if t.strip()]
     if not got:
         errs.append(f"{vid}: tags 비었음")

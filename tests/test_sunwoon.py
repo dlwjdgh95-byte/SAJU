@@ -146,6 +146,7 @@ title: 술토 이야기
 date: 2026-10-25
 kind: video
 tags: [지장간, 십성]
+quality: good
 ---
 ## 요지
 - 술토 속 무토는 밖으로 드러나는 승부의 힘으로 본다
@@ -216,3 +217,7 @@ def test_todo_batches_oldest_first(tmp_path):
                            ("z", "2021-01-01", "pending"), ("w", "2018-01-01", "fetched")]}
     (tmp_path / "w.md").write_text("done")
     assert K.todo(idx, cards=tmp_path, batch=1) == [["y"], ["x"]]
+
+
+def test_quality_required(tmp_path):
+    assert any("quality" in e for e in _lint(tmp_path, GOOD.replace("quality: good\n", "")))
