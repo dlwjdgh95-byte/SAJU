@@ -4,6 +4,7 @@ cards.py — 선운의 명리터 영상 카드 검사·작업 목록 (LLM 호출
 
   python3 scripts/sunwoon/cards.py lint [-- ID ...]   # 카드 검사 (인자 없으면 전부). 문제가 있으면 종료 코드 1
                                                       # id가 -로 시작할 수 있으니 -- 뒤에 둔다
+  python3 scripts/sunwoon/cards.py lint --dir .cache/sunwoon/drafts -- ID  # 작성 중 초안 검사 (git 밖)
   python3 scripts/sunwoon/cards.py todo [--batch 10]  # 자막은 있는데 카드가 없는 편, 오래된 순으로 묶음 출력(JSON)
 
 카드 형식 (research/sunwoon/cards/<id>.md):
@@ -176,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="선운 영상 카드 검사")
     sub = ap.add_subparsers(dest="cmd", required=True)
     lp = sub.add_parser("lint")
+    lp.add_argument("--dir", type=Path, default=CARDS, help="카드 폴더 (기본 research/sunwoon/cards — 작성 중 초안은 .cache/sunwoon/drafts)")
     lp.add_argument("ids", nargs="*")
     tp = sub.add_parser("todo")
     tp.add_argument("--batch", type=int, default=10)
@@ -185,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(todo(index, batch=a.batch), ensure_ascii=False))
         return 0
     tags = load_tags()
-    paths = [CARDS / f"{i}.md" for i in a.ids] if a.ids else sorted(CARDS.glob("*.md"))
+    paths = [a.dir / f"{i}.md" for i in a.ids] if a.ids else sorted(a.dir.glob("*.md"))
     errs: list[str] = []
     for p in paths:
         errs += [f"{p.stem}: 파일 없음"] if not p.exists() else lint_card(p, index, tags)
