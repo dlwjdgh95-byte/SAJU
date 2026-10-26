@@ -1,0 +1,38 @@
+# 선운 카드 — 저장소 대조 충돌 메모 (집대성·갭 분석 입력, 작업용)
+
+> 카드 작성 에이전트들이 보고한 references 충돌 요지. 정식 판정은 research/sunwoon_review.md에서 한다.
+
+- 22 합: 합해도 본래 글자 성질 유지 (45jloW_Nnmk)
+- 01 甲+庚 丙>丁 선호; 12 신왕 재생살 존중; 26 해중 을목 표현 (pilot)
+- 22 丑未충 가벼운 일상 변화로만 (2VjFoKu9bJo); 14 동음양 생=순환 불통 신규 (3uyuk70jwjM)
+- 06 乙 소토 己土 가능 vs 원문 不能疏土 (6EHNHjqnNq4); 17 운의 도식=휴식 (-6R53jKaCWE); 22 진술충 가벼움, 35 四墓不忌刑冲과 정합 (6gfvc_Rg7eQ)
+- 08 신금 土厚埋金 흉 vs 무술년 묻힌 신금=후원 길 (7IY4_P3AmMg); 18 운 상관은 원국 정인으로 패인 불가 보강 (6icH3-uksjE); 30 신살은 상생상극 없이 근거 없음 — 3장 일관
+- 10 壬-辛·癸-庚 교차 수원 vs 원문 庚→壬 (5y-JHQPAsJg); 21 중화 부정, 인비 개수로 강약 (4PtAXk0eAxA, 0RgVkQztmd0); 12 식신제살=살인상생 동격 vs 煞用食制者上也, 통관 부정, 신살 무효 (37HNdpvU_1Y)
+- 22 합화된 오행 없는 것으로, 강약에 합충 무시 (4Ihydv-slRc, 3d6TY_Shkmo); 33 합충·원진 궁합 부정 (6ay4_nJIaRU)
+- 09 기토만 임수 관리 vs 己=탁란; 05 무토는 정화 필요 vs 병화; 02 을병 목생화 부정·해수 필요
+- 31 월운을 월간·월지 십성 쌍으로 읽음 vs 인종·원국 대조 프로토콜
+- 22 육합은 오행 불변 (6afRAEDZjr0); 25 편중=전문화, 병약 반론 (0NLxSDSlQ_A, 2GGRucstoBg); 02 등라계갑 부정 (1RbHtoeOklE); 신규: 일간 무관 월별 필요 오행 (329zrqrtYOY 등)
+- 22 충=또 다른 합·능력 (7gU-1EDuZl0); 합은 새 오행 안 만듦 (3pNgTsbJwRw); 12 재생살 긍정 (같은 2장); 17 식신정관 찬양 vs 食神忌官 (1sc8cuggrmc); 18 운의 상관견관 무해 (-sDgLDcxKC0); 21 중화 무의미 (4M9Nizhf6M4)
+- 22 삼합·방합 불변 (3gUU2GqgZJk); 30 신살·공망 전면 부정, 25 편중=전문화 (6i88yyudgn8, 2KhojBsKRfg); 31/33 재운=지출·교체, 아이 인성 대운=혼란, 배우자가 결손 오행 못 채움 (5XC78YQt-m4 등)
+- 22 삼합은 월지가 왕지일 때만 화 (9vaDOHdzFfI); 충=중립 변화·계약 (AbWqTcZS3IE, EmU2ge_QNzc); 11 정관=빠른 길; 01 벽갑인정 丙도 가능 (It_mX7k-GhE)
+- 22 충=시험·방향 선택, 합이 더 위험(지연), 천간합 오행 불변, 원진=끌림 (8TBGdvh4pNY, K6xRyWAVFZA, 9s9XSLQFafc); 33/25 未=진짜 토생금, 辰丑 생금 못함 vs TO_ROLE (JaNnXxdzhio); 12 식신제살 의문 (JlcRsUyHY5g); 21 중화 무의미 (DYA2QHL5oP0); 30 신살 생략 (CAQvlaKxOlo)
+- 15 재를 뺏는 건 겁재 아닌 비견; 22 충 대부분 불발현, 인오술은 완성일 뿐; 28 조후 운=혼란·적응기, 가점 부정; 18 금극목 상관견관=견해 조율; 29/30 12운성·신살 보류 (CXId17bTklM); 14 상관견관에서 정인·편인 반대 해석 (86LblmmwMX8)
+- 30/29 공망=점법 전용, 12신살 원리 없음; 28 원국 90%·운 10% (IK6e2kgavQg, F4q4KIwl5xU); 21 비겁운 길흉은 재관 상태로 (FXAsAun8p4c); 19 상관견관=경향, 패격 아님; 07 토후매금=발탁, 02 수다목부=자유 (흉 조건을 길로)
+- 16 편재=독립·개인 공간, 사업은 재생관·식상생재는 하청급 (EyjIdRd4D1I, CdVfNps2io4, GMG1jlbcY70); 17/13 도식=외골수 집중, 재극인=혁신 (C44MUGebBwY, E0vDiYQRUiM); 22 충=만남·협력 (9DrunLd_uyw); 11 상관견관 위화백단=스스로 백 가지 고생 감당 (CdVfNps2io4)
+- 16 편재=이상 추구, 사업 초석은 정재 (90VZGFZg5Rg); 02 경금=을목 최고 버팀목 (KeHa_UxI1AE); 05 정화가 화생토 (E-p7QyNeSpY); 물상론 부정 (GmeG2V8B3kg)
+- 09 겨울 임수 금 우선·천간 화 과다 경계 vs 戊丙 (SiuIapFOnOA); 10 해수는 경금만, 신금은 자수와만 (LkGEuKXoCwU); SKILL 결혼 단정 금지 vs 나쁜 선택 만류 (NmKKVEI5nNM)
+- 재업로드 추정: O4Wwv3UJe9k=Bpt2G1yNDl0, VTmLRE6QBLY=SiuIapFOnOA, w7ulJDL4KDM≈CKJhKazY3lc (집대성 때 중복 계수 제외)
+- 09 壬+戊=개간 못 할 밀림 (NheQ6bfM7gQ); 10 기해년 癸가 압박 주체 (VCmEUvYvryg); 33/35 辰 너무 습해 생금 못함·未가 적정 (Ud0l9r82Ye0); 궁통보감은 계절론 외 약함 (OrhNwIB9S1k); 12 비겁이 칠살 흡수 부정 (XFhniV4KrIw)
+- 22 申子辰 각자 역할 유지 (PLLXLwMo-_U), 강자충 (We16IQR8mf8); 18 상관패인 드묾·재생관 없으면 무능 (TJ-wrbLgD8g); 33 결손 오행 채우는 사람 만나라 부정 (XAaKS6DCe28); 용신 개념 부정 (P6NlRUtO_iY)
+- 22 충=만남·다른 합·순간 집중(제어 오행 유무로), 을경합=새 기능, 丑午 원진=몰입 (UnuxLJWCzxs, UZWjXF89fag, MlERAS2M5w8); 30 12운성·신살 부정 (3장); 03 己丑은 丙火 晦光 아닌 기반 (VzcOGKF6fAs)
+- 18 상관견관은 편인으로 제화 불가, 금수 아닌 상관견관도 실속 가능 (URXz43dRTvk); 02 子월 乙 병화 과다=짐 (NNcZU--H-1s); 07 가을 금은 화보다 수 (Slwg-1nH8eA); 26 인신사해 모두 무토 내장, 진습·술조 구분은 고정관념 (TWrslVbuTcQ); 丑월 경금 월지 생 못 받음 (LmRqp2WaGUc); 21 신약 자체가 중화 (NNcZU--H-1s, WAtnaC22f9Q)
+- 22 형·충 흉 해석 거부, 인사형=목생화 성장, 자묘형=왕지 경쟁·전문성 (Rw2nQ2IbHQY, NmrwatMrpns, RiBshzL8Jzs, NWNd6rAUXek); 23 丑은 습 아닌 한, 습은 병화로 (NWNd6rAUXek); 15 비겁=회피, 겁재 재 감당 시 시스템 (Uj34Te2eME0); 17 식상생재=평범한 주류 일; 29 申월=역마 단정 거부; 30 천라지망 근거 없음; 19 패격이 성격보다 행복 (SyhnlsUl_H0)
+- 18 상관격 상관견관에 정인 운=강등 (J31EWIUFHuM), 상관견관=자극, 14 도식=휴식 (Pmh3yhwyP2U); 21 신약 종격은 모두 가종, 신강약은 원국 고정 — 운·삼합으로 안 바뀜 (KI8EN4XEbf4); 04 병화만 빛·정화는 열 (QEAUvwBVHBQ); 34 丁의 巳=음인 (RKjYx1F2_Oo)
+- 12 재생살=최고 전문성·각성 (Fbl0P9wmzCw, PPScHBJh_go), 정관·편관 동등 (SX1WwTGJcWQ); 14 도식은 식신격에만·해는 드묾 (D7DY468z57w, MHa3b8Vxq1Q); 통관 비명리 용어·작동 어려움 (W8g2_HA34LI); 중화=불안, 편중이 일 잘함 (UaZ8goqz9_8); 34 비겁월은 재관 좋아도 사업 회피 (AaRoZhIFtz4)
+- 22 천간합 거리 제한 없음, 33 정합 지지 근거 없음 (FWDqP-ZZKI0); 04 丙奪丁光은 물상론, 역할 분담으로 (Jwci3JVIHH0); 23 조후는 생극 아래 부차 층위, 조후 부족한 사람이 정상에 (DpaiovlGm7k); 편재를 흉신에 포함 (9D7J97GpSis)
+- 15/16 정재↔상관·편재↔식신 짝, 정재=관리·편재=권리; 26/31 역행 30% 손해 주장 → UJoxz8U_nbo에서 철회 (JTaOqLLmwyI와 함께 읽기)
+- 30 명리에 공망 개념 없음 (JqhXrdEd2kU); 22 사유축 불화·각자 작용, 28 충 감점 점수화 비판 (RHqR090bjpw); 17/14 도식 긍정 — 식신엔 편인으로 끊기, 운 도식=한 우물 (IYyV6MsYjLo, MGhdfwkCepU); 인성혼잡 문제시 (JqhXrdEd2kU)
+- 33/errata#24 辰戌丑 생금 불가, 戌=금 자체·辰=목, 생금 토는 戊己未뿐 (FG-v59vPAr4, RwjVwfoElC4, Bihoyd4_KcA) — 반복 3장; 19 정관격 비겁 강하면 무조건 최악 (8uQtSha1QLY); 21 중화=평범·편중=비범 (ApETSSWjlO0); 04 丙이 丁 가림=휴식기 (MzzjKyM918k)
+- 11 관살혼잡은 애초 탁이 아님 — 합·극 제거는 청 아님 (K04BSZhNRso); 17 식상=주장·변화, 표현은 겁재·편재 (9GNSN8sE-ns); 09 겨울 지지 火 > 천간 丙丁, 丙=기만 (MsQYsNdIOaE); 22 子午충=더 나은 조건 제안·유혹 (CtOdmPEzoEQ)
+- 22 巳申합 수 불화, 쟁합=공유 (BWvU2dGNxi4); 26 子에 壬癸 둘 다 (C-ChQTvQE8k); 33 결손 오행 인연은 그 운이 와야 만남; 34 비왕은 재관 놓아야 (MYkr-tpI7rc); 15 겁재≠지출 (ErHwy6FdrVM)
+- 33 결손 오행 채우는 배우자 고르기 비현실 (NMT5yxBY3vU, Foc845EYdmU); 22 子丑합=水 (NMT5yxBY3vU); 14 효신도식=몰입 (C_LmmYSU_TM)
