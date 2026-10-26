@@ -37,3 +37,4 @@
 - 22 巳申합 수 불화, 쟁합=공유 (BWvU2dGNxi4); 26 子에 壬癸 둘 다 (C-ChQTvQE8k); 33 결손 오행 인연은 그 운이 와야 만남; 34 비왕은 재관 놓아야 (MYkr-tpI7rc); 15 겁재≠지출 (ErHwy6FdrVM)
 - 33 결손 오행 채우는 배우자 고르기 비현실 (NMT5yxBY3vU, Foc845EYdmU); 22 子丑합=水 (NMT5yxBY3vU); 14 효신도식=몰입 (C_LmmYSU_TM)
 - 30 12운성·신살 명리 무관 (ZSA8Z59Kg00); 16 투기=정재, 편재=묻지마 투자 (ZgJw3H1SREQ); 31 인성 간여지동=업무 피로·휴식 (ZXsE_BWcNQs)
+- 07 술토 매금에 갑목=재앙 vs 갑목 소토로 구함 (7FfQZwwKmXk); 31 정유년 "아무것도 말고 기다려라" 직접 처방 vs 결정 대행 금지 (_kPeNUwEciE); 33 결혼·이혼 시기 피할 수 없음 vs 운=압력 방향 (XHkWP_55Rdg)
