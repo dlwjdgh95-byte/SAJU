@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .DS_Store
 .pytest_cache/
+
+# 선운 자막 캐시 — 자막 전문은 git에 넣지 않는다 (scripts/sunwoon/collect.py)
+.cache/
