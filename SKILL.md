@@ -78,6 +78,7 @@ description: >
 | 배우자·연애·궁합·인연 시기 | `references/33_inyeon.md` (격국·용신 판정 후에만) |
 | 기간 운세(주간·월간·연간) 대중 서술 | `references/31_unse_narrative.md` |
 | 학파 이견 | `references/23_hakpa_igyeon.md` |
+| 현대 강의 해석 층위(서술 확장 — 판정 뒤에만) | `references/37_sunwoon_layer.md` |
 | 운 점수화 요청 | `references/28_scoring.md` (격국·조후·합충 판단 후) |
 | 최종 출력 직전 | `references/27_output_formats.md` |
 
