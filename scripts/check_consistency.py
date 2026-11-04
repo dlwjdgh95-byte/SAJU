@@ -29,6 +29,13 @@ check_consistency.py — 문서와 코드가 같은 표를 쓰는지, 문서 구
   7. 마크다운 표 깨짐 (빈 줄로 끊긴 표 등)
   8. SKILL.md·README·references/*.md가 가리키는 파일의 존재 (경로를 쓴 참조와 파일 이름만 쓴 참조 모두)
   9. 웹 엔진 표 구획이 최신인지 (scripts/build_web_tables.py --check와 같음)
+  10. 물상 문서(references/38_mulsang.md)
+     - 적천수 사본(tests/fixtures/dts_wikisource.txt)은 DTS_SHA256으로 고정한다
+     - §2 10천간 조문이 사본의 天干論 조문과 글자까지 같은지
+     - §3 천간 쌍 55항목(다른 글자 45 + 같은 글자 10)이 천간 순서로 한 번씩 있고, 항목마다 관계·양쪽 시점(같은 글자는 서로)·갈림 조건·근거·등급 줄이 이 순서로 있는지
+       '관계' 줄은 saju_calc.mulsang_relation과 같아야 하고, 시점 줄의 첫 십성 낱말은 그 쪽 일간 기준 십성이어야 한다
+     - 등급은 원문·후보·가설 가운데 하나, 원문 등급은 근거에 한문 「」 인용이 있어야 한다
+     - 문서의 한문 「」 인용은 모두 적천수 사본이나 궁통보감 사본에 있어야 한다(문장부호·공백 무시, 줄임표는 조각마다)
 """
 
 import glob, hashlib, json, os, re, sys
@@ -961,12 +968,78 @@ def check_web():
         problems.append("web/unui-sigantable.html 표 구획이 saju_calc.py와 다르다 — python3 scripts/build_web_tables.py")
 
 
+DTS = "tests/fixtures/dts_wikisource.txt"       # 維基文庫 滴天髓(輯要) 天干論·清濁論 raw — 38번 인용의 원문 사본
+DTS_SHA256 = "01e319b83534bca34f7c6da56e9c4662afe27c6e0b1a690b0d77bb2049034ea3"
+MULSANG = "references/38_mulsang.md"
+_PUNCT = re.compile(r"[\s，。、；：！？「」『』（）()…·　,.;:!?'\"]")
+SIPSEONG_RE = re.compile("비견|겁재|식신|상관|편재|정재|편관|정관|편인|정인")
+
+
+def check_mulsang():
+    with open(os.path.join(ROOT, DTS), "rb") as f:
+        raw = f.read()
+    if hashlib.sha256(raw).hexdigest() != DTS_SHA256:
+        problems.append(f"{DTS}가 고정 해시와 다르다 — 원문 사본을 다시 받았으면 DTS_SHA256을 고치고 errata에 적는다")
+    dts = raw.decode("utf-8")
+    srcs = [_PUNCT.sub("", dts), _PUNCT.sub("", read(SRC))]
+    txt = read(MULSANG)
+    # 한문 인용 대조
+    for q in re.findall("「(.+?)」", txt):
+        if not re.search(r"[\u4e00-\u9fff]", q) or re.search("[가-힣]", q):
+            continue
+        frs = [x for x in (_PUNCT.sub("", f_) for f_ in q.split("…")) if x]
+        if frs and not any(all(x in s_ for x in frs) for s_ in srcs):
+            problems.append(f"38: 인용 「{q}」이 적천수·궁통보감 사본에 없다")
+    # §2 조문
+    sec2 = section(txt, r"^## 2\. ", r"^## ")
+    for g in S.GAN:
+        m = re.search(r"===" + g + r".===\s*\{\{color\|red\|\{\{\+\|(.+?)\}\}\}\}", dts)
+        row = next((r for r in table_rows(sec2) if r and r[0] == g), None)
+        if not m or not row or len(row) < 2 or row[1] != f"「{m.group(1)}」":
+            problems.append(f"38 §2: {g} 조문이 사본 天干論 조문과 다르다(또는 행이 없다)")
+    # §3 항목
+    sec3 = section(txt, r"^## 3\. ", r"^## ")
+    heads = re.findall(r"^### (.)·(.)\s*$", sec3, re.M)
+    want = [(a, b) for i, a in enumerate(S.GAN) for b in S.GAN[i:]]
+    if heads != want:
+        miss = sorted(set(want) - set(heads), key=want.index)
+        extra = [h for h in heads if h not in want]
+        problems.append(f"38 §3: 항목이 천간 순서 55개가 아니다 — 빠짐 {['·'.join(x) for x in miss][:6]}, 남음 {['·'.join(x) for x in extra][:6]}, 순서 어긋남은 머리 순서를 확인")
+    blocks = re.split(r"^### ", sec3, flags=re.M)[1:]
+    for blk in blocks:
+        lines = blk.strip().split("\n")
+        m = re.match(r"(.)·(.)\s*$", lines[0])
+        if not m:
+            continue
+        a, b = m.groups()
+        name = f"{a}·{b}"
+        fields = [re.match(r"- \*\*(.+?)\*\*: (.*)", l) for l in lines[1:] if l.startswith("- **")]
+        fields = [(f_.group(1), f_.group(2)) for f_ in fields if f_]
+        keys = [k for k, _ in fields]
+        exp = ["관계", "서로", "갈림 조건", "근거", "등급"] if a == b else ["관계", f"{a} 쪽에서", f"{b} 쪽에서", "갈림 조건", "근거", "등급"]
+        if keys != exp:
+            problems.append(f"38 §3 {name}: 줄이 {exp} 순서가 아니다 — 지금 {keys}")
+            continue
+        d = dict(fields)
+        if d["관계"] != S.mulsang_relation(a, b):
+            problems.append(f"38 §3 {name}: 관계 줄이 계산값과 다르다 — 「{S.mulsang_relation(a, b)}」")
+        if a != b:
+            for me, other in [(a, b), (b, a)]:
+                w = SIPSEONG_RE.search(d[f"{me} 쪽에서"])
+                if w and w.group(0) != S.sipsin(me, other):
+                    problems.append(f"38 §3 {name}: {me} 쪽 첫 십성 「{w.group(0)}」 ≠ {me} 일간 기준 {other}={S.sipsin(me, other)}")
+        if d["등급"] not in ("원문", "후보", "가설"):
+            problems.append(f"38 §3 {name}: 등급 「{d['등급']}」은 원문·후보·가설이 아니다")
+        elif d["등급"] == "원문" and not any(re.search(r"[\u4e00-\u9fff]", q) for q in re.findall("「(.+?)」", d["근거"])):
+            problems.append(f"38 §3 {name}: 원문 등급인데 근거에 한문 「」 인용이 없다")
+
+
 def main():
     def check_doc_tables():
         check_tables([os.path.join(ROOT, "SKILL.md"), os.path.join(ROOT, "github-linked", "SKILL.md"),
                       os.path.join(ROOT, "README.md")] + sorted(glob.glob(os.path.join(REF, "*.md"))))
     checks = [check_janggan_doc, check_corpus_notes, check_shinsal_doc, check_samhyeong, check_johu, check_errata_pins,
-              check_doc_tables, check_paths] + ([] if "--skip-web" in sys.argv else [check_web])
+              check_doc_tables, check_paths, check_mulsang] + ([] if "--skip-web" in sys.argv else [check_web])
     for fn in checks:
         try:
             fn()

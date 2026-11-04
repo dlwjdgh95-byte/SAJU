@@ -780,3 +780,36 @@ def test_johu_lookup_points_to_month_section():
             assert not any(ln.startswith("#") and "月生" in ln for ln in lines[a:b])   # 다음 달로 넘치지 않는다
             a, _ = map(int, re.search(r"(\d+)~(\d+)줄", mat).groups())
             assert "조후 요약 매트릭스" in lines[a - 1]
+
+
+# ── 물상 쌍 (references/38_mulsang.md, errata #50) ──
+def test_mulsang_relation_both_sides():
+    assert S.mulsang_relation("己", "壬") == "己克壬 · 己 일간에게 壬 = 정재 · 壬 일간에게 己 = 정관"
+    assert S.mulsang_relation("丁", "壬").endswith("천간합(木)")
+    assert S.mulsang_relation("丙", "壬").startswith("壬克丙") and S.mulsang_relation("丙", "壬").endswith("천간충")
+    assert S.mulsang_relation("甲", "甲") == "같은 글자 · 서로 비견"
+    assert S.mulsang_key("壬", "己") == "己·壬"
+
+
+def test_mulsang_pairs_point_to_doc_headings():
+    """원국 출력의 '물상 쌍'은 일간이 낀 쌍이 먼저이고, 줄 범위의 첫 줄이 38번 §3 항목 머리다."""
+    d = S.analyze_pillars(["己亥", "丙寅", "己巳", "壬申"])
+    mp = d["물상 쌍"]
+    keys = list(mp)
+    assert len(keys) == 6 and all("일간" in k for k in keys[:3]) and not any("일간" in k for k in keys[3:])
+    lines = open(os.path.join(S.REF_DIR, S.MULSANG_DOC), encoding="utf-8").read().split("\n")
+    for k, v in mp.items():
+        m = re.match(r"38_mulsang\.md (\d+)~(\d+)줄 \((.·.)\)$", v)
+        assert m, v
+        assert lines[int(m.group(1)) - 1] == f"### {m.group(3)}"
+        assert lines[int(m.group(2)) - 1].startswith("- **등급**")
+    # 55항목 전부 문서에서 찾는다(포인터가 '§3 X·Y'로 떨어지지 않는다)
+    for i, a in enumerate(S.GAN):
+        for b in S.GAN[i:]:
+            v = S.mulsang_pairs([("일간", a), ("운", b)])
+            assert "줄" in next(iter(v.values()))
+
+
+def test_relate_has_mulsang_pair():
+    r = S.relate_to_unse(["己亥", "丙寅", "己巳", "壬申"], "壬午", label="세운")
+    assert list(r["물상 쌍"]) == ["일간己—세운壬"] and "(己·壬)" in r["물상 쌍"]["일간己—세운壬"]

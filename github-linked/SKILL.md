@@ -56,11 +56,17 @@ description: >
 코드 실행이 가능하면 스크립트를 내려받아 실행한다. 산문 공식으로 암산하지 않는다.
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/dlwjdgh95-byte/SAJU/main/scripts/saju_calc.py
+R=https://raw.githubusercontent.com/dlwjdgh95-byte/SAJU/main
+mkdir -p saju/scripts saju/references && cd saju
+curl -sSL -o scripts/saju_calc.py $R/scripts/saju_calc.py
+# 스크립트가 줄 범위를 함께 내도록 자주 쓰는 자료를 옆에 둔다 (없으면 범위 없이 항목 이름만 나온다)
+for f in johu_wonmun.json 38_mulsang.md; do curl -sSL -o references/$f $R/references/$f; done
 pip install ephem korean-lunar-calendar --break-system-packages   # 최초 1회
-python3 saju_calc.py --birth "1995-10-29 06:30" --gender M
-python3 saju_calc.py --pillars "乙亥 丙戌 癸巳 乙卯"
+python3 scripts/saju_calc.py --birth "1995-10-29 06:30" --gender M
+python3 scripts/saju_calc.py --pillars "乙亥 丙戌 癸巳 乙卯"
 ```
+
+`조후`의 `읽을 곳`이 가리키는 01~10번 파일도 같은 방식으로 `references/`에 받아 두면 줄 범위가 나온다. 판정이 끝난 뒤 `물상 쌍`이 가리키는 38번 항목만 읽는다(원본 SKILL.md Step 6-0).
 
 커넥터로만 읽을 수 있으면 파일 내용을 그대로 저장해 실행한다. 옵션과 출력 확인 항목은 원본 SKILL.md Step 1에 있다.
 코드 실행이 불가능한 환경이면 `references/26_manual_calc.md`로 수동 계산한다.
