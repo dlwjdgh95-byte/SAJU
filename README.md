@@ -17,7 +17,7 @@
 ```
 /                       ← 방법 A: 이 루트 전체가 스킬
 ├── SKILL.md            (원본, 전체 로직)
-├── references/         (상세 자료 38개 + johu_wonmun.json)
+├── references/         (상세 자료 39개 + johu_wonmun.json)
 └── scripts/saju_calc.py
 ```
 
@@ -67,6 +67,7 @@ github-linked/
 - `references/11~18` — 격국 (십신별 格), `34` 건록·월겁·양인, `35` 잡기(辰戌丑未월)·묘고
 - `references/19~28` — 성패·강약·합충·학파이견·원전사례·병약론·수동계산·출력·점수화
 - `references/29~33` — 십이신살·십이운성/신살 조견표·기간 운세 서술·십성 인종·인연 층위
+- `references/36` 계산 옵션, `37` 현대 강의(선운) 해석 층위, `38` 물상 해석 — 10천간 물상과 천간 55쌍의 양쪽 시점·갈림 조건(적천수 원문 사본 `tests/fixtures/dts_wikisource.txt` 대조)
 - `scripts/saju_calc.py` — 간지·절기·시간대·대운·세운 결정론적 계산 (ephem, korean-lunar-calendar)
 - `scripts/build_web_tables.py` — 웹 엔진 표 구획 생성 / `scripts/check_consistency.py` — 문서·코드 일치 검사
 - `tests/` — pytest·node 테스트와 픽스처 (천문연 절입 시각, 교차검증 명조)

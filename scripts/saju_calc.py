@@ -663,6 +663,49 @@ def johu_lookup(day, mz):
     out["⚠️"] = "조후 파일은 이 두 범위만 읽는다. 격국 결과와의 겸용·불일치 판단은 SKILL.md Step 5"
     return out
 
+MULSANG_DOC = "38_mulsang.md"
+
+def mulsang_relation(a, b):
+    """두 천간의 생극 방향·양쪽 일간 기준 십성·천간합충 — 38번 §3 '관계' 줄과 같은 식 (check_consistency가 대조)."""
+    if a == b:
+        return "같은 글자 · 서로 비견"
+    oa, ob = OHENG[a], OHENG[b]
+    if oa == ob: r = f"{a}{b} 같은 오행"
+    elif SHENG[oa] == ob: r = f"{a}生{b}"
+    elif SHENG[ob] == oa: r = f"{b}生{a}"
+    elif KE[oa] == ob: r = f"{a}克{b}"
+    else: r = f"{b}克{a}"
+    r += f" · {a} 일간에게 {b} = {sipsin(a, b)} · {b} 일간에게 {a} = {sipsin(b, a)}"
+    p = frozenset((a, b))
+    if p in CHEONGAN_HAP: r += f" · 천간합({CHEONGAN_HAP[p]})"
+    if p in CHEONGAN_CHUNG: r += " · 천간충"
+    return r
+
+def mulsang_key(a, b):
+    """38번 §3 항목 이름 — 천간 순서로 '甲·乙'."""
+    x, y = sorted((a, b), key=GAN.index)
+    return f"{x}·{y}"
+
+def mulsang_pairs(items, day_label="일간"):
+    """[(라벨, 천간)] → 38번 §3에서 읽을 항목과 줄 범위. 일간이 낀 쌍을 먼저 둔다 (SKILL.md Step 6-0).
+    판정이 아니라 서술용 포인터다 — 해석은 문서의 '일간 쪽에서'·'갈림 조건' 줄로 한다."""
+    doc = os.path.join(REF_DIR, MULSANG_DOC)
+    try:
+        with open(doc, encoding="utf-8") as f:
+            lines = f.read().split("\n")
+    except OSError:
+        lines = None
+    def where(key):
+        if lines is None: return f"{MULSANG_DOC} §3 {key}"
+        i = next((k for k, ln in enumerate(lines) if ln.strip() == f"### {key}"), None)
+        if i is None: return f"{MULSANG_DOC} §3 {key}"
+        j = next((k for k in range(i + 1, len(lines)) if lines[k].startswith("#")), len(lines))
+        while j > i + 1 and not lines[j - 1].strip(): j -= 1
+        return f"{MULSANG_DOC} {i + 1}~{j}줄 ({key})"
+    pairs = [(items[i], items[j]) for i in range(len(items)) for j in range(i + 1, len(items))]
+    pairs.sort(key=lambda p: 0 if day_label in (p[0][0], p[1][0]) else 1)
+    return {f"{la}{a}—{lb}{b}": where(mulsang_key(a, b)) for (la, a), (lb, b) in pairs}
+
 def analyze_pillars(pillars):
     """4기둥(시각 모름이면 연·월·일 3기둥) → 십신·장간·오행·통근·관계·격 후보 분석 dict."""
     gans, zhis = [p[0] for p in pillars], [p[1] for p in pillars]
@@ -696,6 +739,7 @@ def analyze_pillars(pillars):
     res["격 후보"] = gyeok_candidates(pillars)
     res["조후"] = johu_lookup(day, mz)
     res["천간 관계"] = stem_relations(list(zip(gl, gans))) or {"—": ["없음"]}
+    res["물상 쌍"] = mulsang_pairs(list(zip(gl, gans)))
     res["지지 3자 조합"] = combo_relations(list(zip(zl, zhis)))
     res["신살"] = analyze_shinsal(pillars)
     return res
@@ -1035,6 +1079,7 @@ def relate_to_unse(pillars, unse_gz, label="운"):
     out["십성 인종"] = injong_report(day, uz, pillars=pillars, context=[uz], label=label)
     gr = {f"{labels[i]}간 {gans[i]}": cheongan_relations(gans[i], ug) for i in range(len(pillars))}
     out["원국과의 천간 관계"] = {k: v for k, v in gr.items() if v} or {"—": ["없음"]}
+    out["물상 쌍"] = mulsang_pairs([("일간", day), (label, ug)])
     rel = {}
     for i in range(len(pillars)):
         r = zhi_relations(zhis[i], uz)
