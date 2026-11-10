@@ -813,3 +813,23 @@ def test_mulsang_pairs_point_to_doc_headings():
 def test_relate_has_mulsang_pair():
     r = S.relate_to_unse(["己亥", "丙寅", "己巳", "壬申"], "壬午", label="세운")
     assert list(r["물상 쌍"]) == ["일간己—세운壬"] and "(己·壬)" in r["물상 쌍"]["일간己—세운壬"]
+
+
+def test_combo_year_matches_monthly_combo():               # --combo-year 요약표는 달마다 --combo를 돌린 것과 같다 (errata #51)
+    P = "乙亥 丙戌 癸巳 乙卯"
+    d = json.loads(run_cli("--pillars", P, "--combo-year", "2027", "--combo-daewoon", "癸未", "--json"))
+    assert set(d) == {"pillars", "연간 조합"}                 # 원국 분석을 되풀이해 싣지 않는다
+    y = d["연간 조합"]
+    assert y["세운"]["간지"] == "丁未" and y["세운"]["천간 합충"]["일간癸—세운 천간丁"] == ["천간충"]
+    assert [r["간지"] for r in y["월운 12"]] == [r["ganzhi"] for r in S.wolwoon_table(2027)]
+    for r in y["월운 12"]:
+        full = json.loads(run_cli("--pillars", P, "--combo", f"대운:癸未,세운:丁未,월운:{r['간지']}", "--json"))["조합 판정"]
+        want = sorted(c["조합"] for c in full["지지 3자 조합"]["완성"]
+                      if isinstance(c, dict) and c["성립"] == "운에서 완성" and any("월운" in v for v in c["구성"].values()))
+        got = sorted(s.split(" — ")[0] for s in r["3자 완성"]) if r["3자 완성"] != "없음" else []
+        assert got == want, r["간지"]
+    aug = next(r for r in y["월운 12"] if r["간지"] == "戊申")
+    assert aug["천간 합충"]["일간癸—월운 천간戊"] == ["천간합(火)"] and "육합" in aug["지지 관계"]["일지 巳"]
+    for bad in (["--combo-daewoon", "癸未"], ["--combo-year", "2027", "--relate", "丙午"], ["--combo-year", "1200"]):
+        with pytest.raises(SystemExit):
+            run_cli("--pillars", P, *bad)

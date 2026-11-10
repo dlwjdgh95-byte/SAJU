@@ -1127,6 +1127,45 @@ def combo_report(pillars, spec):
         "⚠️": "3자 조합은 '성립 여부'까지다. 합화(化) 성립은 월령·투간 조건을 22번 §2로 따로 판정한다",
     }
 
+def combo_year(pillars, year, daewoon_gz=None, tz_hours=None, zone="Asia/Seoul"):
+    """--combo-year: 세운 + 월운 12달을 원국(+대운)에 한 번에 대입한 요약표.
+    달마다 --relate·--combo를 따로 돌리지 않도록 운이 끼어든 관계만 한 줄씩 낸다(원국 분석은 싣지 않는다)."""
+    labels = ["년", "월", "일", "시"][:len(pillars)]
+    day = pillars[2][0]
+    sy = sewoon(year)
+    base = [("대운", daewoon_gz)] if daewoon_gz else []
+    def line(layers):
+        """layers: [(라벨, 간지), ...] 가운데 마지막 것이 이번에 대입하는 운"""
+        lab, gz = layers[-1]
+        rep = combo_report(pillars, ",".join(f"{l}:{g}" for l, g in layers))
+        stems = {k: v for k, v in rep["천간 합충(운 개입분)"].items() if f"{lab} 천간" in k}
+        zrel = {}
+        for src, z in [(f"{l}지 {pillars[i][1]}", pillars[i][1]) for i, l in enumerate(labels)] + \
+                      [(f"{l} {g[1]}", g[1]) for l, g in layers[:-1]]:
+            r = zhi_relations(z, gz[1])
+            if r: zrel[src] = r
+        done = [f'{c["조합"]} — ' + "·".join(f"{k}({v})" for k, v in c["구성"].items())
+                for c in rep["지지 3자 조합"]["완성"]
+                if isinstance(c, dict) and c["성립"] == "운에서 완성" and any(lab in v for v in c["구성"].values())]
+        row = {"간지": gz, "십신": f"{gz[0]} {sipsin(day, gz[0])} / {gz[1]} 본기 {sipsin(day, BONGI[gz[1]])}",
+               "일간 운성": unseong(day, gz[1]),
+               "천간 합충": stems or "없음", "지지 관계": zrel or "없음", "3자 완성": done or "없음"}
+        if gz[1] in gongmang(pillars[2]): row["공망"] = "일주 기준"
+        return row
+    months = []
+    for r in wolwoon_table(year, tz_hours, zone):
+        row = {"절입": f'{r["jie"]} {r["jie_enter"]}'}
+        row.update(line(base + [("세운", sy), ("월운", r["ganzhi"])]))
+        months.append(row)
+    out = {"대상": " / ".join(pillars) + (f" · 대운 {daewoon_gz}" if daewoon_gz else " · 대운 미지정"),
+           "세운": dict({"연도": f"{year}년 (입춘 기준)"}, **line(base + [("세운", sy)])),
+           "월운 12": months,
+           "⚠️": "관계의 '성립 여부'까지다 — 길흉은 용신·기신으로 따로 판정하고, 합화(化)는 22번 §2로 본다. "
+                 "달 하나를 자세히 보려면 --relate·--combo를 쓴다"}
+    if daewoon_gz:
+        out["대운"] = line([("대운", daewoon_gz)])
+    return out
+
 # ═══════════════════════ 9. 인연 층위 (references/33) ═══════════════════════
 # ⚠️ 저장소에서 근거가 가장 얇은 층위다. 축별 등급을 반드시 병기한다. (33_inyeon.md §1)
 # ⚠️ 길흉 점수가 아니다. 28_scoring.md 점수 모델과 무관하며 어떤 축에도 합산하지 않는다.
@@ -1630,6 +1669,9 @@ def build_parser():
                     help="운 간지 하나를 원국에 대입 (--pillars 또는 --birth와 함께). 예: --relate 丁酉")
     ap.add_argument("--combo", metavar="라벨:干支,...",
                     help="원국 + 운 간지 여러 개의 삼합·방합·삼형·천간합충 일괄 판정. 예: --combo 대운:癸未,세운:丙午,월운:庚寅")
+    ap.add_argument("--combo-year", type=int, metavar="YYYY",
+                    help="세운+월운 12달을 원국(+대운)에 한 번에 대입한 요약표 — 달마다 --combo를 돌리지 않는다")
+    ap.add_argument("--combo-daewoon", metavar="干支", help="--combo-year에 함께 대입할 대운 간지 (예: 癸未)")
     ap.add_argument("--injong", metavar="支",
                     help="십성 인종 전개 (일간이 필요해 --pillars 또는 --birth와 함께 쓴다 — 원국 교차(4분면)까지 나온다). 지지 하나 또는 간지. 예: --injong 酉")
     ap.add_argument("--injong-year", type=int, metavar="YYYY",
@@ -1670,11 +1712,12 @@ def main(argv=None):
                                   ("--eot", a.eot), ("--no-solar-correction", a.no_solar_correction), ("--zasi", a.zasi != "next")] if on]
     natal = [o for o, on in [("--pillars", a.pillars), ("--birth", a.birth), ("--relate", a.relate), ("--combo", a.combo is not None),
                              ("--injong", a.injong), ("--injong-year", a.injong_year is not None), ("--inyeon", a.inyeon),
+                             ("--combo-year", a.combo_year is not None), ("--combo-daewoon", a.combo_daewoon),
                              ("--yongsin", a.yongsin), ("--yongsin-role", a.yongsin_role), ("--inyeon-scan", a.inyeon_scan),
                              ("--inyeon-daewoon", a.inyeon_daewoon), ("--inyeon-activity", a.inyeon_activity)] if on]
     place_opts = [o for o, on in [("--place", a.place), ("--zone", a.zone), ("--tz", a.tz is not None)] if on]
     jang = ["--janggan"] if a.janggan != JANGGAN_DEFAULT else []          # 세운표·표 내보내기는 장간표를 쓰지 않는다
-    for opt in ("birth", "place", "zone", "pillars", "relate", "combo", "injong", "yongsin", "inyeon_scan", "inyeon_daewoon"):
+    for opt in ("birth", "place", "zone", "pillars", "relate", "combo", "injong", "yongsin", "inyeon_scan", "inyeon_daewoon", "combo_daewoon"):
         v = getattr(a, opt)
         if v is not None and not v.strip():                 # 빈 값은 옵션을 안 준 것과 같아 보여 조용히 넘어가므로 막는다
             sys.exit(f"--{opt.replace('_', '-')}에 빈 값을 줄 수 없다")
@@ -1686,7 +1729,7 @@ def main(argv=None):
                      f"{'·'.join(others)}와 함께 쓸 수 없다")
         print(json.dumps(export_tables(), ensure_ascii=False, indent=1)); return
 
-    for opt, v in [("--year-fortune", a.year_fortune), ("--injong-year", a.injong_year)]:
+    for opt, v in [("--year-fortune", a.year_fortune), ("--injong-year", a.injong_year), ("--combo-year", a.combo_year)]:
         if v is not None and not YEAR_MIN <= v <= YEAR_MAX:
             sys.exit(f"{opt} 연도는 {YEAR_MIN}~{YEAR_MAX}년")
     if a.eot and a.no_solar_correction:
@@ -1701,8 +1744,10 @@ def main(argv=None):
         sys.exit(f"--year-fortune은 세운·월운 표만 낸다 — 원국·출생·장간 옵션({'·'.join(natal + birth_only + jang)})과 함께 쓸 수 없다")
     if a.pillars and birth_only:
         sys.exit(f"--pillars는 주어진 사주만 분석한다(대운 없음) — {'·'.join(birth_only)}는 --birth와 함께 쓴다")
-    if a.pillars and place_opts and a.injong_year is None:
-        sys.exit(f"--pillars에서 {'·'.join(place_opts)}는 --injong-year(월운 절입 시각)와 함께만 쓴다")
+    if a.pillars and place_opts and a.injong_year is None and a.combo_year is None:
+        sys.exit(f"--pillars에서 {'·'.join(place_opts)}는 --injong-year·--combo-year(월운 절입 시각)와 함께만 쓴다")
+    if a.combo_daewoon and a.combo_year is None:
+        sys.exit("--combo-daewoon은 --combo-year와 함께 쓴다")
     if a.year_fortune is not None:
         if ephem is None:
             sys.exit("ephem 미설치: pip install ephem --break-system-packages")
@@ -1720,14 +1765,23 @@ def main(argv=None):
     else:
         ap.error("--birth와 --gender 필요 (또는 --pillars / --year-fortune / --export-tables)")
 
-    for opt, v in [("--relate", a.relate), ("--inyeon-daewoon", a.inyeon_daewoon)]:
+    for opt, v in [("--relate", a.relate), ("--inyeon-daewoon", a.inyeon_daewoon), ("--combo-daewoon", a.combo_daewoon)]:
         if v and not valid_ganzhi(v):
             sys.exit(f"{opt} 간지 형식 오류: {v!r} — 60갑자 간지여야 한다 (예: 丁酉)")
     if a.injong and not (a.injong[-1] in ZHI and (len(a.injong) == 1 or valid_ganzhi(a.injong))):
         sys.exit(f"--injong 형식 오류: {a.injong!r} — 지지 하나 또는 60갑자 간지 (예: 酉, 丁酉)")
+    zone = _check_zone(a.zone or PLACES[_check_place(a.place)][1])
+    if a.combo_year is not None:                    # 요약표 전용 — 원국 분석을 되풀이해 싣지 않는다
+        others = [o for o in natal if o not in ("--pillars", "--birth", "--combo-year", "--combo-daewoon")]
+        if others:
+            sys.exit(f"--combo-year는 요약표만 낸다 — {'·'.join(others)}와 함께 쓸 수 없다")
+        if ephem is None:
+            sys.exit("ephem 미설치: pip install ephem --break-system-packages")
+        res = {"pillars": ps, "연간 조합": combo_year(ps, a.combo_year, a.combo_daewoon, getattr(a, "year_tz", a.tz), zone)}
+        if warn: res["경고"] = warn
+        _emit(res, a); return
     res = analyze_pillars(ps)
     res.update(extra)
-    zone = _check_zone(a.zone or PLACES[_check_place(a.place)][1])
     if a.relate: res["운 대입"] = relate_to_unse(ps, a.relate)
     if a.combo is not None:
         try:
